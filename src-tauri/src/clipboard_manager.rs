@@ -11,7 +11,7 @@ use std::hash::{Hash, Hasher};
 use std::io::Cursor;
 use std::path::PathBuf;
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use uuid::Uuid;
 
 // --- Constants ---
@@ -20,7 +20,8 @@ pub const DEFAULT_MAX_HISTORY_SIZE: usize = 50;
 const PREVIEW_TEXT_MAX_LEN: usize = 100;
 const GIF_CACHE_MARKER: &str = "win11-clipboard-history/gifs/";
 const FILE_URI_PREFIX: &str = "file://";
-const WL_COPY_SETTLE_TIME: u64 = 150;
+const CLIPBOARD_HELPER_READY_TIMEOUT: Duration = Duration::from_secs(2);
+const CLIPBOARD_HELPER_POLL_INTERVAL: Duration = Duration::from_millis(2);
 
 // --- Helper Functions ---
 
@@ -99,7 +100,7 @@ impl ClipboardItem {
         let preview = if text.chars().count() > PREVIEW_TEXT_MAX_LEN {
             format!(
                 "{}...",
-                &text.chars().take(PREVIEW_TEXT_MAX_LEN).collect::<String>()
+                text.chars().take(PREVIEW_TEXT_MAX_LEN).collect::<String>()
             )
         } else {
             text.clone()
@@ -112,7 +113,7 @@ impl ClipboardItem {
         let preview = if plain.chars().count() > PREVIEW_TEXT_MAX_LEN {
             format!(
                 "{}...",
-                &plain.chars().take(PREVIEW_TEXT_MAX_LEN).collect::<String>()
+                plain.chars().take(PREVIEW_TEXT_MAX_LEN).collect::<String>()
             )
         } else {
             plain.clone()
@@ -658,8 +659,7 @@ impl ClipboardManager {
                 width,
                 height,
             } => {
-                let mut clipboard = get_system_clipboard()?;
-                self.write_image_to_clipboard(&mut clipboard, base64, *width, *height)?;
+                self.set_image_robust(base64, *width, *height)?;
             }
         }
 
@@ -672,41 +672,64 @@ impl ClipboardManager {
         Ok(())
     }
 
-    fn write_image_to_clipboard(
-        &self,
-        clipboard: &mut Clipboard,
-        base64_str: &str,
-        width: u32,
-        height: u32,
-    ) -> Result<(), String> {
+    fn set_image_robust(&self, base64_str: &str, width: u32, height: u32) -> Result<(), String> {
         let bytes = BASE64
             .decode(base64_str)
             .map_err(|e| format!("Base64 decode failed: {}", e))?;
+
+        #[cfg(target_os = "linux")]
+        {
+            if crate::session::is_wayland() {
+                if self
+                    .set_clipboard_external("wl-copy", &["--type", "image/png"], &bytes)
+                    .is_ok()
+                {
+                    return Ok(());
+                }
+            } else if self
+                .set_clipboard_external(
+                    "xclip",
+                    &["-selection", "clipboard", "-t", "image/png"],
+                    &bytes,
+                )
+                .is_ok()
+            {
+                return Ok(());
+            }
+        }
+
+        let mut clipboard = get_system_clipboard()?;
         let img =
             image::load_from_memory(&bytes).map_err(|e| format!("Image load failed: {}", e))?;
         let rgba = img.to_rgba8();
+        let expected_bytes = rgba.into_raw();
 
         let image_data = ImageData {
             width: width as usize,
             height: height as usize,
-            bytes: rgba.into_raw().into(),
+            bytes: expected_bytes.clone().into(),
         };
 
-        clipboard.set_image(image_data).map_err(|e| e.to_string())
+        clipboard.set_image(image_data).map_err(|e| e.to_string())?;
+
+        // Reading through the same arboard instance performs the backend
+        // round trip that confirms our provider owns and serves the selection.
+        let observed = clipboard.get_image().map_err(|e| e.to_string())?;
+        if observed.width != width as usize
+            || observed.height != height as usize
+            || observed.bytes.as_ref() != expected_bytes.as_slice()
+        {
+            return Err("Clipboard image verification returned different data".to_string());
+        }
+
+        Ok(())
     }
 
     fn simulate_paste_action(&self) -> Result<(), String> {
-        // Wait for the clipboard write to settle: confirmed via the X11
-        // selection owner when possible, same fixed sleep otherwise.
-        crate::paste_sync::settle_clipboard_owned(Duration::from_millis(60));
-
-        // Trigger keystroke
-        crate::input_simulator::simulate_paste_keystroke()?;
-
-        // before the clipboard ownership changes or the app reads it.
-        thread::sleep(Duration::from_millis(250));
-
-        Ok(())
+        // Clipboard writers return only after their platform-specific
+        // readiness barrier. The serving process (or arboard's verified global
+        // worker) outlives this call, so no fixed post-paste retention is needed.
+        crate::input_simulator::simulate_paste_keystroke()
     }
 
     /// Robustly set text to clipboard using xclip/wl-copy on Linux if available,
@@ -718,14 +741,14 @@ impl ClipboardManager {
                 if let Ok(()) = self.set_clipboard_external(
                     "wl-copy",
                     &["--type", "text/plain;charset=utf-8"],
-                    text,
+                    text.as_bytes(),
                 ) {
                     return Ok(());
                 }
             } else if let Ok(()) = self.set_clipboard_external(
                 "xclip",
                 &["-selection", "clipboard", "-t", "UTF8_STRING"],
-                text,
+                text.as_bytes(),
             ) {
                 return Ok(());
             }
@@ -733,7 +756,12 @@ impl ClipboardManager {
 
         // Fallback to arboard
         let mut clipboard = get_system_clipboard()?;
-        clipboard.set_text(text).map_err(|e| e.to_string())
+        clipboard.set_text(text).map_err(|e| e.to_string())?;
+        let observed = clipboard.get_text().map_err(|e| e.to_string())?;
+        if observed != text {
+            return Err("Clipboard text verification returned different data".to_string());
+        }
+        Ok(())
     }
 
     /// Robustly set HTML to clipboard using xclip/wl-copy on Linux if available,
@@ -742,16 +770,18 @@ impl ClipboardManager {
         #[cfg(target_os = "linux")]
         {
             if crate::session::is_wayland() {
-                if let Ok(()) =
-                    self.set_clipboard_external("wl-copy", &["--type", "text/html"], html)
-                {
+                if let Ok(()) = self.set_clipboard_external(
+                    "wl-copy",
+                    &["--type", "text/html"],
+                    html.as_bytes(),
+                ) {
                     let _ = self.set_text_robust(plain);
                     return Ok(());
                 }
             } else if let Ok(()) = self.set_clipboard_external(
                 "xclip",
                 &["-selection", "clipboard", "-t", "text/html"],
-                html,
+                html.as_bytes(),
             ) {
                 let _ = self.set_text_robust(plain);
                 return Ok(());
@@ -762,10 +792,15 @@ impl ClipboardManager {
         let mut clipboard = get_system_clipboard()?;
         clipboard
             .set_html(html, Some(plain))
-            .map_err(|e| e.to_string())
+            .map_err(|e| e.to_string())?;
+        let observed = clipboard.get().html().map_err(|e| e.to_string())?;
+        if observed != html {
+            return Err("Clipboard HTML verification returned different data".to_string());
+        }
+        Ok(())
     }
 
-    fn set_clipboard_external(&self, cmd: &str, args: &[&str], data: &str) -> Result<(), String> {
+    fn set_clipboard_external(&self, cmd: &str, args: &[&str], data: &[u8]) -> Result<(), String> {
         use std::io::{Read, Write};
         use std::process::{Command, Stdio};
 
@@ -782,17 +817,32 @@ impl ClipboardManager {
 
         if let Some(mut stdin) = child.stdin.take() {
             stdin
-                .write_all(data.as_bytes())
+                .write_all(data)
                 .map_err(|e| format!("Pipe write error: {}", e))?;
         }
 
-        // Wait for the helper to actually acquire the selection, polling the
-        // real X11 CLIPBOARD owner instead of sleeping a fixed delay.
-        // Sleeps the same fixed delay as before when unverifiable (Wayland).
-        crate::paste_sync::settle_clipboard_handoff(
+        if cmd == "wl-copy" {
+            // wl-copy's foreground parent exits only after the Wayland
+            // selection was installed. Waiting for that exit is an adaptive
+            // readiness acknowledgement: immediate on a fast compositor and
+            // longer only while a constrained compositor is still working.
+            return wait_for_clipboard_helper_ready(&mut child, cmd);
+        }
+
+        // On X11, selection ownership is directly observable. A timeout is a
+        // failed precondition, not permission to emit an unverified Ctrl+V.
+        let handoff_confirmed = crate::paste_sync::settle_clipboard_handoff(
             owner_before,
-            Duration::from_millis(WL_COPY_SETTLE_TIME),
+            CLIPBOARD_HELPER_READY_TIMEOUT,
         );
+        if !handoff_confirmed {
+            let _ = child.kill();
+            let _ = child.wait();
+            return Err(format!(
+                "{} did not acquire the clipboard selection within {:?}",
+                cmd, CLIPBOARD_HELPER_READY_TIMEOUT
+            ));
+        }
 
         match child.try_wait() {
             Ok(Some(status)) if !status.success() => {
@@ -808,16 +858,57 @@ impl ClipboardManager {
                 ))
             }
             Ok(_) => {
-                // If it's still running or exited successfully, we assume it worked.
-                // For xclip/wl-copy, they often background themselves or stay alive to serve content.
-                if cmd == "xclip" {
-                    thread::spawn(move || {
-                        let _ = child.wait();
-                    });
-                }
+                // xclip remains alive to serve selection requests. Reap it in
+                // the background after another application takes ownership.
+                thread::spawn(move || {
+                    let _ = child.wait();
+                });
                 Ok(())
             }
             Err(e) => Err(format!("Process status check failed: {}", e)),
+        }
+    }
+}
+
+/// Waits for helpers such as wl-copy whose parent process exits after the
+/// clipboard selection is ready. The child serving the selection has already
+/// forked by then, so waiting for the parent does not shorten clipboard life.
+fn wait_for_clipboard_helper_ready(
+    child: &mut std::process::Child,
+    command: &str,
+) -> Result<(), String> {
+    use std::io::Read;
+
+    let start = Instant::now();
+    loop {
+        match child.try_wait() {
+            Ok(Some(status)) if status.success() => return Ok(()),
+            Ok(Some(status)) => {
+                let mut stderr = String::new();
+                if let Some(mut pipe) = child.stderr.take() {
+                    let _ = pipe.read_to_string(&mut stderr);
+                }
+                return Err(format!(
+                    "{} exited with status {}. Stderr: {}",
+                    command,
+                    status,
+                    stderr.trim()
+                ));
+            }
+            Ok(None) if start.elapsed() < CLIPBOARD_HELPER_READY_TIMEOUT => {
+                thread::sleep(CLIPBOARD_HELPER_POLL_INTERVAL);
+            }
+            Ok(None) => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err(format!(
+                    "{} did not confirm clipboard readiness within {:?}",
+                    command, CLIPBOARD_HELPER_READY_TIMEOUT
+                ));
+            }
+            Err(error) => {
+                return Err(format!("Failed to inspect {} status: {}", command, error));
+            }
         }
     }
 }

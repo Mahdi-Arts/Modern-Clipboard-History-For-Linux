@@ -8,26 +8,30 @@ use std::time::{Duration, Instant};
 use x11rb::connection::Connection;
 use x11rb::protocol::xproto::{AtomEnum, ClientMessageEvent, ConnectionExt, EventMask, InputFocus};
 
-/// Time to wait after restoring focus before allowing the paste to proceed
-const FOCUS_RESTORE_DELAY: Duration = Duration::from_millis(150);
+/// Failure ceiling for focus restoration. Fast systems return after two
+/// confirmed samples; constrained systems are allowed more time without
+/// imposing that time on every paste.
+const FOCUS_RESTORE_TIMEOUT: Duration = Duration::from_millis(750);
 
 /// Stores the ID of the window that had focus before we opened
 static LAST_FOCUSED_WINDOW: AtomicU32 = AtomicU32::new(0);
 
 pub fn save_focused_window() {
-    match get_x11_connection() {
-        Ok(conn) => match conn.get_input_focus() {
-            Ok(cookie) => match cookie.reply() {
-                Ok(reply) => {
-                    let window_id = reply.focus;
-                    LAST_FOCUSED_WINDOW.store(window_id, Ordering::SeqCst);
-                    eprintln!("[FocusManager] Saved focused window: {}", window_id);
-                }
-                Err(e) => eprintln!("[FocusManager] Failed to get focus reply: {}", e),
-            },
-            Err(e) => eprintln!("[FocusManager] Failed to request input focus: {}", e),
-        },
-        Err(e) => eprintln!("[FocusManager] X11 Connection failed: {}", e),
+    if !crate::session::is_x11() {
+        return;
+    }
+
+    // Never reuse a target captured for an older popup invocation if this
+    // query fails. Pasting nowhere is safer than redirecting input to a stale
+    // application window.
+    LAST_FOCUSED_WINDOW.store(0, Ordering::SeqCst);
+
+    match crate::paste_sync::focused_window() {
+        Some(window_id) => {
+            LAST_FOCUSED_WINDOW.store(window_id, Ordering::SeqCst);
+            eprintln!("[FocusManager] Saved focused window: {}", window_id);
+        }
+        None => eprintln!("[FocusManager] Failed to query the focused X11 window"),
     }
 }
 
@@ -40,36 +44,11 @@ pub fn restore_focused_window() -> Result<bool, String> {
 
     eprintln!("[FocusManager] Restoring focus to window: {}", window_id);
 
-    let conn = get_x11_connection()?;
-
-    conn.set_input_focus(InputFocus::PARENT, window_id, x11rb::CURRENT_TIME)
-        .map_err(|e| format!("Set focus failed: {}", e))?;
-
-    conn.flush().map_err(|e| format!("Flush failed: {}", e))?;
-
-    // Wait for the Window Manager to actually process the focus change,
-    // polling the real focus state instead of sleeping a fixed delay.
-    // If unverifiable, settle_focus sleeps the same fixed delay as before.
-    let confirmed = crate::paste_sync::settle_focus(window_id, FOCUS_RESTORE_DELAY);
-
-    Ok(confirmed)
+    crate::paste_sync::restore_and_settle_focus(window_id, FOCUS_RESTORE_TIMEOUT)
 }
 
 pub fn get_focused_window() -> Option<u32> {
-    let conn = get_x11_connection().ok()?;
-
-    // Split the chain to satisfy the borrow checker (fix for E0597)
-    let cookie = conn.get_input_focus().ok()?;
-    let reply = cookie.reply().ok()?;
-
-    Some(reply.focus)
-}
-
-/// Helper to establish X11 connection
-fn get_x11_connection() -> Result<impl Connection, String> {
-    x11rb::connect(None)
-        .map(|(conn, _)| conn)
-        .map_err(|e| format!("X11 connect failed: {}", e))
+    crate::paste_sync::focused_window()
 }
 
 // =============================================================================
