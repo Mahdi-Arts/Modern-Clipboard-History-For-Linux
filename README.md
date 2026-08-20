@@ -28,6 +28,7 @@
 | 🛡️ | Local SQLite history, secret filter | تاریخچه محلی، فیلتر اسرار |
 | 🎨 | Acrylic UI, light/dark/system | ظاهر شیشه‌ای، تم سیستم |
 | 🔍 | Search with optional regex | جستجو با regex اختیاری |
+| 🔒 | Fully offline — bundled fonts, zero runtime network | کاملاً آفلاین — فونت محلی، بدون اتصال شبکه |
 
 ---
 
@@ -47,11 +48,13 @@ Clipboard history is stored **only on this machine**:
 
 History size is capped at **2000** items. Persistence is incremental (upsert/delete), not a full rewrite on every copy.
 
-**Network:** the app does not upload clipboard contents. GIF search (optional, currently hidden) requires `TENOR_API_KEY` in the environment and only talks to Tenor over pinned HTTPS.
+**Network:** the app does not upload clipboard contents, and in normal operation it makes **zero network calls** — the Vazirmatn font is bundled locally (see `public/fonts/OFL.txt`). GIF search (optional, currently hidden) requires `TENOR_API_KEY` in the environment and only talks to Tenor over pinned HTTPS with SSRF validation + DNS pinning.
 
-This project needs `/dev/uinput` (or XTest) to simulate Ctrl+V. That is a powerful permission — treat the binary like a trusted input device.
+This project needs `/dev/uinput` (or XTest) to simulate Ctrl+V. That is a powerful permission — treat the binary like a trusted input device. An optional AppArmor profile (complain mode by default) is shipped in `packaging/apparmor/` and installed to `/usr/share/doc/win11-clipboard-history/apparmor/`.
 
 Tiling window managers (i3 / Sway / Hyprland) are **not** rewritten unless you enable *Allow rewriting tiling WM configs* in Settings.
+
+**Supply chain:** the installer **mandatorily verifies** every download against the release's `SHA256SUMS` (set `ALLOW_UNVERIFIED=1` to skip — not recommended), and CI gates on `cargo audit` + `npm audit`. Each release publishes an SPDX SBOM and SLSA build provenance. See [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md) and [docs/adr/](docs/adr/) for the full security posture.
 
 ---
 
@@ -93,7 +96,7 @@ less install-clipboard.sh
 bash install-clipboard.sh
 ```
 
-The installer verifies `SHA256SUMS` when GitHub Releases publish that file.
+The installer **requires** matching the downloaded artifact against the release's `SHA256SUMS` and aborts on mismatch. Optional GPG verification of the checksum file is available via `WIN11_CLIPBOARD_TRUST_KEY=<keyid>`.
 
 ---
 
@@ -115,11 +118,12 @@ The installer verifies `SHA256SUMS` when GitHub Releases publish that file.
 | Layer | Stack |
 | --- | --- |
 | UI | React 19, TypeScript, Tailwind CSS 4, lazy-loaded pickers |
-| Backend | Rust, Tauri v2 |
+| Backend | Rust, Tauri v2 (shortcut backends split per-DE in `linux_shortcut_manager/`) |
 | Clipboard I/O | arboard + `wl-copy` / `xclip` |
 | Persistence | SQLite (WAL) incremental upsert, PNG files, atomic JSON for settings |
 | Input | Persistent uinput device (Wayland) / XTest (X11) |
-| Security | CSP, `withGlobalTauri: false`, SSRF allowlist + DNS pin, scoped `shell:allow-open` |
+| Fonts | Bundled Vazirmatn (SIL OFL 1.1) — zero runtime network calls |
+| Security | CSP (`font-src 'self'`), `withGlobalTauri: false`, SSRF allowlist + DNS pin, scoped `shell:allow-open`, mandatory checksum verification |
 
 ---
 
@@ -148,7 +152,14 @@ make lint
 make build
 ```
 
-CI runs `npm test`, `cargo test`, Clippy (`-D warnings`), and `npm audit --audit-level=high`.
+Frontend tests include component tests (Testing Library + jsdom) and a **coverage gate**:
+
+```bash
+npm run test:coverage   # 72+ tests; coverage thresholds enforced
+node scripts/check-rust-syntax.mjs  # fast syntax gate (tree-sitter)
+```
+
+CI runs `npm run lint`, `npm test`, coverage thresholds, `cargo test`, Clippy (`-D warnings`), `cargo fmt --check`, and **blocking** `cargo audit` + `npm audit --audit-level=high`. Release builds also run an Xvfb smoke test and publish SHA256SUMS, an SPDX SBOM, and SLSA provenance.
 
 ### Environment
 
@@ -160,6 +171,12 @@ CI runs `npm test`, `cargo test`, Clippy (`-D warnings`), and `npm audit --audit
 | `RUST_LOG=info` | Tracing level |
 
 Packaging notes: `packaging/README.md`.
+
+## Security / امنیت
+
+- Full threat model: [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md)
+- Architecture decision records: [`docs/adr/`](docs/adr/)
+- Reporting vulnerabilities: [`SECURITY.md`](.github/SECURITY.md) (GitHub private advisory — do not open public issues)
 
 ---
 

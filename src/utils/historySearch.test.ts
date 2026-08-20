@@ -1,9 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import {
-  isSafeRegexPattern,
-  itemSearchText,
-  filterHistory,
-} from './historySearch'
+import { isSafeRegexPattern, itemSearchText, filterHistory } from './historySearch'
 import type { ClipboardItem } from '../types/clipboard'
 
 // ---------------------------------------------------------------------------

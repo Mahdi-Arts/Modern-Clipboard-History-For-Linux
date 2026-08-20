@@ -126,7 +126,8 @@ make dev
 
 - [ ] کد مطابق با راهنمای سبک پروژه است
 - [ ] همه لینترها پاس می‌شوند (`make lint`)
-- [ ] تغییرات محلی تست شده‌اند
+- [ ] تغییرات محلی تست شده‌اند: `npm test` و `npm run test:coverage` (گیت پوشش) و `node scripts/check-rust-syntax.mjs`
+- [ ] برای تغییرات Rust: `cargo fmt --check` و `cargo clippy -- -D warnings`
 - [ ] مستندات به‌روز شده است (در صورت نیاز)
 - [ ] برای تغییرات i18n، هر دو فایل `fa.json` و `en.json` به‌روز شده‌اند
 - [ ] تغییرات روی X11 و Wayland تست شده (در صورت امکان)

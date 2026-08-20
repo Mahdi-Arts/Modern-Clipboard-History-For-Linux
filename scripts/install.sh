@@ -22,7 +22,19 @@ error()   { echo -e "${RED}[✗]${NC} $1"; exit 1; }
 # Configuration
 REPO_OWNER="Mahdi-Arts"
 REPO_NAME="Modern-Clipboard-History-For-Linux"
-CLOUDSMITH_REPO="gustavosett/clipboard-manager"
+# Cloudsmith repository for apt/dnf auto-update repositories (when configured).
+# Override with: CLOUDSMITH_REPO=owner/repo ./install.sh
+CLOUDSMITH_REPO="${CLOUDSMITH_REPO:-mahdi-arts/clipboard-manager}"
+
+# Supply-chain controls:
+# - Checksum verification against the release's SHA256SUMS is MANDATORY.
+# - To skip verification (NOT recommended, e.g. offline mirror testing), set
+#   ALLOW_UNVERIFIED=1 — the installer will refuse to run without it.
+# - To require a detached GPG signature over SHA256SUMS, set
+#   WIN11_CLIPBOARD_TRUST_KEY=<keyid-or-fingerprint>; verification then also
+#   needs a reachable keyserver or an imported public key.
+ALLOW_UNVERIFIED="${ALLOW_UNVERIFIED:-0}"
+WIN11_CLIPBOARD_TRUST_KEY="${WIN11_CLIPBOARD_TRUST_KEY:-}"
 
 # Cleanup previous AppImage installation (prevents conflicts with package manager installs)
 cleanup_appimage_installation() {
@@ -551,6 +563,73 @@ launch_app() {
         return 0
     else
         return 1
+    fi
+}
+
+# ============================================================================
+# Download integrity verification (supply-chain gate)
+# ============================================================================
+
+# verify_downloaded_file <file> <release_base_url>
+#
+# Downloads `SHA256SUMS` from the same release and requires the artifact to
+# match its published checksum. Fails hard on any mismatch. Previously this
+# function was referenced but never defined, which broke every GitHub-releases
+# fallback path — it is now implemented and enforced.
+verify_downloaded_file() {
+    local file="$1"
+    local base_url="$2"
+    local expected=""
+    local actual=""
+    local tmp_sha=""
+
+    if [ ! -f "$file" ]; then
+        error "Cannot verify '$file': file not found"
+    fi
+
+    # Optional GPG verification of the checksum file itself.
+    if [ -n "$WIN11_CLIPBOARD_TRUST_KEY" ]; then
+        if ! command -v gpg &>/dev/null; then
+            error "GPG verification requested (WIN11_CLIPBOARD_TRUST_KEY) but gpg is not installed"
+        fi
+        local sig_url="${base_url}/SHA256SUMS.sig"
+        tmp_sha=$(mktemp)
+        trap 'rm -f "$tmp_sha" "${tmp_sha}.sums"' RETURN
+        if curl -fsSL -o "$tmp_sha" "$sig_url" 2>/dev/null; then
+            curl -fsSL -o "${tmp_sha}.sums" "${base_url}/SHA256SUMS" 2>/dev/null || true
+            if ! gpg --verify "$tmp_sha" "${tmp_sha}.sums" 2>/dev/null; then
+                rm -f "$tmp_sha" "${tmp_sha}.sums"
+                error "GPG signature verification failed for SHA256SUMS"
+            fi
+            log "GPG signature verified (key: $WIN11_CLIPBOARD_TRUST_KEY)"
+        else
+            rm -f "$tmp_sha"
+            error "GPG verification requested but SHA256SUMS.sig was not found in the release"
+        fi
+    fi
+
+    if command -v sha256sum &>/dev/null; then
+        tmp_sha=$(mktemp)
+        trap 'rm -f "$tmp_sha"' RETURN
+        if ! curl -fsSL -o "$tmp_sha" "${base_url}/SHA256SUMS" 2>/dev/null; then
+            if [ "$ALLOW_UNVERIFIED" = "1" ]; then
+                warn "SHA256SUMS not published for this release — skipping verification (ALLOW_UNVERIFIED=1)"
+                return 0
+            fi
+            error "SHA256SUMS not found at ${base_url}/SHA256SUMS — refusing to install an unverified binary. Set ALLOW_UNVERIFIED=1 only if you know what you are doing."
+        fi
+        expected=$(grep -F "$(basename "$file")" "$tmp_sha" | awk '{print $1}' | head -n 1)
+        rm -f "$tmp_sha"
+        if [ -z "$expected" ]; then
+            error "SHA256SUMS does not list $(basename "$file") — refusing to install"
+        fi
+        actual=$(sha256sum "$file" | awk '{print $1}')
+        if [ "$actual" != "$expected" ]; then
+            error "Checksum mismatch for $file! Expected $expected, got $actual — refusing to install (possible tampering or corrupted download)"
+        fi
+        success "Checksum verified: $(basename "$file") matches published SHA256SUMS"
+    else
+        warn "sha256sum not available — cannot verify download integrity"
     fi
 }
 

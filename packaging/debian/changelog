@@ -1,3 +1,13 @@
+win11-clipboard-history (2.1.0-1) unstable; urgency=medium
+
+  * Enterprise hardening release: offline fonts (CSP tightened), hardened
+    URL sanitizer, mandatory SHA256SUMS verification in the installer,
+    blocking dependency audits in CI, SLSA provenance + SPDX SBOM per
+    release, AppArmor profile shipped, app-id migrated to
+    io.github.mahdi-arts.clipboard-history.
+
+ -- Mahdi Arts <mahdi-arts@users.noreply.github.com>  Thu, 20 Aug 2026 19:30:00 +0330
+
 win11-clipboard-history (2.0.0-1) unstable; urgency=medium
 
   * Incremental SQLite persistence (upsert / delete / meta updates).

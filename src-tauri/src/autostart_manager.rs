@@ -82,7 +82,7 @@ pub fn autostart_enable() -> Result<(), String> {
     file.write_all(content.as_bytes())
         .map_err(|e| format!("Failed to write autostart file: {}", e))?;
 
-    println!(
+    tracing::info!(
         "[Autostart] Enabled autostart with exec path: {}",
         exec_path
     );
@@ -98,7 +98,7 @@ pub fn autostart_disable() -> Result<(), String> {
     if autostart_file.exists() {
         fs::remove_file(&autostart_file)
             .map_err(|e| format!("Failed to remove autostart file: {}", e))?;
-        println!("[Autostart] Disabled autostart");
+        tracing::info!("[Autostart] Disabled autostart");
     }
 
     Ok(())
@@ -165,16 +165,16 @@ pub fn autostart_migrate() -> Result<bool, String> {
 
     if needs_migration {
         if uses_old_binary {
-            println!("[Autostart] Migrating from old binary path to wrapper...");
+            tracing::info!("[Autostart] Migrating from old binary path to wrapper...");
         }
         if missing_sleep {
-            println!("[Autostart] Adding sleep to exec for proper tray initialization...");
+            tracing::info!("[Autostart] Adding sleep to exec for proper tray initialization...");
         }
         if missing_background {
-            println!("[Autostart] Adding --background flag for minimized startup...");
+            tracing::info!("[Autostart] Adding --background flag for minimized startup...");
         }
         if has_gnome_delay {
-            println!("[Autostart] Replacing X-GNOME-Autostart-Delay with sleep in exec (multi-distro compatibility)...");
+            tracing::info!("[Autostart] Replacing X-GNOME-Autostart-Delay with sleep in exec (multi-distro compatibility)...");
         }
 
         // Re-enable with correct path, sleep and --background

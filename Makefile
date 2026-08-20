@@ -36,7 +36,7 @@ RESET := \033[0m
 
 .PHONY: all help deps deps-ubuntu deps-debian deps-fedora deps-arch \
         rust node check-deps dev build install uninstall clean clean-first-run run \
-        lint format test release
+        lint format test test-coverage rust-syntax audit release
 
 all: build
 
@@ -337,6 +337,19 @@ test:
 	@echo -e "$(CYAN)Running tests...$(RESET)"
 	npm test
 	cd src-tauri && cargo test
+
+test-coverage:
+	@echo -e "$(CYAN)Running frontend tests with coverage gate...$(RESET)"
+	npm run test:coverage
+
+rust-syntax:
+	@echo -e "$(CYAN)Checking Rust syntax (tree-sitter)...$(RESET)"
+	node scripts/check-rust-syntax.mjs
+
+audit:
+	@echo -e "$(CYAN)Auditing dependencies...$(RESET)"
+	cd src-tauri && cargo audit || true
+	npm audit --audit-level=high || true
 
 lint:
 	@echo -e "$(CYAN)Running linters...$(RESET)"
