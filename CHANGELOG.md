@@ -10,6 +10,28 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2.2.0] - 2026-08-20
+
+### Security / امنیت
+
+- Paste injection (`finish_paste`) now requires a one-shot ticket issued only after a real clipboard write.
+- Smart Actions open URLs via a Rust `xdg-open` helper with the same allowlist as the TypeScript sanitizer. The Tauri shell plugin permission (`http://*` / `https://*`) was removed.
+- IPC history payloads strip HTML and cap text at 2048 characters; full items stay in SQLite.
+- SQLite uses `secure_delete` and `0600` on the db plus `-wal`/`-shm` sidecars.
+- Installer downloads from this repository's GitHub Releases by default (checksum required). Cloudsmith `curl | sudo bash` is opt-in (`USE_CLOUDSMITH=1`).
+- CI now **blocks** on `npm test` + coverage, `cargo test`, Clippy `-D warnings`, and `cargo audit` / `npm audit`.
+- Releases publish `SHA256SUMS`, an SPDX SBOM, and SLSA provenance; notes no longer point at the upstream fork.
+
+### UI / UX
+
+- Empty-state panel with Super+V hint, loading spinner instead of a blank window, tighter glass cards.
+
+### Packaging / بسته‌بندی
+
+- Debian `rules` ships the AppArmor profile; version 2.2.0 across npm / Cargo / Tauri / AUR / changelog.
+
+---
+
 ## [2.1.0] - 2026-08-20
 
 ### Security / امنیت

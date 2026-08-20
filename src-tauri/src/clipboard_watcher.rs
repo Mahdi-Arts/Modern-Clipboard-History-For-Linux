@@ -5,12 +5,12 @@
 //! reuses a single `arboard::Clipboard` connection to avoid X11/Wayland
 //! connection churn.
 
+use parking_lot::Mutex;
 use std::sync::Arc;
 use std::time::Duration;
 use tauri::{AppHandle, Emitter};
 
 use crate::clipboard_manager::{self, ClipboardManager};
-use crate::user_settings::UserSettingsManager;
 
 /// Start the clipboard polling watcher in a background thread.
 ///
@@ -102,7 +102,7 @@ pub fn start(app: AppHandle, clipboard_manager: Arc<Mutex<ClipboardManager>>) {
                         last_image_hash = Some(hash);
                         last_text_hash = None;
                         if let Some(item) = manager.add_image(image_data, hash) {
-                            let _ = app.emit("clipboard-changed", &item);
+                            let _ = app.emit("clipboard-changed", &item.for_ipc());
                             changed = true;
                         }
                     }

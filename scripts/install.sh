@@ -22,8 +22,10 @@ error()   { echo -e "${RED}[✗]${NC} $1"; exit 1; }
 # Configuration
 REPO_OWNER="Mahdi-Arts"
 REPO_NAME="Modern-Clipboard-History-For-Linux"
-# Cloudsmith repository for apt/dnf auto-update repositories (when configured).
-# Override with: CLOUDSMITH_REPO=owner/repo ./install.sh
+# Optional Cloudsmith repository. Disabled by default because it is a
+# `curl | sudo bash` trust path. Enable explicitly:
+#   USE_CLOUDSMITH=1 CLOUDSMITH_REPO=owner/repo ./install.sh
+USE_CLOUDSMITH="${USE_CLOUDSMITH:-0}"
 CLOUDSMITH_REPO="${CLOUDSMITH_REPO:-mahdi-arts/clipboard-manager}"
 
 # Supply-chain controls:
@@ -189,24 +191,21 @@ install_via_package_manager() {
 }
 
 install_deb() {
-    log "Setting up APT repository (Cloudsmith)..."
-    
-    # Install prerequisites for HTTPS repos
-    sudo apt-get update -qq
-    sudo apt-get install -y apt-transport-https curl || true
-    
-    # Try Cloudsmith repository first (enables auto-updates)
-    if curl -1sLf "https://dl.cloudsmith.io/public/${CLOUDSMITH_REPO}/setup.deb.sh" | sudo -E bash 2>/dev/null; then
-        log "Installing win11-clipboard-history from repository..."
+    if [ "$USE_CLOUDSMITH" = "1" ]; then
+        log "Setting up APT repository (Cloudsmith, USE_CLOUDSMITH=1)..."
         sudo apt-get update -qq
-        if sudo apt-get install -y win11-clipboard-history; then
-            success "Installed via APT repository! (auto-updates enabled)"
-            return 0
+        sudo apt-get install -y apt-transport-https curl || true
+        if curl -1sLf "https://dl.cloudsmith.io/public/${CLOUDSMITH_REPO}/setup.deb.sh" | sudo -E bash 2>/dev/null; then
+            log "Installing win11-clipboard-history from repository..."
+            sudo apt-get update -qq
+            if sudo apt-get install -y win11-clipboard-history; then
+                success "Installed via APT repository! (auto-updates enabled)"
+                return 0
+            fi
         fi
+        warn "Cloudsmith repository not available, falling back to GitHub release..."
     fi
-    
-    # Fallback: download from GitHub releases
-    warn "Repository not available, falling back to GitHub release..."
+
     log "Installing from GitHub releases (.deb)..."
     
     LATEST_RELEASE_URL="https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/releases/latest"
@@ -239,8 +238,42 @@ install_deb() {
     success "Installed via APT (from GitHub release)"
 }
 
+download_and_install_rpm() {
+    local pkg_mgr="$1"
+    LATEST_RELEASE_URL="https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/releases/latest"
+    RELEASE_TAG=$(curl -s "$LATEST_RELEASE_URL" | grep '"tag_name":' | head -n 1 | sed -E 's/.*"([^"]+)".*/\1/' | tr -cd '[:alnum:]._-')
+    [ -z "$RELEASE_TAG" ] && error "Failed to fetch version."
+    CLEAN_VERSION="${RELEASE_TAG#v}"
+    TEMP_DIR=$(mktemp -d)
+    chmod 755 "$TEMP_DIR"
+    cd "$TEMP_DIR"
+    trap 'rm -rf "$TEMP_DIR"' EXIT
+    FILE="win11-clipboard-history-${CLEAN_VERSION}-1.${RPM_ARCH}.rpm"
+    BASE_URL="https://github.com/$REPO_OWNER/$REPO_NAME/releases/download/$RELEASE_TAG"
+    log "Downloading $FILE..."
+    if ! curl -L -o "$FILE" "$BASE_URL/$FILE" --progress-bar --fail; then
+        error "Failed to download $FILE"
+    fi
+    chmod 644 "$FILE"
+    verify_downloaded_file "$FILE" "$BASE_URL"
+    if [ "$pkg_mgr" = "dnf" ]; then
+        sudo dnf install -y xclip wl-clipboard acl libayatana-appindicator-gtk3 || true
+        sudo dnf install -y "./$FILE"
+        success "Installed via DNF (from GitHub release)"
+    else
+        sudo zypper install -y xclip wl-clipboard acl libayatana-appindicator3-1 || true
+        sudo zypper install -y "./$FILE"
+        success "Installed via Zypper (from GitHub release)"
+    fi
+}
+
 install_rpm() {
-    log "Setting up RPM repository (Cloudsmith)..."
+    if [ "$USE_CLOUDSMITH" != "1" ]; then
+        log "Installing from GitHub releases (.rpm)..."
+        download_and_install_rpm dnf
+        return 0
+    fi
+    log "Setting up RPM repository (Cloudsmith, USE_CLOUDSMITH=1)..."
     
     local env_args=()
     if [[ "$DISTRO_ID" == "fedora-asahi-remix" ]]; then
@@ -312,48 +345,8 @@ install_rpm() {
 }
 
 install_rpm_suse() {
-    log "Setting up RPM repository (Cloudsmith)..."
-    
-    # Try Cloudsmith repository first (enables auto-updates)
-    if curl -1sLf "https://dl.cloudsmith.io/public/${CLOUDSMITH_REPO}/setup.rpm.sh" | sudo -E bash 2>/dev/null; then
-        log "Installing win11-clipboard-history from repository..."
-        if sudo zypper install -y win11-clipboard-history; then
-            success "Installed via Zypper repository! (auto-updates enabled)"
-            return 0
-        fi
-    fi
-    
-    # Fallback: download from GitHub releases
-    warn "Repository not available, falling back to GitHub release..."
     log "Installing from GitHub releases (.rpm)..."
-    
-    LATEST_RELEASE_URL="https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/releases/latest"
-    RELEASE_TAG=$(curl -s "$LATEST_RELEASE_URL" | grep '"tag_name":' | head -n 1 | sed -E 's/.*"([^"]+)".*/\1/' | tr -cd '[:alnum:]._-')
-    [ -z "$RELEASE_TAG" ] && error "Failed to fetch version."
-    CLEAN_VERSION="${RELEASE_TAG#v}"
-    
-    TEMP_DIR=$(mktemp -d)
-    chmod 755 "$TEMP_DIR"
-    cd "$TEMP_DIR"
-    trap 'rm -rf "$TEMP_DIR"' EXIT
-    
-    FILE="win11-clipboard-history-${CLEAN_VERSION}-1.${RPM_ARCH}.rpm"
-    BASE_URL="https://github.com/$REPO_OWNER/$REPO_NAME/releases/download/$RELEASE_TAG"
-    
-    log "Downloading $FILE..."
-    if ! curl -L -o "$FILE" "$BASE_URL/$FILE" --progress-bar --fail; then
-        error "Failed to download $FILE"
-    fi
-    chmod 644 "$FILE"
-    verify_downloaded_file "$FILE" "$BASE_URL"
-    
-    log "Installing dependencies..."
-    sudo zypper install -y xclip wl-clipboard acl libayatana-appindicator3-1 || true
-    
-    log "Installing .rpm package..."
-    sudo zypper install -y "./$FILE"
-    
-    success "Installed via Zypper (from GitHub release)"
+    download_and_install_rpm zypper
 }
 
 install_aur() {
@@ -608,29 +601,29 @@ verify_downloaded_file() {
         fi
     fi
 
-    if command -v sha256sum &>/dev/null; then
-        tmp_sha=$(mktemp)
-        trap 'rm -f "$tmp_sha"' RETURN
-        if ! curl -fsSL -o "$tmp_sha" "${base_url}/SHA256SUMS" 2>/dev/null; then
-            if [ "$ALLOW_UNVERIFIED" = "1" ]; then
-                warn "SHA256SUMS not published for this release — skipping verification (ALLOW_UNVERIFIED=1)"
-                return 0
-            fi
-            error "SHA256SUMS not found at ${base_url}/SHA256SUMS — refusing to install an unverified binary. Set ALLOW_UNVERIFIED=1 only if you know what you are doing."
-        fi
-        expected=$(grep -F "$(basename "$file")" "$tmp_sha" | awk '{print $1}' | head -n 1)
-        rm -f "$tmp_sha"
-        if [ -z "$expected" ]; then
-            error "SHA256SUMS does not list $(basename "$file") — refusing to install"
-        fi
-        actual=$(sha256sum "$file" | awk '{print $1}')
-        if [ "$actual" != "$expected" ]; then
-            error "Checksum mismatch for $file! Expected $expected, got $actual — refusing to install (possible tampering or corrupted download)"
-        fi
-        success "Checksum verified: $(basename "$file") matches published SHA256SUMS"
-    else
-        warn "sha256sum not available — cannot verify download integrity"
+    if ! command -v sha256sum &>/dev/null; then
+        error "sha256sum is required to verify downloads. Install coreutils, or set ALLOW_UNVERIFIED=1 only if you accept the risk."
     fi
+
+    tmp_sha=$(mktemp)
+    trap 'rm -f "$tmp_sha"' RETURN
+    if ! curl -fsSL -o "$tmp_sha" "${base_url}/SHA256SUMS" 2>/dev/null; then
+        if [ "$ALLOW_UNVERIFIED" = "1" ]; then
+            warn "SHA256SUMS not published for this release — skipping verification (ALLOW_UNVERIFIED=1)"
+            return 0
+        fi
+        error "SHA256SUMS not found at ${base_url}/SHA256SUMS — refusing to install an unverified binary. Set ALLOW_UNVERIFIED=1 only if you know what you are doing."
+    fi
+    expected=$(grep -F "$(basename "$file")" "$tmp_sha" | awk '{print $1}' | head -n 1)
+    rm -f "$tmp_sha"
+    if [ -z "$expected" ]; then
+        error "SHA256SUMS does not list $(basename "$file") — refusing to install"
+    fi
+    actual=$(sha256sum "$file" | awk '{print $1}')
+    if [ "$actual" != "$expected" ]; then
+        error "Checksum mismatch for $file! Expected $expected, got $actual — refusing to install (possible tampering or corrupted download)"
+    fi
+    success "Checksum verified: $(basename "$file") matches published SHA256SUMS"
 }
 
 # Main

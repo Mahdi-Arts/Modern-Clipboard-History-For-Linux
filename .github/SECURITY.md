@@ -105,7 +105,7 @@ If you discover a security vulnerability, please follow these steps:
 ✔️ **10 MB** GIF cap (streamed)  
 ✔️ **SQLite WAL** + chmod `0600`  
 ✔️ **Secret filter** and password-manager skip (defaults on)  
-✔️ **Scoped** `shell:allow-open` (`https`, `http`, `mailto`)  
+✔️ **Smart Actions** open via Rust `xdg-open` after allowlist (no `shell:allow-open`)  
 ✔️ **Opt-in** tiling WM config rewrite  
 ✔️ **Mandatory SHA256SUMS verification** in the installer (optional GPG)  
 ✔️ **Blocking** `cargo audit` + `npm audit` in CI  

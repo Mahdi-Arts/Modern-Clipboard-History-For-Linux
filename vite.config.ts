@@ -20,6 +20,7 @@ export default defineConfig({
         'src/utils/urlSafety.ts',
         'src/services/smartActionService.ts',
         'src/hooks/useClipboardHistory.ts',
+        'src/components/EmptyState.tsx',
         'src/components/Switch.tsx',
         'src/components/common/SearchBar.tsx',
         'src/components/common/CategoryStrip.tsx',

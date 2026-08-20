@@ -45,8 +45,9 @@ GIF search additionally needs `--share=network`.
 
 ## Checksums
 
-GitHub Releases include `SHA256SUMS`. `scripts/install.sh` verifies downloads
-when that file is present.
+GitHub Releases include `SHA256SUMS`. `scripts/install.sh` **requires** a
+matching checksum (`ALLOW_UNVERIFIED=1` to skip). Cloudsmith is opt-in
+(`USE_CLOUDSMITH=1`).
 
 ## AppArmor (optional hardening)
 

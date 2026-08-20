@@ -22,7 +22,17 @@ use crate::AppState;
 
 #[tauri::command]
 pub fn get_history(state: State<AppState>) -> Result<Vec<ClipboardItem>, AppError> {
-    Ok(state.clipboard_manager.lock().get_history())
+    Ok(state.clipboard_manager.lock().get_history_for_ui())
+}
+
+#[tauri::command]
+pub fn get_item(state: State<AppState>, id: String) -> Result<ClipboardItem, AppError> {
+    state
+        .clipboard_manager
+        .lock()
+        .get_item(&id)
+        .cloned()
+        .ok_or(AppError::NotFound { id })
 }
 
 #[tauri::command]
@@ -193,7 +203,7 @@ pub async fn paste_item(
             let mut manager = state.clipboard_manager.lock();
             manager.paste_item(&item)?;
 
-            let history = manager.get_history();
+            let history = manager.get_history_for_ui();
             drop(manager);
             let _ = app.emit("history-sync", &history);
         }
@@ -202,7 +212,7 @@ pub async fn paste_item(
                 "[paste_item] Item with id '{}' not found in history. Syncing frontend...",
                 id
             );
-            let history = state.clipboard_manager.lock().get_history();
+            let history = state.clipboard_manager.lock().get_history_for_ui();
             let _ = app.emit("history-sync", &history);
             return Err(AppError::NotFound { id });
         }
@@ -240,10 +250,9 @@ pub async fn paste_text(
 
 #[tauri::command]
 pub async fn paste_gif_from_url(
-    app: AppHandle,
     state: State<'_, AppState>,
     url: String,
-) -> Result<(), AppError> {
+) -> Result<String, AppError> {
     let _paste_guard = state.paste_gate.lock().await;
 
     let url_clone = url.clone();
@@ -262,19 +271,21 @@ pub async fn paste_gif_from_url(
         }
     }
 
-    crate::window_controller::WindowController::hide(&app);
-    crate::window_controller::PasteHelper::prepare_target_window(&app).await?;
-
-    simulate_paste_keystroke()?;
-    Ok(())
+    Ok(state.issue_paste_ticket())
 }
 
 #[tauri::command]
 pub async fn finish_paste(
     app: AppHandle,
     state: State<'_, AppState>,
+    ticket: String,
 ) -> Result<(), AppError> {
     let _paste_guard = state.paste_gate.lock().await;
+    if !state.consume_paste_ticket(&ticket) {
+        return Err(AppError::PermissionDenied(
+            "Invalid or expired paste ticket".into(),
+        ));
+    }
     if !crate::clipboard_io::wrote_recently(Duration::from_secs(5)) {
         return Err(AppError::Other(
             "Refusing to inject Ctrl+V: no clipboard write was recorded in the last 5 seconds"
@@ -284,6 +295,12 @@ pub async fn finish_paste(
     crate::window_controller::WindowController::hide(&app);
     crate::window_controller::PasteHelper::prepare_target_window(&app).await?;
     simulate_paste_keystroke()?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn open_safe_url(url: String) -> Result<(), AppError> {
+    crate::open_url::open_safe_url(&url).map(|_| ())?;
     Ok(())
 }
 

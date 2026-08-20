@@ -98,14 +98,14 @@ pub fn init() {
     if let Err(error) = thread::Builder::new()
         .name("x11-paste-sync-warmup".to_string())
         .spawn(|| match with_x11_context(|_| Ok(())) {
-            Ok(()) => etracing::info!("[PasteSync] X11 synchronization connection is ready"),
-            Err(error) => etracing::info!(
+            Ok(()) => tracing::info!("[PasteSync] X11 synchronization connection is ready"),
+            Err(error) => tracing::info!(
                 "[PasteSync] X11 warmup failed; first paste will retry: {}",
                 error
             ),
         })
     {
-        etracing::info!("[PasteSync] Failed to start warmup thread: {}", error);
+        tracing::info!("[PasteSync] Failed to start warmup thread: {}", error);
     }
 }
 

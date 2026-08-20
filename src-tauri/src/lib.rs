@@ -8,10 +8,19 @@
 use parking_lot::Mutex;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 use tracing_appender::non_blocking::WorkerGuard;
 use std::sync::OnceLock;
 
 static TRACING_GUARD: OnceLock<WorkerGuard> = OnceLock::new();
+
+const PASTE_TICKET_TTL: Duration = Duration::from_secs(5);
+
+/// One-shot capability that authorizes `finish_paste` keystroke injection.
+pub struct PasteTicket {
+    nonce: String,
+    expires_at: Instant,
+}
 
 /// Application state shared across all Tauri command handlers.
 pub struct AppState {
@@ -21,6 +30,34 @@ pub struct AppState {
     pub is_mouse_inside: Arc<AtomicBool>,
     /// Serializes the complete clipboard/focus/input transaction.
     pub paste_gate: tokio::sync::Mutex<()>,
+    /// Required by `finish_paste` so the webview cannot inject Ctrl+V at will.
+    pub paste_ticket: Mutex<Option<PasteTicket>>,
+}
+
+impl AppState {
+    /// Record that a clipboard write just happened and return a nonce the UI
+    /// must present to `finish_paste` within 5 seconds.
+    pub fn issue_paste_ticket(&self) -> String {
+        let nonce = uuid::Uuid::new_v4().to_string();
+        *self.paste_ticket.lock() = Some(PasteTicket {
+            nonce: nonce.clone(),
+            expires_at: Instant::now() + PASTE_TICKET_TTL,
+        });
+        nonce
+    }
+
+    /// Consume a ticket. Mismatched or expired tickets fail closed.
+    pub fn consume_paste_ticket(&self, nonce: &str) -> bool {
+        let mut slot = self.paste_ticket.lock();
+        match slot.take() {
+            Some(ticket)
+                if ticket.nonce == nonce && Instant::now() <= ticket.expires_at && !nonce.is_empty() =>
+            {
+                true
+            }
+            _ => false,
+        }
+    }
 }
 
 /// Initialize tracing/logging. Called once at app startup.
@@ -67,6 +104,7 @@ pub mod gif_manager;
 pub mod image_store;
 pub mod input_simulator;
 pub mod linux_shortcut_manager;
+pub mod open_url;
 pub mod paste_sync;
 pub mod permission_checker;
 pub mod privacy;

@@ -32,7 +32,8 @@
   "clipboard": {
     "title": "Clipboard History",
     "empty_state": "Clipboard history is empty",
-    "empty_state_desc": "Copy some text or an image to see it here. Press Super+V to open anytime.",
+    "empty_state_desc": "Copy some text or an image to see it here.",
+    "empty_shortcut": "Super + V",
     "search_placeholder": "Search history...",
     "no_items_found": "No items found",
     "pinned_section": "Pinned",
