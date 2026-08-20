@@ -32,7 +32,7 @@
   "clipboard": {
     "title": "تاریخچه کلیپ‌بورد",
     "empty_state": "تاریخچه کلیپ‌بورد خالی است",
-    "empty_state_desc": "متن یا تصویری را کپی کنید تا در اینجا ظاهر شود",
+    "empty_state_desc": "متن یا تصویری را کپی کنید تا اینجا ظاهر شود. با Super+V هر زمان باز کنید.",
     "search_placeholder": "جستجو در تاریخچه...",
     "no_items_found": "موردی یافت نشد",
     "pinned_section": "سنجاق شده",
@@ -142,7 +142,8 @@
       "exclude_apps_desc": "در X11، کپی از KeePass، 1Password، Bitwarden و پنجره‌های مرور خصوصی ذخیره نمی‌شود.",
       "wm_rewrite": "اجازه بازنویسی کانفیگ مدیر پنجره",
       "wm_rewrite_desc": "به‌صورت پیش‌فرض خاموش است. در صورت فعال بودن، نصب ممکن است Super+V موجود در i3/Sway/Hyprland را کامنت کند.",
-      "storage_note": "تاریخچه محلی است: ~/.local/share/win11-clipboard-history/ با مجوز 0600. هیچ داده‌ای آپلود نمی‌شود مگر جستجوی GIF با TENOR_API_KEY."
+      "storage_note": "تاریخچه محلی است: ~/.local/share/win11-clipboard-history/ با مجوز 0600. هیچ داده‌ای آپلود نمی‌شود مگر جستجوی GIF با TENOR_API_KEY.",
+      "wayland_note": "در Wayland پنجرهٔ فعال در دسترس نیست. نادیده‌گرفتن مدیر رمز عبور فقط روی X11 کار می‌کند؛ فیلتر اسرار را روشن نگه دارید."
     }
   },
   "tray": {

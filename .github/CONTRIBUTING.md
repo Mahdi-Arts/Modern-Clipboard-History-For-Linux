@@ -295,6 +295,7 @@ make dev
 
 - [ ] Code follows style guidelines
 - [ ] `make lint` passes
+- [ ] `make test` passes
 - [ ] Changes tested locally
 - [ ] Documentation updated if needed
 - [ ] i18n changes include both `fa.json` and `en.json`

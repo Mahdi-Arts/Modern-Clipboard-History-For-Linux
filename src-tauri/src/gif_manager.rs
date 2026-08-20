@@ -41,7 +41,7 @@ impl Downloader {
     const MAX_GIF_BYTES: u64 = 10 * 1024 * 1024;
 
     pub fn download(url: &str, destination: &Path) -> Result<(), String> {
-        let parsed = ssrf::validate_public_https_url(url)?;
+        let validated = ssrf::validate_and_pin(url)?;
 
         const CACHE_TTL: Duration = Duration::from_secs(24 * 3600);
         if let Ok(meta) = fs::metadata(destination) {
@@ -58,14 +58,13 @@ impl Downloader {
         }
 
         debug!("[GifManager] Downloading: {url}");
-        let client = reqwest::blocking::Client::builder()
-            .timeout(Duration::from_secs(DOWNLOAD_TIMEOUT))
-            .redirect(ssrf::no_redirects())
-            .build()
-            .map_err(|e| format!("Client build error: {e}"))?;
+        let client = ssrf::pinned_blocking_client(
+            &validated,
+            Duration::from_secs(DOWNLOAD_TIMEOUT),
+        )?;
 
         let response = client
-            .get(parsed)
+            .get(validated.url.clone())
             .send()
             .map_err(|e| format!("Network request failed: {e}"))?;
 

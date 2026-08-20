@@ -153,9 +153,16 @@ fn is_process_running(name: &str) -> bool {
 }
 
 fn run_resolution_command(cmd: &str) -> Result<(), String> {
-    let output = Command::new("sh")
-        .arg("-c")
-        .arg(cmd)
+    let args = parse_resolution_argv(cmd)?;
+    if args.is_empty() {
+        return Err("Empty resolution command".into());
+    }
+    let program = &args[0];
+    if program != "gsettings" && program != "xfconf-query" {
+        return Err(format!("Refusing to run untrusted resolver '{program}'"));
+    }
+    let output = Command::new(program)
+        .args(&args[1..])
         .output()
         .map_err(|e| e.to_string())?;
 
@@ -164,6 +171,39 @@ fn run_resolution_command(cmd: &str) -> Result<(), String> {
     } else {
         Err(String::from_utf8_lossy(&output.stderr).to_string())
     }
+}
+
+/// Split a trusted, quote-aware argv without invoking a shell.
+fn parse_resolution_argv(cmd: &str) -> Result<Vec<String>, String> {
+    let mut args = Vec::new();
+    let mut current = String::new();
+    let mut chars = cmd.chars().peekable();
+    let mut in_single = false;
+    let mut in_double = false;
+    while let Some(c) = chars.next() {
+        match c {
+            '\\' if in_double => {
+                if let Some(n) = chars.next() {
+                    current.push(n);
+                }
+            }
+            '\'' if !in_double => in_single = !in_single,
+            '"' if !in_single => in_double = !in_double,
+            c if c.is_whitespace() && !in_single && !in_double => {
+                if !current.is_empty() {
+                    args.push(std::mem::take(&mut current));
+                }
+            }
+            _ => current.push(c),
+        }
+    }
+    if in_single || in_double {
+        return Err("Unbalanced quotes in resolution command".into());
+    }
+    if !current.is_empty() {
+        args.push(current);
+    }
+    Ok(args)
 }
 
 fn command_exists(cmd: &str) -> bool {
@@ -738,5 +778,16 @@ mod tests {
     fn test_detect_conflicts_runs() {
         // Just verify it doesn't panic when running
         let _result = detect_shortcut_conflicts();
+    }
+
+    #[test]
+    fn parse_gsettings_argv_keeps_quoted_value() {
+        let args = parse_resolution_argv(
+            r#"gsettings set org.gnome.shell.keybindings toggle-message-tray "['<Super><Shift>v']""#,
+        )
+        .unwrap();
+        assert_eq!(args[0], "gsettings");
+        assert_eq!(args[1], "set");
+        assert_eq!(args.last().unwrap(), "['<Super><Shift>v']");
     }
 }

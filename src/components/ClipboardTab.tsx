@@ -12,6 +12,7 @@ import { EmptyState } from './EmptyState'
 import { HistoryItem } from './HistoryItem'
 import { useHistoryKeyboardNavigation } from '../hooks/useHistoryKeyboardNavigation'
 import { filterHistory } from '../utils/historySearch'
+import { useTranslation } from 'react-i18next'
 
 // --- Virtualized List Row Component ---
 
@@ -98,6 +99,7 @@ export function ClipboardTab(props: {
     settings,
     tabBarRef,
   } = props
+  const { t } = useTranslation()
 
   const [searchQuery, setSearchQuery] = useState('')
   const [isRegexMode, setIsRegexMode] = useState(false)
@@ -406,7 +408,7 @@ export function ClipboardTab(props: {
             onChange={setSearchQuery}
             isDark={isDark}
             opacity={secondaryOpacity}
-            placeholder="Search history..."
+            placeholder={t('clipboard.search_placeholder')}
             isRegex={isRegexMode}
             onToggleRegex={() => setIsRegexMode(!isRegexMode)}
             onClear={() => {
@@ -425,7 +427,7 @@ export function ClipboardTab(props: {
               isDark ? 'text-win11-text-secondary' : 'text-win11Light-text-secondary'
             )}
           >
-            {searchQuery ? 'No items found' : 'No clipboard history yet'}
+            {searchQuery ? t('clipboard.no_items_found') : t('clipboard.empty_state')}
           </p>
         </div>
       ) : (
@@ -451,7 +453,7 @@ export function ClipboardTab(props: {
                 aria-expanded={pinnedExpanded}
               >
                 <Pin size={12} />
-                <span>Pinned</span>
+                <span>{t('clipboard.pinned_section')}</span>
                 <span className="ml-auto opacity-60">{pinnedItems.length}</span>
                 <ChevronDown
                   size={12}
@@ -492,7 +494,7 @@ export function ClipboardTab(props: {
           {showSections && unpinnedItems.length > 0 && (
             <div className="px-3 py-1 flex items-center gap-1.5 text-xs dark:text-win11-text-tertiary text-win11Light-text-tertiary flex-shrink-0">
               <History size={12} />
-              <span>Recent</span>
+              <span>{t('clipboard.recent_section')}</span>
               <span className="ml-auto opacity-60">{unpinnedItems.length}</span>
             </div>
           )}

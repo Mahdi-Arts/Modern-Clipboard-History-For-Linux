@@ -12,12 +12,12 @@
 //! 4. Starts the clipboard watcher and theme listener.
 
 use parking_lot::Mutex;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, TrayIconBuilder, TrayIconEvent},
-    AppHandle, Manager,
+    AppHandle, Emitter, Manager,
 };
 
 use win11_clipboard_history_lib::autostart_manager;
@@ -25,10 +25,14 @@ use win11_clipboard_history_lib::clipboard_manager::ClipboardManager;
 use win11_clipboard_history_lib::commands;
 use win11_clipboard_history_lib::config_manager::ConfigManager;
 use win11_clipboard_history_lib::emoji_manager::EmojiManager;
+use win11_clipboard_history_lib::permission_checker;
 use win11_clipboard_history_lib::rendering_env;
+use win11_clipboard_history_lib::session;
+use win11_clipboard_history_lib::shortcut_setup;
+use win11_clipboard_history_lib::tenor_api;
 use win11_clipboard_history_lib::user_settings::UserSettingsManager;
 use win11_clipboard_history_lib::window_controller::{
-    SettingsController, WindowController, STARTED_IN_BACKGROUND, INITIAL_SHOW_ALLOWED,
+    SettingsController, WindowController, STARTED_IN_BACKGROUND,
 };
 use win11_clipboard_history_lib::AppState;
 
@@ -81,9 +85,11 @@ fn main() {
         history_path,
         user_settings.max_history_size,
     )));
-    clipboard_manager
-        .lock()
-        .set_privacy_policy(user_settings.privacy_policy());
+    {
+        let mut manager = clipboard_manager.lock();
+        manager.set_privacy_policy(user_settings.privacy_policy());
+        manager.set_auto_delete_interval_minutes(user_settings.auto_delete_interval_in_minutes());
+    }
     win11_clipboard_history_lib::linux_shortcut_manager::set_allow_wm_config_rewrite(
         user_settings.allow_wm_config_rewrite,
     );
@@ -253,6 +259,7 @@ fn main() {
             autostart_manager::autostart_migrate,
             // Rendering
             rendering_env::get_rendering_environment,
+            session::get_session_info,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -260,16 +267,20 @@ fn main() {
 
 /// Build the system tray icon and menu
 fn build_tray(app: &tauri::App, app_handle: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
-    let show = MenuItem::with_id(app, "show", "Show Clipboard", true, None::<&str>)?;
-    let settings = MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?;
-    let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
-    let menu = Menu::with_items(app, &[&show, &settings, &quit])?;
+    let settings_manager = UserSettingsManager::new();
+    let settings = settings_manager.load();
+    let (show_label, settings_label, quit_label) = if settings.language == "fa" {
+        ("نمایش کلیپ‌بورد", "تنظیمات", "خروج")
+    } else {
+        ("Show Clipboard", "Settings", "Quit")
+    };
+    let show = MenuItem::with_id(app, "show", show_label, true, None::<&str>)?;
+    let settings_item = MenuItem::with_id(app, "settings", settings_label, true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, "quit", quit_label, true, None::<&str>)?;
+    let menu = Menu::with_items(app, &[&show, &settings_item, &quit])?;
 
     let temp_dir = std::env::temp_dir().join("win11-clipboard-history");
     std::fs::create_dir_all(&temp_dir).ok();
-
-    let settings_manager = UserSettingsManager::new();
-    let settings = settings_manager.load();
 
     win11_clipboard_history_lib::theme_manager::update_dynamic_tray_flag(
         settings.enable_dynamic_tray_icon,

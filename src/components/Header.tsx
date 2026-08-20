@@ -1,6 +1,7 @@
 import { clsx } from 'clsx'
 import { useState } from 'react'
 import { LayoutList } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { getTertiaryBackgroundStyle } from '../utils/themeUtils'
 
 interface HeaderProps {
@@ -27,6 +28,7 @@ export function Header({
   onToggleCompact,
   showCompactToggle = true,
 }: HeaderProps) {
+  const { t } = useTranslation()
   const [isHovered, setIsHovered] = useState(false)
   const [isCompactHovered, setIsCompactHovered] = useState(false)
 
@@ -40,7 +42,7 @@ export function Header({
             isDark ? 'text-win11-text-primary' : 'text-win11Light-text-primary'
           )}
         >
-          {title}
+          {title === 'Clipboard' ? t('clipboard.title') : title}
         </h1>
         {itemCount > 0 && (
           <span
@@ -74,7 +76,7 @@ export function Header({
             style={
               isCompactHovered ? getTertiaryBackgroundStyle(isDark, tertiaryOpacity) : undefined
             }
-            title={isCompact ? 'Detail View' : 'Compact View'}
+            title={isCompact ? t('clipboard.normal_mode') : t('clipboard.compact_mode')}
           >
             <LayoutList size={16} className={clsx(!isCompact && 'opacity-50')} />
           </button>
@@ -100,9 +102,9 @@ export function Header({
               ? getTertiaryBackgroundStyle(isDark, tertiaryOpacity)
               : undefined
           }
-          title="Clear all"
+          title={t('clipboard.clear_all')}
         >
-          <span className="text-xs">Clear All</span>
+          <span className="text-xs">{t('clipboard.clear_all')}</span>
         </button>
       </div>
     </div>

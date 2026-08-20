@@ -8,6 +8,7 @@ use std::path::Path;
 /// 1. Write to a temporary sibling file (`.tmp`)
 /// 2. Rename (atomic on POSIX) to replace the original
 pub fn write_atomic(path: &Path, contents: &[u8]) -> std::io::Result<()> {
+    use std::io::Write;
     let tmp = match path.file_name() {
         Some(name) => {
             let mut tmp_name = name.to_os_string();
@@ -16,7 +17,11 @@ pub fn write_atomic(path: &Path, contents: &[u8]) -> std::io::Result<()> {
         }
         None => path.with_extension("tmp"),
     };
-    fs::write(&tmp, contents)?;
+    {
+        let mut file = fs::File::create(&tmp)?;
+        file.write_all(contents)?;
+        file.sync_all()?;
+    }
     fs::rename(&tmp, path)?;
     restrict_permissions(path);
     Ok(())

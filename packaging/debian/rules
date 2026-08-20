@@ -37,9 +37,8 @@ override_dh_auto_install:
 	echo "uinput" > $(CURDIR)/debian/win11-clipboard-history/etc/modules-load.d/win11-clipboard.conf
 
 override_dh_auto_test:
-	@# Tests are run in CI; skip during package build to avoid
-	@# requiring a running display server.
-	npm test -- --run 2>/dev/null || true
+	# Frontend unit tests do not need a display server.
+	npm test -- --run
 
 override_dh_auto_clean:
 	rm -rf node_modules dist src-tauri/target

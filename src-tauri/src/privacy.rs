@@ -86,12 +86,7 @@ pub fn looks_like_secret(text: &str) -> bool {
 }
 
 fn looks_like_private_key(text: &str) -> bool {
-    text.contains("BEGIN OPENSSH PRIVATE KEY")
-        || text.contains("BEGIN RSA PRIVATE KEY")
-        || text.contains("BEGIN PRIVATE KEY")
-        || text.contains("BEGIN EC PRIVATE KEY")
-        || text.contains("BEGIN DSA PRIVATE KEY")
-        || text.contains("BEGIN PGP PRIVATE KEY BLOCK")
+    text.contains("BEGIN ") && text.contains("PRIVATE KEY")
 }
 
 fn looks_like_known_token(text: &str) -> bool {

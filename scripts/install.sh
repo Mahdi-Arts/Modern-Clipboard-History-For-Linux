@@ -215,6 +215,7 @@ install_deb() {
         error "Failed to download $FILE"
     fi
     chmod 644 "$FILE"
+    verify_downloaded_file "$FILE" "$BASE_URL"
     
     log "Installing dependencies..."
     sudo apt-get install -y xclip wl-clipboard acl || true
@@ -287,6 +288,7 @@ install_rpm() {
         error "Failed to download $FILE"
     fi
     chmod 644 "$FILE"
+    verify_downloaded_file "$FILE" "$BASE_URL"
     
     log "Installing dependencies..."
     sudo dnf install -y xclip wl-clipboard acl libayatana-appindicator-gtk3 || true
@@ -331,6 +333,7 @@ install_rpm_suse() {
         error "Failed to download $FILE"
     fi
     chmod 644 "$FILE"
+    verify_downloaded_file "$FILE" "$BASE_URL"
     
     log "Installing dependencies..."
     sudo zypper install -y xclip wl-clipboard acl libayatana-appindicator3-1 || true
@@ -394,6 +397,8 @@ install_appimage() {
     log "Downloading AppImage..."
     curl -fsSL -o "$HOME/.local/bin/win11-clipboard-history.AppImage" "$LATEST_URL"
     chmod +x "$HOME/.local/bin/win11-clipboard-history.AppImage"
+    BASE_URL="${LATEST_URL%/*}"
+    verify_downloaded_file "$HOME/.local/bin/win11-clipboard-history.AppImage" "$BASE_URL"
     
     # Download app icon for proper menu integration
     log "Downloading app icon..."

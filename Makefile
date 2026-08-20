@@ -324,12 +324,7 @@ uninstall:
 		AUTOSTART_FILE=$$(getent passwd $$SUDO_USER | cut -d: -f6)/.config/autostart/$(APP_NAME).desktop; \
 		rm -f "$$AUTOSTART_FILE" 2>/dev/null || true; \
 	fi
-	@# Also remove for all users
-	@for user_home in /home/*; do \
-		if [ -d "$$user_home" ]; then \
-			rm -f "$$user_home/.config/autostart/$(APP_NAME).desktop" 2>/dev/null || true; \
-		fi; \
-	done
+	@# Do not walk /home/* — only remove autostart for the invoking user.
 	@update-desktop-database $(DESTDIR)$(DATADIR)/applications 2>/dev/null || true
 	@gtk-update-icon-cache -f -t $(DESTDIR)$(DATADIR)/icons/hicolor 2>/dev/null || true
 	@echo -e "$(GREEN)✓ Uninstalled successfully$(RESET)"

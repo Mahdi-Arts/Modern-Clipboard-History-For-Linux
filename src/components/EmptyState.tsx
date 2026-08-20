@@ -1,5 +1,6 @@
 import { ClipboardList } from 'lucide-react'
 import { clsx } from 'clsx'
+import { useTranslation } from 'react-i18next'
 
 interface EmptyStateProps {
   isDark: boolean
@@ -9,6 +10,8 @@ interface EmptyStateProps {
  * Empty state component when there's no clipboard history
  */
 export function EmptyState({ isDark }: EmptyStateProps) {
+  const { t } = useTranslation()
+
   return (
     <div
       className="flex flex-col items-center justify-center h-full py-12 px-4 text-center"
@@ -34,25 +37,16 @@ export function EmptyState({ isDark }: EmptyStateProps) {
           isDark ? 'text-win11-text-primary' : 'text-win11Light-text-primary'
         )}
       >
-        No clipboard history yet
+        {t('clipboard.empty_state')}
       </h3>
 
       <p
         className={clsx(
-          'text-sm max-w-[200px]',
+          'text-sm max-w-[220px]',
           isDark ? 'text-win11-text-secondary' : 'text-win11Light-text-secondary'
         )}
       >
-        Copy something to see it appear here. Press{' '}
-        <kbd
-          className={clsx(
-            'px-1.5 py-0.5 rounded text-xs font-mono',
-            isDark ? 'bg-win11-bg-tertiary' : 'bg-win11Light-bg-tertiary'
-          )}
-        >
-          Super+V
-        </kbd>{' '}
-        to open anytime.
+        {t('clipboard.empty_state_desc')}
       </p>
     </div>
   )

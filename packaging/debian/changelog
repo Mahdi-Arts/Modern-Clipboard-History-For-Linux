@@ -1,0 +1,9 @@
+win11-clipboard-history (2.0.0-1) unstable; urgency=medium
+
+  * Incremental SQLite persistence (upsert / delete / meta updates).
+  * Enforce tiling WM config rewrite as an opt-in setting.
+  * Pin outbound HTTPS DNS to validated public addresses (SSRF).
+  * Cap clipboard history at 2000 items.
+  * Run frontend and Rust tests in CI; publish SHA256SUMS on release.
+
+ -- Mahdi Arts <gustaavoribeeiro@hotmail.com>  Thu, 20 Aug 2026 12:00:00 +0000
