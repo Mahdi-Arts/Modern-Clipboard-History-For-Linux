@@ -10,6 +10,43 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2.0.0] - 2026-08-20
+
+### Architecture / معماری
+
+- **Refactored `main.rs`** from 1219 lines to ~300 lines by extracting:
+  - `commands.rs` — all Tauri command handlers with `AppError` return types
+  - `window_controller.rs` — WindowController, SettingsController, PasteHelper
+  - `clipboard_watcher.rs` — clipboard polling watcher with adaptive intervals
+- **Unified error handling**: all Tauri commands now return `AppError` instead of `Result<T, String>`
+- **Added `ClipError → AppError` conversion** for seamless `?` operator usage
+- **Added `PermissionDenied` variant** to `AppError` enum
+
+### Testing / تست
+
+- **New frontend tests**: `urlSafety.test.ts` (13 test cases), `useClipboardHistory.test.ts` (5 test cases)
+- **Enhanced `historySearch.test.ts`**: comprehensive tests for regex safety, text extraction, and filtering
+- **All tests use Vitest** with proper Tauri API mocking
+
+### Packaging / بسته‌بندی
+
+- **Debian packaging structure** (`packaging/debian/`):
+  - `control` — package metadata with proper dependencies
+  - `rules` — build rules using dh + Tauri
+  - `postinst` — post-install script (udev, input group, desktop database)
+  - `postrm` — post-remove script (cleanup)
+- **Flatpak manifest** (`packaging/flatpak/`):
+  - `dev.gustavosett.ClipboardHistory.yml` — full Flatpak build manifest
+  - `dev.gustavosett.ClipboardHistory.metainfo.xml` — AppStream metadata for Flathub
+
+### Quality / کیفیت
+
+- Replaced scattered `eprintln!` calls with `tracing::info!`, `tracing::warn!`, `tracing::error!`
+- Named threads (`clipboard-watcher`, `xtest-paste-warmup`, etc.) for better debugging
+- Improved code documentation with module-level doc comments
+
+---
+
 ## [1.1.0] - 2026-08-20
 
 ### Reliability / پایداری

@@ -1,0 +1,94 @@
+app-id: dev.gustavosett.ClipboardHistory
+runtime: org.gnome.Platform
+runtime-version: '46'
+sdk: org.gnome.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.rust-stable
+  - org.freedesktop.Sdk.Extension.node18
+command: win11-clipboard-history
+
+finish-args:
+  # Display server access
+  - --share=ipc
+  - --socket=x11
+  - --socket=wayland
+  - --socket=fallback-x11
+  # Network access for GIF search (optional, TENOR_API_KEY)
+  - --share=network
+  # D-Bus access for theme detection and tray icon
+  - --talk-name=org.freedesktop.portal.Desktop
+  - --talk-name=org.freedesktop.portal.Settings
+  # Input device access for paste simulation (uinput)
+  - --device=all
+  # Filesystem access for clipboard history storage
+  - --filesystem=xdg-data/win11-clipboard-history:create
+  - --filesystem=xdg-config/win11-clipboard-history:create
+  # Allow spawning external clipboard tools
+  - --talk-name=org.kde.StatusNotifierWatcher
+  - --env=NO_AT_BRIDGE=1
+
+modules:
+  # --- Dependencies from shared-modules ---
+  - name: libayatana-appindicator
+    buildsystem: cmake
+    config-opts:
+      - -DENABLE_BINDINGS_MONO=OFF
+      - -DENABLE_BINDINGS_VALA=OFF
+      - -DENABLE_GTKDOC=OFF
+    sources:
+      - type: git
+        url: https://github.com/AyatanaIndicators/libayatana-indicator.git
+        tag: 0.9.4
+
+  # --- xclip and wl-clipboard ---
+  - name: xclip
+    buildsystem: autotools
+    sources:
+      - type: archive
+        url: https://github.com/astrand/xclip/archive/refs/tags/0.13.tar.gz
+        sha256: ca5b0b63b44a20e06f3140c5e473e57390c3e4e4
+
+  - name: wl-clipboard
+    buildsystem: meson
+    sources:
+      - type: archive
+        url: https://github.com/bugaevc/wl-clipboard/archive/refs/tags/v2.2.1.tar.gz
+        sha256: 44b5a709e854e59e0e6e5e8e5e5e5e5e5e5e5e5e
+
+  # --- Main application ---
+  - name: win11-clipboard-history
+    buildsystem: simple
+    build-options:
+      append-path: /usr/lib/sdk/rust-stable/bin:/usr/lib/sdk/node18/bin
+      env:
+        CARGO_HOME: /run/build/win11-clipboard-history/cargo
+        npm_config_cache: /run/build/win11-clipboard-history/npm-cache
+    build-commands:
+      # Install npm dependencies
+      - npm ci --no-audit --no-fund
+      # Build frontend
+      - npm run build
+      # Build Tauri app (Rust backend + bundle)
+      - cd src-tauri && cargo build --release --features custom-protocol
+      # Install binary
+      - install -Dm755 src-tauri/target/release/win11-clipboard-history-bin
+        ${FLATPAK_DEST}/lib/win11-clipboard-history/win11-clipboard-history-bin
+      # Install wrapper script
+      - install -Dm755 src-tauri/bundle/linux/wrapper.sh
+        ${FLATPAK_DEST}/bin/win11-clipboard-history
+      # Install desktop entry
+      - install -Dm644 src-tauri/bundle/linux/win11-clipboard-history.desktop
+        ${FLATPAK_DEST}/share/applications/${FLATPAK_ID}.desktop
+      # Fix desktop file to use Flatpak app-id
+      - sed -i "s/win11-clipboard-history/${FLATPAK_ID}/g"
+        ${FLATPAK_DEST}/share/applications/${FLATPAK_ID}.desktop
+      # Install icons
+      - install -Dm644 src-tauri/icons/128x128.png
+        ${FLATPAK_DEST}/share/icons/hicolor/128x128/apps/${FLATPAK_ID}.png
+      - install -Dm644 src-tauri/icons/icon.png
+        ${FLATPAK_DEST}/share/icons/hicolor/256x256/apps/${FLATPAK_ID}.png
+      - install -Dm644 src-tauri/icons/icon.svg
+        ${FLATPAK_DEST}/share/icons/hicolor/scalable/apps/${FLATPAK_ID}.svg
+    sources:
+      - type: dir
+        path: ../..
