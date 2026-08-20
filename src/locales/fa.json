@@ -32,7 +32,8 @@
   "clipboard": {
     "title": "تاریخچه کلیپ‌بورد",
     "empty_state": "تاریخچه کلیپ‌بورد خالی است",
-    "empty_state_desc": "متن یا تصویری را کپی کنید تا اینجا ظاهر شود. با Super+V هر زمان باز کنید.",
+    "empty_state_desc": "متن یا تصویری را کپی کنید تا اینجا ظاهر شود.",
+    "empty_shortcut": "Super + V",
     "search_placeholder": "جستجو در تاریخچه...",
     "no_items_found": "موردی یافت نشد",
     "pinned_section": "سنجاق شده",

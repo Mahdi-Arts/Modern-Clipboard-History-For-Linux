@@ -12,7 +12,7 @@
 //! 4. Starts the clipboard watcher and theme listener.
 
 use parking_lot::Mutex;
-use std::sync::atomic::Ordering;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use tauri::{
     menu::{Menu, MenuItem},
@@ -98,7 +98,6 @@ fn main() {
     let config_manager = Arc::new(Mutex::new(ConfigManager::new(base_dir)));
 
     tauri::Builder::default()
-        .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
             if argv.iter().any(|arg| arg == "--settings") {
@@ -118,6 +117,7 @@ fn main() {
             config_manager: config_manager.clone(),
             is_mouse_inside: is_mouse_inside.clone(),
             paste_gate: tokio::sync::Mutex::new(()),
+            paste_ticket: Mutex::new(None),
         })
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::Destroyed = event {
@@ -213,6 +213,7 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             // History
             commands::get_history,
+            commands::get_item,
             commands::clear_history,
             commands::delete_item,
             commands::toggle_pin,
@@ -236,6 +237,7 @@ fn main() {
             commands::paste_gif_from_url,
             commands::finish_paste,
             commands::copy_text_to_clipboard,
+            commands::open_safe_url,
             // Setup
             commands::finish_setup,
             // Tenor

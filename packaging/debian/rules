@@ -35,6 +35,11 @@ override_dh_auto_install:
 	# uinput module loading
 	install -d $(CURDIR)/debian/win11-clipboard-history/etc/modules-load.d
 	echo "uinput" > $(CURDIR)/debian/win11-clipboard-history/etc/modules-load.d/win11-clipboard.conf
+	# AppArmor profile (complain mode — see packaging/apparmor/)
+	install -Dm644 packaging/apparmor/win11-clipboard-history \
+		$(CURDIR)/debian/win11-clipboard-history/usr/share/doc/win11-clipboard-history/apparmor/win11-clipboard-history
+	install -Dm755 packaging/apparmor/install.sh \
+		$(CURDIR)/debian/win11-clipboard-history/usr/share/doc/win11-clipboard-history/apparmor/install.sh
 
 override_dh_auto_test:
 	# Frontend unit tests do not need a display server.

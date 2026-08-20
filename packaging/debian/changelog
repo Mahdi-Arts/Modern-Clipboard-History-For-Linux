@@ -1,3 +1,12 @@
+win11-clipboard-history (2.2.0-1) unstable; urgency=medium
+
+  * Production hardening: paste tickets, Rust URL opener (no shell plugin),
+    IPC payload truncation, SQLite WAL 0600 + secure_delete, blocking CI
+    tests/audits, SHA256SUMS + SPDX SBOM + provenance on release.
+  * Installer verifies GitHub artifacts by default (no curl|sudo bash).
+
+ -- Mahdi Arts <mahdi-arts@users.noreply.github.com>  Thu, 20 Aug 2026 23:00:00 +0330
+
 win11-clipboard-history (2.1.0-1) unstable; urgency=medium
 
   * Enterprise hardening release: offline fonts (CSP tightened), hardened

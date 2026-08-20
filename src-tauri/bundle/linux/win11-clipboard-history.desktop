@@ -8,7 +8,7 @@ Exec=win11-clipboard-history
 Icon=win11-clipboard-history
 Terminal=false
 Categories=Utility;GTK;System;
-Keywords=clipboard;history;paste;copy;emoji;gif;manager;
+Keywords=clipboard;history;paste;copy;emoji;manager;
 StartupWMClass=win11-clipboard-history
 StartupNotify=true
 

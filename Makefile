@@ -348,8 +348,8 @@ rust-syntax:
 
 audit:
 	@echo -e "$(CYAN)Auditing dependencies...$(RESET)"
-	cd src-tauri && cargo audit || true
-	npm audit --audit-level=high || true
+	cd src-tauri && cargo audit
+	npm audit --audit-level=high
 
 lint:
 	@echo -e "$(CYAN)Running linters...$(RESET)"

@@ -33,6 +33,16 @@ pub fn write_json_atomic<T: serde::Serialize>(path: &Path, value: &T) -> std::io
     write_atomic(path, content.as_bytes())
 }
 
+/// Restrict SQLite's main file plus `-wal` / `-shm` sidecars (0600).
+pub fn restrict_sqlite_files(db_path: &Path) {
+    restrict_permissions(db_path);
+    for suffix in ["-wal", "-shm"] {
+        let mut sidecar = db_path.as_os_str().to_os_string();
+        sidecar.push(suffix);
+        restrict_permissions(Path::new(&sidecar));
+    }
+}
+
 /// Restrict a file or directory to owner read/write (0600 / 0700).
 pub fn restrict_permissions(path: &Path) {
     #[cfg(unix)]

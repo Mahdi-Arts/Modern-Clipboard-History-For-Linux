@@ -87,7 +87,7 @@ pub async fn get_system_color_scheme() -> ThemeInfo {
             }
         }
         Err(e) => {
-            etracing::info!(
+            tracing::info!(
                 "[ThemeManager] Portal query failed: {}, trying fallbacks",
                 e
             );
@@ -190,7 +190,7 @@ fn read_cosmic_theme_file() -> Result<bool, Box<dyn std::error::Error>> {
                 .into());
             }
         };
-        etracing::info!(
+        tracing::info!(
             "[ThemeManager] Read COSMIC config file: is_dark={}",
             is_dark
         );
@@ -218,15 +218,15 @@ pub async fn start_theme_listener(
     }
 
     tokio::spawn(async move {
-        etracing::info!("[ThemeManager] Starting D-Bus event listener for theme changes");
+        tracing::info!("[ThemeManager] Starting D-Bus event listener for theme changes");
 
         match listen_for_theme_changes(app_handle).await {
             Ok(_) => {
-                etracing::info!("[ThemeManager] Theme listener ended gracefully");
+                tracing::info!("[ThemeManager] Theme listener ended gracefully");
                 EVENT_LISTENER_RUNNING.store(false, Ordering::SeqCst);
             }
             Err(e) => {
-                etracing::info!("[ThemeManager] Theme listener error: {}", e);
+                tracing::info!("[ThemeManager] Theme listener error: {}", e);
                 EVENT_LISTENER_RUNNING.store(false, Ordering::SeqCst);
             }
         }
@@ -243,7 +243,7 @@ pub fn update_dynamic_tray_flag(enabled: bool) {
 /// Helper to get the initial tray icon.
 /// Uses a default icon initially to avoid blocking startup, then updates asynchronously.
 pub fn initial_tray_icon(_settings: &UserSettings) -> (Image<'static>, bool) {
-    etracing::info!("[Tray] Initializing with default icon (non-blocking).");
+    tracing::info!("[Tray] Initializing with default icon (non-blocking).");
 
     let icon =
         Image::from_bytes(include_bytes!("../icons/icon.png")).expect("Failed to load tray icon");
@@ -309,7 +309,7 @@ async fn listen_for_theme_changes(
 
     let mut stream = MessageStream::for_match_rule(rule, &connection, None).await?;
 
-    etracing::info!("[ThemeManager] Listening for theme change signals...");
+    tracing::info!("[ThemeManager] Listening for theme change signals...");
 
     while let Some(msg) = stream.next().await {
         if let Ok(msg) = msg {
@@ -338,7 +338,7 @@ async fn listen_for_theme_changes(
 
                         // Only emit if the theme actually changed
                         if previous_scheme != new_cache_value {
-                            etracing::info!(
+                            tracing::info!(
                                 "[ThemeManager] Theme changed via D-Bus signal: {:?}",
                                 scheme
                             );
@@ -354,7 +354,7 @@ async fn listen_for_theme_changes(
                             };
 
                             if let Err(e) = app_handle.emit("system-theme-changed", &theme_info) {
-                                etracing::info!(
+                                tracing::info!(
                                     "[ThemeManager] Failed to emit theme change event: {}",
                                     e
                                 );

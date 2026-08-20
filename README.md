@@ -65,7 +65,7 @@ Prefer your package manager over piping scripts to `bash`. Verify `SHA256SUMS` f
 ### Debian / Ubuntu
 
 ```bash
-sudo apt install ./win11-clipboard-history_2.0.0_amd64.deb
+sudo apt install ./win11-clipboard-history_2.2.0_amd64.deb
 sudo setfacl -m u:$USER:rw /dev/uinput
 ```
 
@@ -74,7 +74,7 @@ Download the `.deb` from [GitHub Releases](https://github.com/Mahdi-Arts/Modern-
 ### Fedora
 
 ```bash
-sudo dnf install ./win11-clipboard-history-2.0.0-1.x86_64.rpm
+sudo dnf install ./win11-clipboard-history-2.2.0-1.x86_64.rpm
 sudo setfacl -m u:$USER:rw /dev/uinput
 ```
 
@@ -86,7 +86,7 @@ yay -S win11-clipboard-history-bin
 
 ### Flatpak
 
-See `packaging/README.md`. The Flatpak sandbox does not grant `/dev/uinput`; use the `.deb`/`.rpm` for paste simulation, or override with `--device=all`.
+See [`packaging/README.md`](packaging/README.md) for Debian source layout (`packaging/debian/`) and the Flatpak manifest (`packaging/flatpak/`). The Flatpak sandbox does not grant `/dev/uinput`; use the `.deb`/`.rpm` for paste simulation, or override with `--device=all`.
 
 ### Convenience installer (review before running)
 
@@ -123,7 +123,7 @@ The installer **requires** matching the downloaded artifact against the release'
 | Persistence | SQLite (WAL) incremental upsert, PNG files, atomic JSON for settings |
 | Input | Persistent uinput device (Wayland) / XTest (X11) |
 | Fonts | Bundled Vazirmatn (SIL OFL 1.1) — zero runtime network calls |
-| Security | CSP (`font-src 'self'`), `withGlobalTauri: false`, SSRF allowlist + DNS pin, scoped `shell:allow-open`, mandatory checksum verification |
+| Security | CSP (`font-src 'self'`), `withGlobalTauri: false`, SSRF allowlist + DNS pin, Rust `open_safe_url`, paste tickets, mandatory checksum verification |
 
 ---
 
@@ -159,7 +159,15 @@ npm run test:coverage   # 72+ tests; coverage thresholds enforced
 node scripts/check-rust-syntax.mjs  # fast syntax gate (tree-sitter)
 ```
 
-CI runs `npm run lint`, `npm test`, coverage thresholds, `cargo test`, Clippy (`-D warnings`), `cargo fmt --check`, and **blocking** `cargo audit` + `npm audit --audit-level=high`. Release builds also run an Xvfb smoke test and publish SHA256SUMS, an SPDX SBOM, and SLSA provenance.
+CI (see `.github/workflows/ci.yml`) **blocks** on:
+
+- `npm run lint` (tsc + ESLint, zero warnings)
+- `npm run test:coverage` (Vitest + coverage thresholds)
+- `cargo test`, `cargo clippy -- -D warnings`, `cargo fmt --check`
+- `cargo audit` and `npm audit --audit-level=high` (no `continue-on-error`)
+- Xvfb smoke: `--version` / `--help` on the release binary
+
+Tagged releases publish `.deb` / `.rpm` / AppImage plus `SHA256SUMS`, an SPDX SBOM, and SLSA build provenance. All URLs point at this repository (`Mahdi-Arts/Modern-Clipboard-History-For-Linux`).
 
 ### Environment
 
@@ -174,6 +182,7 @@ Packaging notes: `packaging/README.md`.
 
 ## Security / امنیت
 
+- Contributing: [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md)
 - Full threat model: [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md)
 - Architecture decision records: [`docs/adr/`](docs/adr/)
 - Reporting vulnerabilities: [`SECURITY.md`](.github/SECURITY.md) (GitHub private advisory — do not open public issues)

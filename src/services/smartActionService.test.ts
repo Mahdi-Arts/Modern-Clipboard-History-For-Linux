@@ -2,15 +2,15 @@ import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { smartActionService } from './smartActionService'
 import { sanitizeOpenUrl } from '../utils/urlSafety'
 
-const openMock = vi.fn()
+const invokeMock = vi.fn()
 
-vi.mock('@tauri-apps/plugin-shell', () => ({
-  open: (...args: unknown[]) => openMock(...args),
+vi.mock('@tauri-apps/api/core', () => ({
+  invoke: (...args: unknown[]) => invokeMock(...args),
 }))
 
 describe('smartActionService', () => {
   beforeEach(() => {
-    openMock.mockReset()
+    invokeMock.mockReset()
   })
 
   it('detects https URLs', () => {
@@ -43,14 +43,14 @@ describe('smartActionService', () => {
     expect(smartActionService.detectActions('not-an-email@')).toEqual([])
   })
 
-  it('executes open-link through the scoped shell plugin', async () => {
+  it('executes open-link through the Rust open_safe_url command', async () => {
     const actions = smartActionService.detectActions('https://example.com/docs')
     const action = actions.find((a) => a.id === 'open-link')
     expect(action).toBeDefined()
 
-    openMock.mockResolvedValue(undefined)
+    invokeMock.mockResolvedValue(undefined)
     await smartActionService.execute(action!)
-    expect(openMock).toHaveBeenCalledWith('https://example.com/docs')
+    expect(invokeMock).toHaveBeenCalledWith('open_safe_url', { url: 'https://example.com/docs' })
   })
 
   it('executes compose-email through a mailto: URL', async () => {
@@ -58,15 +58,15 @@ describe('smartActionService', () => {
     const action = actions.find((a) => a.id === 'compose-email')
     expect(action).toBeDefined()
 
-    openMock.mockResolvedValue(undefined)
+    invokeMock.mockResolvedValue(undefined)
     await smartActionService.execute(action!)
-    expect(openMock).toHaveBeenCalledWith('mailto:user@example.com')
+    expect(invokeMock).toHaveBeenCalledWith('open_safe_url', { url: 'mailto:user@example.com' })
   })
 
   it('throws when asked to open a blocked URL', async () => {
     await expect(
       smartActionService.execute({ id: 'open-link', label: 'Open Link', data: 'http://127.0.0.1/' })
     ).rejects.toThrow('Blocked unsafe URL')
-    expect(openMock).not.toHaveBeenCalled()
+    expect(invokeMock).not.toHaveBeenCalled()
   })
 })

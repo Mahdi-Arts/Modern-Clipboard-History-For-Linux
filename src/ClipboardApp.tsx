@@ -310,9 +310,16 @@ function ClipboardApp() {
     }
   }
 
-  // Don't render until settings are loaded to prevent FOUC
   if (!settingsLoaded) {
-    return null
+    return (
+      <div
+        className="h-screen w-screen flex items-center justify-center bg-transparent"
+        role="status"
+        aria-label="Loading"
+      >
+        <div className="w-6 h-6 border-2 border-win11-bg-accent border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
   }
 
   return (

@@ -93,7 +93,7 @@ pub fn init() {
         .name(thread_name.to_string())
         .spawn(warmup)
     {
-        etracing::info!("[SimulatePaste] Failed to start warmup thread: {}", error);
+        tracing::info!("[SimulatePaste] Failed to start warmup thread: {}", error);
     }
 }
 
@@ -106,9 +106,9 @@ fn warm_up_xtest() {
     match XtestDevice::create() {
         Ok(created) => {
             *device = Some(created);
-            etracing::info!("[XTest] Persistent X11 input client is ready");
+            tracing::info!("[XTest] Persistent X11 input client is ready");
         }
-        Err(error) => etracing::info!(
+        Err(error) => tracing::info!(
             "[XTest] Startup warmup failed; first paste will retry: {}",
             error
         ),
@@ -124,9 +124,9 @@ fn warm_up_uinput() {
     match UinputDevice::create() {
         Ok(created) => {
             *device = Some(created);
-            etracing::info!("[uinput] Virtual keyboard warmed up at startup");
+            tracing::info!("[uinput] Virtual keyboard warmed up at startup");
         }
-        Err(error) => etracing::info!(
+        Err(error) => tracing::info!(
             "[uinput] Startup warmup failed; first paste will retry: {}",
             error
         ),
@@ -134,7 +134,7 @@ fn warm_up_uinput() {
 }
 
 pub fn simulate_paste_keystroke() -> Result<(), String> {
-    etracing::info!("[SimulatePaste] Sending Ctrl+V...");
+    tracing::info!("[SimulatePaste] Sending Ctrl+V...");
 
     // XTest uses one native X11 connection and verifies that Ctrl is down
     // before V. xdotool is retained only as a compatibility fallback.
@@ -154,11 +154,11 @@ pub fn simulate_paste_keystroke() -> Result<(), String> {
     for (name, strategy) in strategies {
         match strategy() {
             Ok(()) => {
-                etracing::info!("[SimulatePaste] Ctrl+V sent via {}", name);
+                tracing::info!("[SimulatePaste] Ctrl+V sent via {}", name);
                 return Ok(());
             }
             Err(PasteFailure::Retryable(error)) => {
-                etracing::info!("[SimulatePaste] {} unavailable: {}", name, error);
+                tracing::info!("[SimulatePaste] {} unavailable: {}", name, error);
             }
             Err(PasteFailure::Ambiguous(error)) => {
                 return Err(format!(
@@ -258,7 +258,7 @@ impl XtestDevice {
 
         if mapping_changed {
             (self.ctrl_keycode, self.v_keycode) = resolve_paste_keycodes(&self.connection)?;
-            etracing::info!("[XTest] Keyboard mapping changed; refreshed paste keycodes");
+            tracing::info!("[XTest] Keyboard mapping changed; refreshed paste keycodes");
         }
 
         Ok(())
@@ -544,7 +544,7 @@ impl UinputDevice {
         // The event node is an observable udev barrier. This one-time grace is
         // outside the hot path after startup and lets the compositor attach.
         std::thread::sleep(DEVICE_DISCOVERY_GRACE);
-        etracing::info!("[uinput] Persistent virtual keyboard is ready");
+        tracing::info!("[uinput] Persistent virtual keyboard is ready");
 
         Ok(Self { file })
     }
@@ -589,7 +589,7 @@ fn simulate_paste_uinput() -> Result<(), PasteFailure> {
         match existing.send_ctrl_v() {
             Ok(()) => return Ok(()),
             Err(error) => {
-                etracing::info!("[uinput] Existing device failed: {}", error);
+                tracing::info!("[uinput] Existing device failed: {}", error);
                 *device = None;
                 return Err(PasteFailure::Ambiguous(error));
             }
@@ -638,7 +638,7 @@ fn wait_for_uinput_device(device_name: &str) -> Result<PathBuf, String> {
     let start = Instant::now();
     loop {
         if let Some(path) = find_uinput_event_node(device_name) {
-            etracing::info!(
+            tracing::info!(
                 "[uinput] Event node {} appeared after {:?}",
                 path.display(),
                 start.elapsed()

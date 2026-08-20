@@ -1,4 +1,4 @@
-import { open } from '@tauri-apps/plugin-shell'
+import { invoke } from '@tauri-apps/api/core'
 import { normalizeHttpUrl, sanitizeOpenUrl } from '../utils/urlSafety'
 
 export type SmartActionType = 'open-link' | 'compose-email' | 'color-preview'
@@ -58,24 +58,20 @@ export const smartActionService = {
   },
 
   async execute(action: SmartAction) {
-    try {
-      switch (action.id) {
-        case 'open-link':
-        case 'compose-email': {
-          if (!action.data) return
-          const safe = sanitizeOpenUrl(action.data)
-          if (!safe) {
-            throw new Error('Blocked unsafe URL')
-          }
-          await open(safe)
-          break
+    switch (action.id) {
+      case 'open-link':
+      case 'compose-email': {
+        if (!action.data) return
+        const safe = sanitizeOpenUrl(action.data)
+        if (!safe) {
+          throw new Error('Blocked unsafe URL')
         }
-        default:
-          break
+        // Validated again in Rust before xdg-open (no shell plugin).
+        await invoke('open_safe_url', { url: safe })
+        break
       }
-    } catch (e) {
-      console.error('Failed to execute smart action', e)
-      throw e
+      default:
+        break
     }
   },
 }

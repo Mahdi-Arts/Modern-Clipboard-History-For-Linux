@@ -1,6 +1,7 @@
 //! Permission checker module for Windows 11 Clipboard History
 //! Handles uinput permission verification and fixing
 
+use crate::error::AppError;
 use std::fs::OpenOptions;
 use std::path::PathBuf;
 use std::process::Command;
@@ -68,16 +69,20 @@ fn command_exists(cmd: &str) -> bool {
 
 /// Apply ACL for immediate access (requires pkexec/sudo)
 #[tauri::command]
-pub fn fix_permissions_now() -> Result<String, String> {
+pub fn fix_permissions_now() -> Result<String, AppError> {
     // Check required commands exist
     if !command_exists("pkexec") {
-        return Err("pkexec not found. Install polkit or run manually: sudo setfacl -m u:$USER:rw /dev/uinput".to_string());
+        return Err(AppError::PermissionDenied(
+            "pkexec not found. Install polkit or run manually: sudo setfacl -m u:$USER:rw /dev/uinput".into(),
+        ));
     }
     if !command_exists("setfacl") {
-        return Err("setfacl not found. Install acl package (e.g., 'sudo apt install acl') or add yourself to the input group: sudo usermod -aG input $USER".to_string());
+        return Err(AppError::PermissionDenied(
+            "setfacl not found. Install acl package (e.g., 'sudo apt install acl') or add yourself to the input group: sudo usermod -aG input $USER".into(),
+        ));
     }
 
-    let username = whoami::username().map_err(|e| format!("Failed to get username: {}", e))?;
+    let username = whoami::username().map_err(|e| AppError::Other(format!("Failed to get username: {e}")))?;
 
     // Use pkexec for graphical password prompt
     let status = Command::new("pkexec")
@@ -88,12 +93,14 @@ pub fn fix_permissions_now() -> Result<String, String> {
             "/dev/uinput",
         ])
         .status()
-        .map_err(|e| format!("Failed to run pkexec: {}", e))?;
+        .map_err(|e| AppError::Other(format!("Failed to run pkexec: {e}")))?;
 
     if status.success() {
         Ok("Permission granted! Paste should work now.".to_string())
     } else {
-        Err("Failed to set permissions. Try running manually: sudo setfacl -m u:$USER:rw /dev/uinput".to_string())
+        Err(AppError::PermissionDenied(
+            "Failed to set permissions. Try running manually: sudo setfacl -m u:$USER:rw /dev/uinput".into(),
+        ))
     }
 }
 
@@ -105,13 +112,13 @@ pub fn is_first_run() -> bool {
 
 /// Mark the first run as complete
 #[tauri::command]
-pub fn mark_first_run_complete() -> Result<(), String> {
+pub fn mark_first_run_complete() -> Result<(), AppError> {
     let config_path = get_config_path();
 
     // Create directory if it doesn't exist
     if let Some(parent) = config_path.parent() {
         std::fs::create_dir_all(parent)
-            .map_err(|e| format!("Failed to create config dir: {}", e))?;
+            .map_err(|e| AppError::Other(format!("Failed to create config dir: {e}")))?;
     }
 
     // Create initial setup config file
@@ -121,19 +128,19 @@ pub fn mark_first_run_complete() -> Result<(), String> {
     });
 
     crate::fs_atomic::write_atomic(&config_path, config_content.to_string().as_bytes())
-        .map_err(|e| format!("Failed to write config: {}", e))?;
+        .map_err(|e| AppError::Other(format!("Failed to write config: {e}")))?;
 
     Ok(())
 }
 
 /// Reset the first run state - will show the setup wizard again
 #[tauri::command]
-pub fn reset_first_run() -> Result<(), String> {
+pub fn reset_first_run() -> Result<(), AppError> {
     let config_path = get_config_path();
 
     if config_path.exists() {
         std::fs::remove_file(&config_path)
-            .map_err(|e| format!("Failed to remove config: {}", e))?;
+            .map_err(|e| AppError::Other(format!("Failed to remove config: {e}")))?;
     }
 
     Ok(())

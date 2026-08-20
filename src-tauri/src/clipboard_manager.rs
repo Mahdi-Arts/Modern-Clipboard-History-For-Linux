@@ -113,6 +113,26 @@ impl ClipboardItem {
         }
     }
 
+    /// Strip HTML and cap text so IPC never carries the full clipboard payload.
+    pub fn for_ipc(&self) -> Self {
+        const UI_TEXT_MAX: usize = 2048;
+        let content = match &self.content {
+            ClipboardContent::Text(text) => ClipboardContent::Text(truncate_chars(text, UI_TEXT_MAX)),
+            ClipboardContent::RichText { plain, .. } => ClipboardContent::RichText {
+                plain: truncate_chars(plain, UI_TEXT_MAX),
+                html: String::new(),
+            },
+            other => other.clone(),
+        };
+        Self {
+            id: self.id.clone(),
+            content,
+            timestamp: self.timestamp,
+            pinned: self.pinned,
+            preview: self.preview.clone(),
+        }
+    }
+
     pub fn extract_image_hash(&self) -> Option<u64> {
         if !matches!(self.content, ClipboardContent::Image { .. }) {
             return None;
@@ -411,7 +431,7 @@ impl ClipboardManager {
             }
         }
         tx.commit().map_err(|e| e.to_string())?;
-        crate::fs_atomic::restrict_permissions(&self.db_path);
+        crate::fs_atomic::restrict_sqlite_files(&self.db_path);
         Ok(())
     }
 
@@ -424,7 +444,7 @@ impl ClipboardManager {
                 .map(|p| p.to_string_lossy().into_owned()),
         );
         execute_insert(&self.conn, &row)?;
-        crate::fs_atomic::restrict_permissions(&self.db_path);
+        crate::fs_atomic::restrict_sqlite_files(&self.db_path);
         Ok(())
     }
 
@@ -703,6 +723,11 @@ impl ClipboardManager {
 
     pub fn get_history(&self) -> Vec<ClipboardItem> {
         self.history.clone()
+    }
+
+    /// History payload for the webview: preview + truncated plain text, no HTML.
+    pub fn get_history_for_ui(&self) -> Vec<ClipboardItem> {
+        self.history.iter().map(ClipboardItem::for_ipc).collect()
     }
 
     pub fn get_item(&self, id: &str) -> Option<&ClipboardItem> {
@@ -1173,6 +1198,8 @@ fn open_database(path: &std::path::Path) -> Result<Connection, String> {
         PRAGMA journal_mode=WAL;
         PRAGMA synchronous=NORMAL;
         PRAGMA foreign_keys=ON;
+        PRAGMA secure_delete=ON;
+        PRAGMA auto_vacuum=INCREMENTAL;
         CREATE TABLE IF NOT EXISTS items (
             id TEXT PRIMARY KEY,
             kind TEXT NOT NULL,
@@ -1192,7 +1219,7 @@ fn open_database(path: &std::path::Path) -> Result<Connection, String> {
         "#,
     )
     .map_err(|e| e.to_string())?;
-    crate::fs_atomic::restrict_permissions(path);
+    crate::fs_atomic::restrict_sqlite_files(path);
     Ok(conn)
 }
 

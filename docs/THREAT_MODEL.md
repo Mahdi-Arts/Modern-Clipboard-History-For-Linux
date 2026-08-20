@@ -1,6 +1,6 @@
 # 🛡️ Threat Model — Modern Clipboard History for Linux
 
-> **Status:** Living document · **Applies to:** v2.1.0
+> **Status:** Living document · **Applies to:** v2.2.0
 > This document describes the assets, trust boundaries, threat agents, and
 > the controls in place. It is the reference for security reviews and for
 > any future hardening work (e.g. optional encryption).
@@ -56,7 +56,7 @@ Key boundaries:
 ### 4.1 Clipboard poisoning (T3)
 - **Secret filter** (`privacy.rs`): drops PEM private keys, JWTs, known token prefixes (`ghp_`, `sk_live_`, `AKIA…`), and `password=`-style assignments before they reach history. Default ON.
 - **Sensitive-source skip** (X11 only): password managers and incognito/private windows are excluded via WM_CLASS/title matching (`window_identity.rs`). Wayland compositors do not expose focus identity — documented limitation.
-- **Smart-action URL sanitizer** (`urlSafety.ts`): protocol allowlist (`http/https/mailto`), blocks credentials, control chars, localhost, IPv4 private/loopback/CGNAT/link-local/TEST-NET, IPv6 loopback/ULA/link-local/mapped/documentation, `.internal` TLDs. Enforced again before `open()`.
+- **Smart-action URL sanitizer** (`urlSafety.ts` + `open_url.rs`): protocol allowlist (`http/https/mailto`), blocks credentials, control chars, localhost, private/loopback/CGNAT IPs. The webview calls `open_safe_url`; Rust re-validates and execs `xdg-open` (no Tauri `shell:allow-open`).
 - **Regex search guard** (`historySearch.ts`): length cap (80), nested-quantifier detection, try/catch — prevents ReDoS on the UI thread.
 
 ### 4.2 Local exposure (T2)
@@ -71,7 +71,7 @@ Key boundaries:
 
 ### 4.4 Keystroke injection capability (T1-adjacent risk)
 - `/dev/uinput` (Wayland) or XTest (X11) can synthesize Ctrl+V into the focused window.
-- Guards: paste only happens after a real clipboard write recorded within 5 s (`finish_paste`); the paste transaction is serialized (`paste_gate`); on X11 the previous focused window is restored and **verified** before injection (`focus_manager`/`paste_sync`); the popup window hides and releases focus first.
+- Guards: `finish_paste` requires a one-shot ticket issued after a clipboard write **and** a write recorded within 5 s; the paste transaction is serialized (`paste_gate`); on X11 the previous focused window is restored and **verified** before injection (`focus_manager`/`paste_sync`); the popup window hides and releases focus first.
 - udev rule grants access only to the logged-in session (`TAG+="uaccess"`); AppArmor profile restricts the device to the app binary.
 - **Residual risk (documented):** a compromised binary could type into any focused window. Users should treat the binary like a trusted input device (README + SECURITY.md).
 

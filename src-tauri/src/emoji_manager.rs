@@ -50,7 +50,7 @@ impl EmojiManager {
         };
 
         if let Err(e) = manager.load_from_disk() {
-            etracing::info!("[EmojiManager] Failed to load history: {}", e);
+            tracing::info!("[EmojiManager] Failed to load history: {}", e);
         }
 
         manager
@@ -84,7 +84,7 @@ impl EmojiManager {
 
         // Persist to disk
         if let Err(e) = self.save_to_disk() {
-            etracing::info!("[EmojiManager] Failed to save history: {}", e);
+            tracing::info!("[EmojiManager] Failed to save history: {}", e);
         }
     }
 
@@ -129,7 +129,7 @@ impl EmojiManager {
             self.recent.truncate(MAX_RECENT_EMOJIS);
         }
 
-        etracing::info!("[EmojiManager] Loaded {} recent emojis", self.recent.len());
+        tracing::info!("[EmojiManager] Loaded {} recent emojis", self.recent.len());
         Ok(())
     }
 
