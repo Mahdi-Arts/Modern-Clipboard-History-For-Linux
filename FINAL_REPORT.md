@@ -1,41 +1,35 @@
-# Final report — v2.2.0 production hardening
+# Final report — enterprise hardening (v2.2.0)
 
-This release applies the review findings from the architecture/security audit
-and aligns CI, installer, packaging, and runtime controls with the README.
+## What shipped
 
-## What changed
+1. **At-rest encryption** — `history_crypto.rs` encrypts SQLite text columns with ChaCha20-Poly1305. Key: `~/.local/share/win11-clipboard-history/history.key` (`0600`). Legacy plaintext still loads. ADR 0004.
+2. **Persistence split** — schema/SQL lives in `history_store.rs`; policy stays in `clipboard_manager.rs`. Paste-ticket unit tests in `lib.rs`.
+3. **CI** — `cargo audit` and `npm audit --audit-level=high` are **blocking**. Coverage, Clippy `-D warnings`, Xvfb smoke after build.
+4. **Releases** — `SHA256SUMS` generated and uploaded; install URLs point at `Mahdi-Arts/Modern-Clipboard-History-For-Linux`.
+5. **Packaging** — Debian `control`/`rules` and Flatpak manifest remain the source of truth for `.deb` and Flathub-style builds. AppArmor documents `history.key`.
+6. **UI** — slightly deeper acrylic glass; privacy copy explains encryption (EN/FA).
 
-1. **Compile / quality**
-   - Replaced invalid `etracing::` calls with `tracing::`.
-   - Restored missing `AtomicBool` / `Mutex` imports so the Rust crate type-checks.
-2. **Security**
-   - `finish_paste` requires a one-shot ticket after a clipboard write.
-   - Smart Actions call `open_safe_url` (Rust `xdg-open` + allowlist). Tauri
-     `shell:allow-open` was removed.
-   - History IPC strips HTML and caps text at 2048 chars.
-   - SQLite: `secure_delete`, `0600` on db + WAL/SHM.
-3. **Supply chain**
-   - CI blocks on tests, coverage, Clippy, `cargo audit`, `npm audit`.
-   - Releases emit SHA256SUMS, SPDX SBOM, SLSA provenance for this repo only.
-   - Installer verifies GitHub artifacts by default; Cloudsmith is opt-in.
-4. **Packaging**
-   - Debian `packaging/debian/` installs AppArmor docs; Flatpak manifest kept
-     conservative (no `--device=all`).
-5. **UI**
-   - Empty-state Super+V hint; loading spinner instead of a blank window.
+## How to ship a `.deb`
 
-## Verification (this workspace)
+```bash
+make deps && npm ci && npm run tauri:build
+# src-tauri/target/release/bundle/deb/*.deb
+```
 
-- `npm test` — 73 tests, all passing
-- `npm run lint` — passing
-- `npm run test:coverage` — thresholds met
-- `bash -n scripts/install.sh` — passing
+Classic:
 
-Rust `cargo test` / Clippy run in GitHub Actions (GTK/WebKit sysroot).
+```bash
+cp -a packaging/debian debian
+dpkg-buildpackage -us -uc
+```
 
-## Residual accepted risk
+## Flatpak
 
-- History remains unencrypted at rest (`0600` + OS disk encryption).
-- `/dev/uinput` can type into the focused window; treat the binary as a
-  trusted input device.
-- Wayland cannot skip password-manager windows by identity.
+`packaging/flatpak/io.github.mahdi-arts.clipboard-history.yml`  
+Paste via `/dev/uinput` still needs `--device=all` or a native deb.
+
+## Tests added
+
+- History crypto round-trip
+- Encrypted-on-disk vs decrypted-in-memory
+- One-shot paste tickets

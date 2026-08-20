@@ -60,6 +60,39 @@ impl AppState {
     }
 }
 
+#[cfg(test)]
+mod paste_ticket_tests {
+    use super::*;
+    use parking_lot::Mutex as PMutex;
+    use std::sync::atomic::AtomicBool;
+    use std::sync::Arc;
+
+    fn empty_state() -> AppState {
+        let dir = std::env::temp_dir().join(format!("ticket-{}", uuid::Uuid::new_v4()));
+        let _ = std::fs::create_dir_all(&dir);
+        AppState {
+            clipboard_manager: Arc::new(PMutex::new(
+                clipboard_manager::ClipboardManager::new(dir.join("history.json"), 8),
+            )),
+            emoji_manager: Arc::new(PMutex::new(emoji_manager::EmojiManager::new(dir.clone()))),
+            config_manager: Arc::new(PMutex::new(config_manager::ConfigManager::new(dir.clone()))),
+            is_mouse_inside: Arc::new(AtomicBool::new(false)),
+            paste_gate: tokio::sync::Mutex::new(()),
+            paste_ticket: PMutex::new(None),
+        }
+    }
+
+    #[test]
+    fn paste_ticket_is_one_shot_and_rejects_mismatch() {
+        let state = empty_state();
+        let nonce = state.issue_paste_ticket();
+        assert!(!state.consume_paste_ticket("wrong"));
+        assert!(state.consume_paste_ticket(&nonce));
+        assert!(!state.consume_paste_ticket(&nonce));
+        assert!(!state.consume_paste_ticket(""));
+    }
+}
+
 /// Initialize tracing/logging. Called once at app startup.
 /// The worker guard is kept alive for the process lifetime so logs flush.
 pub fn init_tracing() {

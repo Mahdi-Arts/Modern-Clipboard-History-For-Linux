@@ -10,6 +10,7 @@
 # The app needs:
 #   - read/write on its own XDG dirs (SQLite history, images, settings, logs)
 #   - /dev/uinput rw (paste injection) — same permission as the udev rule
+#   - history.key (ChaCha20-Poly1305) stays under the XDG data dir above
 #   - the ability to spawn helper binaries (xclip, wl-copy, xdotool,
 #     gsettings, xfconf-query, pkexec, i3-msg, swaymsg, ...)
 #   - access to the X11 / Wayland sockets

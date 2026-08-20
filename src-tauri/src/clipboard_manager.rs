@@ -6,6 +6,8 @@ use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
 use chrono::{DateTime, Utc};
 use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
+use crate::history_crypto::HistoryCrypto;
+use crate::history_store::{self, PersistRow};
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::hash::{Hash, Hasher};
@@ -154,6 +156,7 @@ pub struct ClipboardManager {
     json_legacy_path: PathBuf,
     images_dir: PathBuf,
     conn: Connection,
+    crypto: HistoryCrypto,
     image_paths: HashMap<String, PathBuf>,
     max_history_size: usize,
     dirty: bool,
@@ -184,9 +187,14 @@ impl ClipboardManager {
         let _ = fs::create_dir_all(&images_dir);
         crate::fs_atomic::restrict_permissions(&images_dir);
 
-        let conn = open_database(&db_path).unwrap_or_else(|e| {
+        let conn = history_store::open_database(&db_path).unwrap_or_else(|e| {
             error!("[ClipboardManager] Failed to open SQLite ({e}); using in-memory fallback");
             Connection::open_in_memory().expect("in-memory sqlite")
+        });
+        let crypto = HistoryCrypto::load_or_create(&base_dir).unwrap_or_else(|e| {
+            error!("[ClipboardManager] history.key unavailable ({e}); generating ephemeral key");
+            HistoryCrypto::load_or_create(&std::env::temp_dir().join("win11-clipboard-ephemeral"))
+                .expect("ephemeral history crypto")
         });
 
         let mut manager = Self {
@@ -199,6 +207,7 @@ impl ClipboardManager {
             json_legacy_path: persistence_path,
             images_dir,
             conn,
+            crypto,
             image_paths: HashMap::new(),
             max_history_size: max_size,
             dirty: false,
@@ -301,44 +310,23 @@ impl ClipboardManager {
         if !self.history.is_empty() {
             return;
         }
-        let mut stmt = match self.conn.prepare(
-            "SELECT id, kind, text, html, image_path, image_hash, width, height,
-                    preview, pinned, created_at, thumb_base64
-             FROM items ORDER BY sort_index ASC",
-        ) {
-            Ok(s) => s,
+        let rows = match history_store::load_rows(&self.conn) {
+            Ok(r) => r,
             Err(e) => {
-                warn!("[ClipboardManager] Failed to prepare load: {e}");
+                warn!("[ClipboardManager] Failed to load: {e}");
                 return;
             }
         };
 
-        let rows = stmt.query_map([], |row| {
-            Ok(DbRow {
-                id: row.get(0)?,
-                kind: row.get(1)?,
-                text: row.get(2)?,
-                html: row.get(3)?,
-                image_path: row.get(4)?,
-                image_hash: row.get(5)?,
-                width: row.get(6)?,
-                height: row.get(7)?,
-                preview: row.get(8)?,
-                pinned: row.get::<_, i64>(9)? != 0,
-                created_at: row.get(10)?,
-                thumb_base64: row.get(11)?,
-            })
-        });
-
-        let Ok(rows) = rows else {
-            return;
-        };
-
-        for row in rows.flatten() {
+        for row in rows {
+            let text = self.crypto.decrypt_optional(row.text);
+            let html = self.crypto.decrypt_optional(row.html);
+            let mut preview = self.crypto.decrypt_str(&row.preview);
+            let thumb_base64 = self.crypto.decrypt_optional(row.thumb_base64);
             let content = match row.kind.as_str() {
                 "richtext" => ClipboardContent::RichText {
-                    plain: row.text.unwrap_or_default(),
-                    html: row.html.unwrap_or_default(),
+                    plain: text.unwrap_or_default(),
+                    html: html.unwrap_or_default(),
                 },
                 "image" => {
                     if let Some(path) = row.image_path.clone() {
@@ -346,18 +334,17 @@ impl ClipboardManager {
                             .insert(row.id.clone(), PathBuf::from(&path));
                     }
                     ClipboardContent::Image {
-                        base64: row.thumb_base64.unwrap_or_default(),
+                        base64: thumb_base64.unwrap_or_default(),
                         width: row.width.unwrap_or(0) as u32,
                         height: row.height.unwrap_or(0) as u32,
                     }
                 }
-                _ => ClipboardContent::Text(row.text.unwrap_or_default()),
+                _ => ClipboardContent::Text(text.unwrap_or_default()),
             };
 
             let timestamp = DateTime::<Utc>::from_timestamp_millis(row.created_at)
                 .unwrap_or_else(Utc::now);
 
-            let mut preview = row.preview;
             if matches!(content, ClipboardContent::Image { .. }) {
                 if let Some(hash) = row.image_hash {
                     if !preview.contains('#') {
@@ -409,7 +396,7 @@ impl ClipboardManager {
         tx.execute("DELETE FROM items", []).map_err(|e| e.to_string())?;
         {
             let mut stmt = tx
-                .prepare(INSERT_ITEM_SQL)
+                .prepare(history_store::INSERT_ITEM_SQL)
                 .map_err(|e| e.to_string())?;
             for row in &rows {
                 stmt.execute(params![
@@ -442,8 +429,9 @@ impl ClipboardManager {
             self.image_paths
                 .get(&item.id)
                 .map(|p| p.to_string_lossy().into_owned()),
+            &self.crypto,
         );
-        execute_insert(&self.conn, &row)?;
+        history_store::execute_insert(&self.conn, &row)?;
         crate::fs_atomic::restrict_sqlite_files(&self.db_path);
         Ok(())
     }
@@ -510,6 +498,7 @@ impl ClipboardManager {
                     self.image_paths
                         .get(&item.id)
                         .map(|p| p.to_string_lossy().into_owned()),
+                    &self.crypto,
                 )
             })
             .collect()
@@ -1089,28 +1078,12 @@ impl Drop for ClipboardManager {
     }
 }
 
-const INSERT_ITEM_SQL: &str = "INSERT OR REPLACE INTO items
-    (id, kind, text, html, image_path, image_hash, width, height,
-     preview, pinned, created_at, thumb_base64, sort_index)
- VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)";
-
-struct PersistRow {
-    id: String,
-    kind: &'static str,
-    text: Option<String>,
-    html: Option<String>,
+fn persist_row_from_item(
+    idx: usize,
+    item: &ClipboardItem,
     image_path: Option<String>,
-    image_hash: Option<i64>,
-    width: Option<i64>,
-    height: Option<i64>,
-    preview: String,
-    pinned: i64,
-    created_at: i64,
-    thumb: Option<String>,
-    sort_index: i64,
-}
-
-fn persist_row_from_item(idx: usize, item: &ClipboardItem, image_path: Option<String>) -> PersistRow {
+    crypto: &HistoryCrypto,
+) -> PersistRow {
     let (kind, text, html, image_hash, width, height, thumb) = match &item.content {
         ClipboardContent::Text(t) => ("text", Some(t.clone()), None, None, None, None, None),
         ClipboardContent::RichText { plain, html } => (
@@ -1139,88 +1112,18 @@ fn persist_row_from_item(idx: usize, item: &ClipboardItem, image_path: Option<St
     PersistRow {
         id: item.id.clone(),
         kind,
-        text,
-        html,
+        text: crypto.encrypt_optional(text.as_deref()),
+        html: crypto.encrypt_optional(html.as_deref()),
         image_path,
         image_hash,
         width,
         height,
-        preview: item.preview.clone(),
+        preview: crypto.encrypt_str(&item.preview),
         pinned: if item.pinned { 1 } else { 0 },
         created_at: item.timestamp.timestamp_millis(),
-        thumb,
+        thumb: crypto.encrypt_optional(thumb.as_deref()),
         sort_index: idx as i64,
     }
-}
-
-fn execute_insert(conn: &Connection, row: &PersistRow) -> Result<(), String> {
-    conn.execute(
-        INSERT_ITEM_SQL,
-        params![
-            row.id,
-            row.kind,
-            row.text,
-            row.html,
-            row.image_path,
-            row.image_hash,
-            row.width,
-            row.height,
-            row.preview,
-            row.pinned,
-            row.created_at,
-            row.thumb,
-            row.sort_index,
-        ],
-    )
-    .map_err(|e| e.to_string())?;
-    Ok(())
-}
-
-struct DbRow {
-    id: String,
-    kind: String,
-    text: Option<String>,
-    html: Option<String>,
-    image_path: Option<String>,
-    image_hash: Option<i64>,
-    width: Option<i64>,
-    height: Option<i64>,
-    preview: String,
-    pinned: bool,
-    created_at: i64,
-    thumb_base64: Option<String>,
-}
-
-fn open_database(path: &std::path::Path) -> Result<Connection, String> {
-    let conn = Connection::open(path).map_err(|e| e.to_string())?;
-    conn.execute_batch(
-        r#"
-        PRAGMA journal_mode=WAL;
-        PRAGMA synchronous=NORMAL;
-        PRAGMA foreign_keys=ON;
-        PRAGMA secure_delete=ON;
-        PRAGMA auto_vacuum=INCREMENTAL;
-        CREATE TABLE IF NOT EXISTS items (
-            id TEXT PRIMARY KEY,
-            kind TEXT NOT NULL,
-            text TEXT,
-            html TEXT,
-            image_path TEXT,
-            image_hash INTEGER,
-            width INTEGER,
-            height INTEGER,
-            preview TEXT NOT NULL,
-            pinned INTEGER NOT NULL DEFAULT 0,
-            created_at INTEGER NOT NULL,
-            thumb_base64 TEXT,
-            sort_index INTEGER NOT NULL DEFAULT 0
-        );
-        CREATE INDEX IF NOT EXISTS idx_items_sort ON items(sort_index);
-        "#,
-    )
-    .map_err(|e| e.to_string())?;
-    crate::fs_atomic::restrict_sqlite_files(path);
-    Ok(conn)
 }
 
 fn wait_for_clipboard_helper_ready(
@@ -1306,6 +1209,28 @@ mod tests {
         assert!(mgr.add_text("same".into(), None).is_some());
         assert!(mgr.add_text("same".into(), None).is_none());
         assert_eq!(mgr.get_history().len(), 1);
+    }
+
+    #[test]
+    #[test]
+    fn secrets_and_disk_are_encrypted() {
+        let dir = temp_dir().join(format!("clip-enc-{}", Uuid::new_v4()));
+        let path = dir.join("history.json");
+        {
+            let mut mgr = ClipboardManager::new(path.clone(), 10);
+            assert!(mgr.add_text("encrypt-me-please".into(), None).is_some());
+        }
+        let db = dir.join("history.db");
+        let conn = rusqlite::Connection::open(&db).unwrap();
+        let stored: String = conn
+            .query_row("SELECT text FROM items LIMIT 1", [], |r| r.get(0))
+            .unwrap();
+        assert_ne!(stored, "encrypt-me-please");
+        let mgr2 = ClipboardManager::new(path, 10);
+        match &mgr2.get_history()[0].content {
+            ClipboardContent::Text(t) => assert_eq!(t, "encrypt-me-please"),
+            _ => panic!("expected text"),
+        }
     }
 
     #[test]
