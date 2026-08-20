@@ -21,9 +21,16 @@ use crate::AppState;
 // History commands
 // ---------------------------------------------------------------------------
 
+/// Legacy unbounded-looking command: returns only the first IPC page.
+/// Prefer `get_history_page` (ADR-0007).
+/// فرمان قدیمی: فقط صفحهٔ اول IPC را برمی‌گرداند. `get_history_page` را ترجیح دهید.
 #[tauri::command]
 pub fn get_history(state: State<AppState>) -> Result<Vec<ClipboardItem>, AppError> {
-    Ok(state.clipboard_manager.lock().get_history_for_ui())
+    Ok(state
+        .clipboard_manager
+        .lock()
+        .get_history_page(crate::clipboard_manager::MAX_PAGE_SIZE, 0)
+        .items)
 }
 
 /// Bounded history window for large histories (see ADR-0007).
@@ -249,9 +256,9 @@ pub async fn paste_item(
             {
                 let mut manager = state.clipboard_manager.lock();
                 manager.write_item_to_clipboard(&item)?;
-                let history = manager.get_history_for_ui();
+                let page = manager.get_history_page(crate::clipboard_manager::MAX_PAGE_SIZE, 0);
                 drop(manager);
-                let _ = app.emit("history-sync", &history);
+                let _ = app.emit("history-sync", &page);
             }
             inject_authorized_paste(&app, &state).await?;
         }
@@ -260,8 +267,11 @@ pub async fn paste_item(
                 "[paste_item] Item with id '{}' not found in history. Syncing frontend...",
                 id
             );
-            let history = state.clipboard_manager.lock().get_history_for_ui();
-            let _ = app.emit("history-sync", &history);
+            let page = state
+                .clipboard_manager
+                .lock()
+                .get_history_page(crate::clipboard_manager::MAX_PAGE_SIZE, 0);
+            let _ = app.emit("history-sync", &page);
             return Err(AppError::NotFound { id });
         }
     }

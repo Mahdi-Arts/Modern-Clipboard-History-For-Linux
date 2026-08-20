@@ -83,10 +83,34 @@ impl ClipboardManager {
         };
 
         for row in rows {
-            let text = self.crypto.decrypt_optional(row.text);
-            let html = self.crypto.decrypt_optional(row.html);
-            let mut preview = self.crypto.decrypt_str(&row.preview);
-            let thumb_base64 = self.crypto.decrypt_optional(row.thumb_base64);
+            let text = match self.crypto.decrypt_optional(row.text) {
+                Ok(v) => v,
+                Err(e) => {
+                    warn!("[ClipboardManager] Skipping row {} (text decrypt): {e}", row.id);
+                    continue;
+                }
+            };
+            let html = match self.crypto.decrypt_optional(row.html) {
+                Ok(v) => v,
+                Err(e) => {
+                    warn!("[ClipboardManager] Skipping row {} (html decrypt): {e}", row.id);
+                    continue;
+                }
+            };
+            let mut preview = match self.crypto.decrypt_str(&row.preview) {
+                Ok(v) => v,
+                Err(e) => {
+                    warn!("[ClipboardManager] Skipping row {} (preview decrypt): {e}", row.id);
+                    continue;
+                }
+            };
+            let thumb_base64 = match self.crypto.decrypt_optional(row.thumb_base64) {
+                Ok(v) => v,
+                Err(e) => {
+                    warn!("[ClipboardManager] Skipping row {} (thumb decrypt): {e}", row.id);
+                    continue;
+                }
+            };
             let content = match row.kind.as_str() {
                 "richtext" => ClipboardContent::RichText {
                     plain: text.unwrap_or_default(),
@@ -157,6 +181,11 @@ impl ClipboardManager {
     }
 
     pub(super) fn persist_sqlite(&mut self) -> Result<(), String> {
+        if !self.persist_enabled {
+            return Err(
+                "history persistence disabled: encryption key unavailable (fail-closed)".into(),
+            );
+        }
         let rows = self.collect_persist_rows()?;
         let tx = self.conn.transaction().map_err(|e| e.to_string())?;
         tx.execute("DELETE FROM items", []).map_err(|e| e.to_string())?;
@@ -191,6 +220,11 @@ impl ClipboardManager {
     /// Incrementally upsert a single item (no full rewrite).
     /// درج/به‌روزرسانی افزایشی یک آیتم (بدون بازنویسی کامل).
     pub(super) fn persist_upsert_item(&mut self, item: &ClipboardItem, sort_index: i64) -> Result<(), String> {
+        if !self.persist_enabled {
+            return Err(
+                "history persistence disabled: encryption key unavailable (fail-closed)".into(),
+            );
+        }
         let row = persist_row_from_item(
             sort_index as usize,
             item,
@@ -205,6 +239,11 @@ impl ClipboardManager {
     }
 
     pub(super) fn persist_delete_ids(&mut self, ids: &[String]) -> Result<(), String> {
+        if !self.persist_enabled {
+            return Err(
+                "history persistence disabled: encryption key unavailable (fail-closed)".into(),
+            );
+        }
         if ids.is_empty() {
             return Ok(());
         }
@@ -218,6 +257,11 @@ impl ClipboardManager {
     }
 
     fn persist_meta(&mut self) -> Result<(), String> {
+        if !self.persist_enabled {
+            return Err(
+                "history persistence disabled: encryption key unavailable (fail-closed)".into(),
+            );
+        }
         let meta: Vec<(String, i64, i64)> = self
             .history
             .iter()

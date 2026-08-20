@@ -2,6 +2,7 @@
 //! HTTPS-only, host allowlist, DNS resolution checks, no redirects.
 
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, ToSocketAddrs};
+#[cfg(feature = "gif-search")]
 use std::time::Duration;
 use url::Url;
 
@@ -90,7 +91,10 @@ pub fn validate_and_pin(url: &str) -> Result<ValidatedDownload, String> {
 }
 
 /// HTTP client that pins DNS to the already-validated public addresses.
-/// This closes the DNS-rebinding window between validate and connect.
+/// Compiled only with `--features gif-search`.
+/// کلاینت HTTP که DNS را به آدرس‌های تأییدشده پین می‌کند.
+/// فقط با `--features gif-search` کامپایل می‌شود.
+#[cfg(feature = "gif-search")]
 pub fn pinned_client(validated: &ValidatedDownload, timeout: Duration) -> Result<reqwest::Client, String> {
     reqwest::Client::builder()
         .timeout(timeout)
@@ -101,6 +105,7 @@ pub fn pinned_client(validated: &ValidatedDownload, timeout: Duration) -> Result
         .map_err(|e| format!("HTTP client: {e}"))
 }
 
+#[cfg(feature = "gif-search")]
 pub fn pinned_blocking_client(
     validated: &ValidatedDownload,
     timeout: Duration,

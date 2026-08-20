@@ -6,7 +6,7 @@
 use super::shortcut_config::ShortcutConfig;
 use super::shortcut_error::{Result, ShortcutError};
 use super::shortcut_utils::Utils;
-use super::ShortcutHandler;
+use super::shortcut_handler::ShortcutHandler;
 use std::io;
 
 /// Thin wrapper over `gsettings` for a schema + custom-keybinding list.

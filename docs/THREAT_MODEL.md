@@ -1,6 +1,6 @@
 # 🛡️ Threat Model — Modern Clipboard History for Linux
 
-> **Status:** Living document · **Applies to:** v2.3.0
+> **Status:** Living document · **Applies to:** v2.4.0
 > This document describes the assets, trust boundaries, threat agents, and
 > the controls in place. It is the reference for security reviews and for
 > any future hardening work (e.g. optional encryption).

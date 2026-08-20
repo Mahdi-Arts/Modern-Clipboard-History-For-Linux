@@ -8,6 +8,8 @@ interface HeaderProps {
   title?: string
   onClearHistory: () => void
   itemCount: number
+  /** Total items on disk when paging (ADR-0007). / کل آیتم‌های دیسک هنگام صفحه‌بندی. */
+  totalCount?: number
   isDark: boolean
   tertiaryOpacity: number
   isCompact: boolean
@@ -22,6 +24,7 @@ export function Header({
   title = 'Clipboard',
   onClearHistory,
   itemCount,
+  totalCount,
   isDark,
   tertiaryOpacity,
   isCompact,
@@ -53,7 +56,9 @@ export function Header({
             )}
             style={getTertiaryBackgroundStyle(isDark, tertiaryOpacity)}
           >
-            {itemCount}
+            {totalCount != null && totalCount > itemCount
+              ? `${itemCount} / ${totalCount}`
+              : itemCount}
           </span>
         )}
       </div>

@@ -78,7 +78,7 @@ Prefer your package manager over piping scripts to `bash`. Verify `SHA256SUMS` f
 ### Debian / Ubuntu
 
 ```bash
-sudo apt install ./win11-clipboard-history_2.3.0_amd64.deb
+sudo apt install ./win11-clipboard-history_2.4.0_amd64.deb
 sudo setfacl -m u:$USER:rw /dev/uinput
 ```
 
@@ -87,7 +87,7 @@ Download the `.deb` from [GitHub Releases](https://github.com/Mahdi-Arts/Modern-
 ### Fedora
 
 ```bash
-sudo dnf install ./win11-clipboard-history-2.3.0-1.x86_64.rpm
+sudo dnf install ./win11-clipboard-history-2.4.0-1.x86_64.rpm
 sudo setfacl -m u:$USER:rw /dev/uinput
 ```
 
@@ -141,7 +141,7 @@ Full diagram: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 | Clipboard I/O | arboard + `wl-copy` / `xclip` |
 | Persistence | SQLite (WAL) + ChaCha20-Poly1305 field encryption, PNG files, atomic JSON |
 | Key storage | `history.key` (0600) or Secret Service keyring — marker-verified, fail-closed ([ADR-0006](docs/adr/0006-secret-service-key-storage.md)) |
-| IPC | Virtualized list + bounded windows (`get_history_page`, [ADR-0007](docs/adr/0007-ipc-pagination.md)) |
+| IPC | Default paged reads (`get_history_page`, [ADR-0007](docs/adr/0007-ipc-pagination.md)); `get_history` is a clamped first page |
 | Input | Persistent uinput device (Wayland) / XTest (X11), paste tickets |
 | Fonts | Bundled Vazirmatn (SIL OFL 1.1) — zero runtime network calls |
 | Security | CSP (`font-src 'self'`), `withGlobalTauri: false`, SSRF allowlist + DNS pin, Rust `open_safe_url`, paste tickets, mandatory checksum verification |
@@ -196,7 +196,7 @@ Tagged releases publish `.deb` / `.rpm` / AppImage plus `SHA256SUMS`, a per-arti
 | --- | --- |
 | `IS_NVIDIA=1` | WebKit DMA-BUF workaround |
 | `IS_APPIMAGE=1` | Same workaround for AppImage |
-| `TENOR_API_KEY` | Optional GIF search (not bundled) |
+| `TENOR_API_KEY` | Optional GIF search (requires a build with `--features gif-search`) |
 | `RUST_LOG=info` | Tracing level |
 
 Packaging notes (`.deb` → GitHub Release → Flatpak deployment guide):

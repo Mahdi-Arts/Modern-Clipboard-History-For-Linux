@@ -76,6 +76,10 @@ function HistoryRow({
 export function ClipboardTab(props: {
   history: ClipboardItem[]
   isLoading: boolean
+  isLoadingMore?: boolean
+  total?: number | null
+  hasMore?: boolean
+  onLoadMore?: () => void
   isDark: boolean
   tertiaryOpacity: number
   secondaryOpacity: number
@@ -89,6 +93,10 @@ export function ClipboardTab(props: {
   const {
     history,
     isLoading,
+    isLoadingMore = false,
+    total = null,
+    hasMore = false,
+    onLoadMore,
     isDark,
     tertiaryOpacity,
     secondaryOpacity,
@@ -395,6 +403,7 @@ export function ClipboardTab(props: {
       <Header
         onClearHistory={clearHistory}
         itemCount={filteredHistory.length}
+        totalCount={searchQuery ? filteredHistory.length : (total ?? filteredHistory.length)}
         isDark={isDark}
         tertiaryOpacity={tertiaryOpacity}
         isCompact={isCompact}
@@ -518,6 +527,24 @@ export function ClipboardTab(props: {
                   overflowY: 'auto',
                 }}
               />
+            )}
+            {hasMore && (
+              <div className="flex items-center justify-center py-2" aria-live="polite">
+                <button
+                  type="button"
+                  onClick={() => onLoadMore?.()}
+                  disabled={isLoadingMore}
+                  className={clsx(
+                    'text-[11px] px-3 py-1 rounded-full transition-colors',
+                    isDark
+                      ? 'text-win11-text-secondary hover:bg-white/8'
+                      : 'text-win11Light-text-secondary hover:bg-black/5',
+                    'focus:outline-none focus-visible:ring-2 focus-visible:ring-win11-bg-accent'
+                  )}
+                >
+                  {isLoadingMore ? t('common.loading') : t('clipboard.load_more')}
+                </button>
+              </div>
             )}
           </div>
         </div>

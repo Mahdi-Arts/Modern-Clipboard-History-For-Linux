@@ -23,6 +23,7 @@ export default defineConfig({
         'src/hooks/useClipboardHistory.ts',
         'src/components/EmptyState.tsx',
         'src/components/Switch.tsx',
+        'src/components/Header.tsx',
         'src/components/common/SearchBar.tsx',
         'src/components/common/CategoryStrip.tsx',
         'src/components/settings/KeyboardShortcutsSection.tsx',

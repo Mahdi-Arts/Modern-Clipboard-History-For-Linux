@@ -29,7 +29,7 @@ use win11_clipboard_history_lib::permission_checker;
 use win11_clipboard_history_lib::rendering_env;
 use win11_clipboard_history_lib::session;
 use win11_clipboard_history_lib::shortcut_setup;
-use win11_clipboard_history_lib::tenor_api;
+
 use win11_clipboard_history_lib::user_settings::UserSettingsManager;
 use win11_clipboard_history_lib::window_controller::{
     SettingsController, WindowController, STARTED_IN_BACKGROUND,

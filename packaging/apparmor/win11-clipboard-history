@@ -61,6 +61,7 @@ profile win11-clipboard-history /usr/bin/win11-clipboard-history-bin flags=(comp
   /usr/bin/openbox mr,
   /usr/bin/lspci mr,
   /usr/bin/setfacl mr,
+  /usr/bin/secret-tool mr,
 
   # Tiling WM config files the app may edit (opt-in)
   owner @{HOME}/.config/i3/config rw,

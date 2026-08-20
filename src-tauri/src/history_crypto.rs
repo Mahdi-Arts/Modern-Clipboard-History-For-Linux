@@ -445,30 +445,41 @@ impl HistoryCrypto {
         Ok(BASE64.encode(out))
     }
 
-    pub fn decrypt_optional(&self, stored: Option<String>) -> Option<String> {
-        stored.map(|s| self.decrypt_str(&s))
+    /// Decrypt an optional stored field. Fail-closed: AEAD errors propagate.
+    /// رمزگشایی فیلد اختیاری. در خطا شکست می‌خورد (fail-closed).
+    pub fn decrypt_optional(&self, stored: Option<String>) -> Result<Option<String>, String> {
+        match stored {
+            Some(s) => Ok(Some(self.decrypt_str(&s)?)),
+            None => Ok(None),
+        }
     }
 
-    pub fn decrypt_str(&self, stored: &str) -> String {
+    /// Decrypt `stored`. Legacy plaintext (no `W11E1` envelope) is returned
+    /// as-is. Tampered or foreign-key ciphertext **errors** instead of
+    /// leaking the blob into the UI (fail-closed).
+    /// رمزگشایی. متن قدیمی بدون پاکت `W11E1` همان‌طور برمی‌گردد.
+    /// ciphertext خراب یا با کلید بیگانه خطا می‌دهد تا به UI نشت نکند.
+    pub fn decrypt_str(&self, stored: &str) -> Result<String, String> {
         if !looks_encrypted(stored) {
-            return stored.to_string();
+            return Ok(stored.to_string());
         }
-        let Ok(raw) = BASE64.decode(stored) else {
-            return stored.to_string();
-        };
+        let raw = BASE64
+            .decode(stored)
+            .map_err(|e| format!("encrypted field is not valid base64: {e}"))?;
         // Layout check: magic || nonce(12) || ciphertext(≥16-byte tag).
         // بررسی چیدمان: magic || nonce(۱۲) || رمز متن (تگ ≥۱۶ بایت).
         let magic_len = MAGIC.len();
         if raw.len() < magic_len + NONCE_LEN + 16 || !raw.starts_with(MAGIC) {
-            return stored.to_string();
+            return Err("encrypted field has an invalid envelope".into());
         }
         let (_, payload) = raw.split_at(magic_len);
         let (nonce_bytes, ct) = payload.split_at(NONCE_LEN);
         let nonce = Nonce::from_slice(nonce_bytes);
-        match self.cipher.decrypt(nonce, ct) {
-            Ok(pt) => String::from_utf8(pt).unwrap_or_else(|_| stored.to_string()),
-            Err(_) => stored.to_string(),
-        }
+        let pt = self
+            .cipher
+            .decrypt(nonce, ct)
+            .map_err(|_| "ChaCha20-Poly1305 decrypt failed (wrong key or tampered data)".to_string())?;
+        String::from_utf8(pt).map_err(|e| format!("decrypted field is not valid UTF-8: {e}"))
     }
 }
 
@@ -547,7 +558,7 @@ mod tests {
         let a = HistoryCrypto::load_or_create(&dir).unwrap();
         let blob = a.encrypt_str("hello").unwrap();
         let b = HistoryCrypto::load_or_create(&dir).unwrap();
-        assert_eq!(b.decrypt_str(&blob), "hello");
+        assert_eq!(b.decrypt_str(&blob).unwrap(), "hello");
     }
 
     #[test]
