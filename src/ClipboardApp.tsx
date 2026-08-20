@@ -12,13 +12,20 @@ import { calculateSecondaryOpacity, calculateTertiaryOpacity } from './utils/the
 import { useSystemThemePreference } from './utils/systemTheme'
 import { useRenderingEnv } from './hooks/useRenderingEnv'
 import { useLanguageEffect } from './i18n/useLanguage'
+import { changeLanguage } from './i18n/config'
 import type { ActiveTab, UserSettings } from './types/clipboard'
 import { ClipboardTab } from './components/ClipboardTab'
 
 // Lazy-loaded tabs for code splitting
-const EmojiPicker = lazy(() => import('./components/EmojiPicker').then(m => ({ default: m.EmojiPicker })))
-const KaomojiPicker = lazy(() => import('./components/KaomojiPicker').then(m => ({ default: m.KaomojiPicker })))
-const SymbolPicker = lazy(() => import('./components/SymbolPicker').then(m => ({ default: m.SymbolPicker })))
+const EmojiPicker = lazy(() =>
+  import('./components/EmojiPicker').then((m) => ({ default: m.EmojiPicker }))
+)
+const KaomojiPicker = lazy(() =>
+  import('./components/KaomojiPicker').then((m) => ({ default: m.KaomojiPicker }))
+)
+const SymbolPicker = lazy(() =>
+  import('./components/SymbolPicker').then((m) => ({ default: m.SymbolPicker }))
+)
 
 const DEFAULT_SETTINGS: UserSettings = {
   theme_mode: 'system',
@@ -168,12 +175,12 @@ function ClipboardApp() {
     const unlistenLang = listen<string>('app-language-changed', (event) => {
       const lang = event.payload
       if (lang === 'fa' || lang === 'en') {
-        import('./i18n/config').then(({ changeLanguage }) => {
-          changeLanguage(lang)
-        })
+        changeLanguage(lang)
       }
     })
-    return () => { unlistenLang.then(u => u()) }
+    return () => {
+      unlistenLang.then((u) => u())
+    }
   }, [])
 
   // Re-apply CSS opacity variables whenever renderingEnv or settings change
@@ -314,7 +321,7 @@ function ClipboardApp() {
       default:
         return null
     }
- }
+  }
 
   // Don't render until settings are loaded to prevent FOUC
   if (!settingsLoaded) {

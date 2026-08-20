@@ -8,7 +8,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/gustavosett/Windows-11-Clipboard-History-For-Linux"
+    "url": "https://github.com/Mahdi-Arts/Modern-Clipboard-History-For-Linux"
   },
   "keywords": [
     "clipboard",
@@ -49,7 +49,6 @@
     "@types/node": "^25.2.3",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
-    "@types/react-window": "^2.0.0",
     "@typescript-eslint/eslint-plugin": "^8.56.0",
     "@typescript-eslint/parser": "^8.56.0",
     "@vitejs/plugin-react": "^5.1.4",

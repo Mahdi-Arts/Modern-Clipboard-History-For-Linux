@@ -88,7 +88,7 @@
 ### روش توصیه شده — اسکریپت خودکار
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/gustavosett/Windows-11-Clipboard-History-For-Linux/master/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Mahdi-Arts/Modern-Clipboard-History-For-Linux/master/scripts/install.sh | bash
 ```
 
 > ✅ بدون نیاز به خارج شدن از حساب کاربری! نصاب از ACL برای دسترسی فوری استفاده می‌کند.

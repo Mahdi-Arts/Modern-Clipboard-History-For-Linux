@@ -102,7 +102,9 @@ export function useClipboardHistory() {
 
   // Listen for clipboard changes
   useEffect(() => {
-    fetchHistory()
+    const initialFetchTimer = globalThis.setTimeout(() => {
+      fetchHistory()
+    }, 0)
 
     let isMounted = true
     let unlistenChanged: UnlistenFn | undefined
@@ -153,6 +155,7 @@ export function useClipboardHistory() {
     setupListeners()
 
     return () => {
+      globalThis.clearTimeout(initialFetchTimer)
       isMounted = false
       unlistenChanged?.()
       unlistenCleared?.()

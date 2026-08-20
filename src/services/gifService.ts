@@ -11,7 +11,14 @@ const DEFAULT_LIMIT = 30
 /**
  * Transform backend GifResult to frontend Gif type
  */
-function transformGifResult(r: { id: string; title: string; preview_url: string; full_url: string; width: number; height: number }): Gif {
+function transformGifResult(r: {
+  id: string
+  title: string
+  preview_url: string
+  full_url: string
+  width: number
+  height: number
+}): Gif {
   return {
     id: r.id,
     title: r.title || 'GIF',

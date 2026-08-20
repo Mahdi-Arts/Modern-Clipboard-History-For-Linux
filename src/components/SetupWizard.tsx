@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { clsx } from 'clsx'
 import { useAutostart } from '../hooks/useAutostart'
 import { getTertiaryBackgroundStyle } from '../utils/themeUtils'
@@ -126,21 +126,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
   // Fixed opacity for the wizard (similar to main app default)
   const tertiaryOpacity = 0.85
 
-  // Local wrapper to reduce prop drilling on every WizardButton usage
-  const Button = (
-    props: Omit<
-      WizardButtonProps,
-      'hoveredButton' | 'setHoveredButton' | 'isDark' | 'tertiaryOpacity'
-    >
-  ) => (
-    <WizardButton
-      {...props}
-      hoveredButton={hoveredButton}
-      setHoveredButton={setHoveredButton}
-      isDark={isDark}
-      tertiaryOpacity={tertiaryOpacity}
-    />
-  )
+  const buttonProps = { hoveredButton, setHoveredButton, isDark, tertiaryOpacity }
 
   useEffect(() => {
     if (isDark) {
@@ -150,38 +136,42 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
     }
   }, [isDark])
 
-  useEffect(() => {
-    checkPermissions()
-    checkShortcutTools()
-    checkConflicts()
-  }, [])
-
-  const checkPermissions = async () => {
+  const checkPermissions = useCallback(async () => {
     try {
       const status = await invoke<PermissionStatus>('check_permissions')
       setPermissions(status)
     } catch (e) {
       console.error('Failed to check permissions:', e)
     }
-  }
+  }, [])
 
-  const checkShortcutTools = async () => {
+  const checkShortcutTools = useCallback(async () => {
     try {
       const status = await invoke<ShortcutToolsStatus>('check_shortcut_tools')
       setShortcutTools(status)
     } catch (e) {
       console.error('Failed to check shortcut tools:', e)
     }
-  }
+  }, [])
 
-  const checkConflicts = async () => {
+  const checkConflicts = useCallback(async () => {
     try {
       const result = await invoke<ConflictDetectionResult>('detect_conflicts')
       setConflicts(result)
     } catch (e) {
       console.error('Failed to check conflicts:', e)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    const initialChecksTimer = globalThis.setTimeout(() => {
+      checkPermissions()
+      checkShortcutTools()
+      checkConflicts()
+    }, 0)
+
+    return () => globalThis.clearTimeout(initialChecksTimer)
+  }, [checkPermissions, checkShortcutTools, checkConflicts])
 
   const handleResolveConflicts = async () => {
     setResolvingConflicts(true)
@@ -309,9 +299,9 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
         <br />
         Let's set up a few things to get you started.
       </p>
-      <Button id="start" onClick={() => setStep(1)} primary>
+      <WizardButton {...buttonProps} id="start" onClick={() => setStep(1)} primary>
         Get Started
-      </Button>
+      </WizardButton>
     </div>,
 
     // Step 1: Permissions
@@ -368,13 +358,13 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
 
       <div className="flex gap-3 justify-center">
         {!permissions?.uinput_accessible && (
-          <Button id="fix" onClick={handleFixPermissions} disabled={fixing}>
+          <WizardButton {...buttonProps} id="fix" onClick={handleFixPermissions} disabled={fixing}>
             {fixing ? 'Fixing...' : 'Fix Now'}
-          </Button>
+          </WizardButton>
         )}
-        <Button id="perm-continue" onClick={() => setStep(2)} primary>
+        <WizardButton {...buttonProps} id="perm-continue" onClick={() => setStep(2)} primary>
           {permissions?.uinput_accessible ? 'Continue' : 'Skip'}
-        </Button>
+        </WizardButton>
       </div>
     </div>,
 
@@ -457,7 +447,8 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
             </p>
             {conflicts.can_auto_resolve && (
               <div className="space-y-1">
-                <Button
+                <WizardButton
+                  {...buttonProps}
                   id="resolve-conflicts"
                   onClick={handleResolveConflicts}
                   disabled={resolvingConflicts}
@@ -466,7 +457,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
                     <Zap className="w-4 h-4" />
                     {resolvingConflicts ? 'Resolving...' : 'Auto-Fix Conflicts'}
                   </span>
-                </Button>
+                </WizardButton>
                 <p className="text-xs opacity-60">
                   This will comment out conflicting lines in your config. A backup will be created.
                 </p>
@@ -515,7 +506,8 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
               </p>
             </div>
           </div>
-          <Button
+          <WizardButton
+            {...buttonProps}
             id="copy-path"
             onClick={() => copyToClipboard('/usr/bin/win11-clipboard-history')}
           >
@@ -523,7 +515,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
               <Copy className="w-4 h-4" />
               {copied ? 'Copied!' : 'Copy command path'}
             </span>
-          </Button>
+          </WizardButton>
         </div>
       )}
 
@@ -531,29 +523,35 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
         {shortcutTools?.can_register_automatically &&
           !shortcutRegistered &&
           !showManualInstructions && (
-            <Button
+            <WizardButton
+              {...buttonProps}
               id="register"
               onClick={handleRegisterShortcut}
               disabled={registeringShortcut}
               primary
             >
               {registeringShortcut ? 'Registering...' : 'Register Automatically'}
-            </Button>
+            </WizardButton>
           )}
 
         {!shortcutTools?.can_register_automatically && !showManualInstructions && (
-          <Button id="show-manual" onClick={() => setShowManualInstructions(true)}>
+          <WizardButton
+            {...buttonProps}
+            id="show-manual"
+            onClick={() => setShowManualInstructions(true)}
+          >
             Show Manual Instructions
-          </Button>
+          </WizardButton>
         )}
 
-        <Button
+        <WizardButton
+          {...buttonProps}
           id="shortcut-continue"
           onClick={() => setStep(3)}
           primary={shortcutRegistered || showManualInstructions}
         >
           {shortcutRegistered || showManualInstructions ? 'Continue' : 'Skip'}
-        </Button>
+        </WizardButton>
       </div>
     </div>,
 
@@ -592,12 +590,17 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
       </div>
 
       <div className="flex gap-3 justify-center">
-        <Button id="enable-autostart" onClick={handleEnableAutostart} primary>
+        <WizardButton
+          {...buttonProps}
+          id="enable-autostart"
+          onClick={handleEnableAutostart}
+          primary
+        >
           Yes, enable
-        </Button>
-        <Button id="skip-autostart" onClick={() => setStep(4)}>
+        </WizardButton>
+        <WizardButton {...buttonProps} id="skip-autostart" onClick={() => setStep(4)}>
           No thanks
-        </Button>
+        </WizardButton>
       </div>
     </div>,
 
@@ -647,9 +650,9 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
           Super + V
         </kbd>
       </div>
-      <Button id="finish" onClick={handleComplete} primary>
+      <WizardButton {...buttonProps} id="finish" onClick={handleComplete} primary>
         Start Using
-      </Button>
+      </WizardButton>
     </div>,
   ]
 

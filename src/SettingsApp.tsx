@@ -298,7 +298,7 @@ function SettingsApp() {
   // Rendering environment (NVIDIA / AppImage detection)
   const renderingEnv = useRenderingEnv()
 
-  const { t, i18n } = useTranslation()
+  const { i18n } = useTranslation()
   // i18n
   useLanguageEffect(i18n)
 

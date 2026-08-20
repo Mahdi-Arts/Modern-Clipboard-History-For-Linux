@@ -184,70 +184,82 @@ body {
    ========================================================================= */
 
 /* Persian/Farsi font stack */
-[lang="fa"] {
+[lang='fa'] {
   font-family: 'Vazirmatn', 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
 }
 
 /* RTL layout overrides */
-[dir="rtl"] .text-left {
+[dir='rtl'] .text-left {
   text-align: right;
 }
 
-[dir="rtl"] .text-right {
+[dir='rtl'] .text-right {
   text-align: left;
 }
 
-[dir="rtl"] .ml-auto {
+[dir='rtl'] .ml-auto {
   margin-left: 0;
   margin-right: auto;
 }
 
-[dir="rtl"] .mr-auto {
+[dir='rtl'] .mr-auto {
   margin-right: 0;
   margin-left: auto;
 }
 
 /* RTL button groups */
-[dir="rtl"] button .chevron-icon {
+[dir='rtl'] button .chevron-icon {
   transform: rotate(180deg);
 }
 
 /* RTL search bar */
-[dir="rtl"] .search-icon {
+[dir='rtl'] .search-icon {
   right: 0.75rem;
   left: auto;
 }
 
-[dir="rtl"] .search-input {
+[dir='rtl'] .search-input {
   padding-right: 2.5rem;
   padding-left: 0.75rem;
 }
 
 /* RTL animations */
-[dir="rtl"] .slide-in {
+[dir='rtl'] .slide-in {
   animation-name: slideInRTL;
 }
 
-[dir="rtl"] .slide-out {
+[dir='rtl'] .slide-out {
   animation-name: slideOutRTL;
 }
 
 @keyframes slideInRTL {
-  from { transform: translateX(20px); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
+  from {
+    transform: translateX(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }
 
 @keyframes slideOutRTL {
-  from { transform: translateX(0); opacity: 1; }
-  to { transform: translateX(20px); opacity: 0; }
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(20px);
+    opacity: 0;
+  }
 }
 
 /* RTL scrollbar (fix for Firefox) */
-[dir="rtl"] .scrollbar-win11 {
+[dir='rtl'] .scrollbar-win11 {
   direction: ltr; /* Keep scrollbar on the right in RTL */
 }
 
 /* RTL grid gap fix (Tailwind `gap-*` handles this correctly via `space` utilities) */
-[dir="rtl"] .flex-row {
+[dir='rtl'] .flex-row {
   /* Tailwind doesn't auto-swap flex-row in RTL; handled manually where needed */
 }

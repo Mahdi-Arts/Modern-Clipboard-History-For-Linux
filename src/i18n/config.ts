@@ -13,7 +13,9 @@ const detectLanguage = (): LangCode => {
     if (stored && SUPPORTED_LANGS.includes(stored as LangCode)) {
       return stored as LangCode
     }
-  } catch { /* localStorage may be blocked */ }
+  } catch {
+    /* localStorage may be blocked */
+  }
   return DEFAULT_LANG
 }
 
@@ -36,7 +38,11 @@ applyDocumentLang(detectLanguage())
 export const changeLanguage = async (lang: LangCode) => {
   await i18n.changeLanguage(lang)
   applyDocumentLang(lang)
-  try { localStorage.setItem('i18nextLng', lang) } catch { /* ignore */ }
+  try {
+    localStorage.setItem('i18nextLng', lang)
+  } catch {
+    /* ignore */
+  }
 }
 
 export default i18n
