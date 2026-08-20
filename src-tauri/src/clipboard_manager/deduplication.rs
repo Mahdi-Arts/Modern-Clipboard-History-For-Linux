@@ -52,7 +52,12 @@ impl ClipboardManager {
         }
 
         let id = Uuid::new_v4().to_string();
-        let stored = match crate::image_store::store_rgba(&self.images_dir, &id, &image_data) {
+        let stored = match crate::image_store::store_rgba(
+            &self.images_dir,
+            &id,
+            &image_data,
+            &self.crypto,
+        ) {
             Ok(s) => s,
             Err(e) => {
                 warn!("[ClipboardManager] Failed to store image: {e}");

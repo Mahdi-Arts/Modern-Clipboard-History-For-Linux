@@ -25,7 +25,7 @@ export function EmptyState({ isDark }: EmptyStateProps) {
       <div
         className={clsx(
           'relative w-[5.5rem] h-[5.5rem] rounded-[1.35rem] flex items-center justify-center mb-6',
-          'shadow-[0_8px_24px_rgba(0,0,0,0.12)]',
+          'shadow-[0_8px_24px_rgba(0,0,0,0.12)] empty-icon-glow',
           isDark
             ? 'bg-gradient-to-br from-white/12 to-white/4 ring-1 ring-white/12'
             : 'bg-gradient-to-br from-white to-slate-100 ring-1 ring-black/5'
@@ -34,7 +34,7 @@ export function EmptyState({ isDark }: EmptyStateProps) {
         <div
           className={clsx(
             'absolute inset-2 rounded-[1.1rem] opacity-70',
-            isDark ? 'bg-win11-bg-accent/15' : 'bg-win11-bg-accent/10'
+            isDark ? 'bg-win11-bg-accent/20' : 'bg-win11-bg-accent/12'
           )}
           aria-hidden
         />

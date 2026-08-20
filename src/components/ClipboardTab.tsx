@@ -529,17 +529,19 @@ export function ClipboardTab(props: {
               />
             )}
             {hasMore && (
-              <div className="flex items-center justify-center py-2" aria-live="polite">
+              <div className="flex items-center justify-center py-3" aria-live="polite">
                 <button
                   type="button"
                   onClick={() => onLoadMore?.()}
                   disabled={isLoadingMore}
                   className={clsx(
-                    'text-[11px] px-3 py-1 rounded-full transition-colors',
+                    'text-[12px] font-medium px-4 py-1.5 rounded-full transition-all',
+                    'shadow-sm',
                     isDark
-                      ? 'text-win11-text-secondary hover:bg-white/8'
-                      : 'text-win11Light-text-secondary hover:bg-black/5',
-                    'focus:outline-none focus-visible:ring-2 focus-visible:ring-win11-bg-accent'
+                      ? 'text-sky-100 bg-win11-bg-accent/80 hover:bg-win11-bg-accent'
+                      : 'text-white bg-win11-bg-accent hover:bg-[#006cbd]',
+                    'disabled:opacity-60 disabled:cursor-wait',
+                    'focus:outline-none focus-visible:ring-2 focus-visible:ring-win11-bg-accent focus-visible:ring-offset-2'
                   )}
                 >
                   {isLoadingMore ? t('common.loading') : t('clipboard.load_more')}

@@ -1,6 +1,6 @@
 # 🛡️ Threat Model — Modern Clipboard History for Linux
 
-> **Status:** Living document · **Applies to:** v2.4.0
+> **Status:** Living document · **Applies to:** v2.5.0
 > This document describes the assets, trust boundaries, threat agents, and
 > the controls in place. It is the reference for security reviews and for
 > any future hardening work (e.g. optional encryption).
@@ -12,7 +12,7 @@
 | # | Asset | Location | Sensitivity |
 | --- | --- | --- | --- |
 | A1 | Clipboard history (text + rich text) | `~/.local/share/win11-clipboard-history/history.db` (SQLite, WAL, `0600`) | **High** — may contain copied credentials, personal data |
-| A2 | Clipboard images | `~/.local/share/win11-clipboard-history/images/*.png` (`0600`) | Medium-High |
+| A2 | Clipboard images | `~/.local/share/win11-clipboard-history/images/*.png` (`0600`, ChaCha20-Poly1305 envelope; legacy plaintext PNG still readable) | Medium-High |
 | A3 | User settings | `~/.config/win11-clipboard-history/user_settings.json` (`0600`) | Low-Medium |
 | A4 | Emoji usage / custom kaomoji | `~/.local/share/win11-clipboard-history/emoji_history.json` | Low |
 | A5 | GIF cache | `~/.cache/win11-clipboard-history/gifs/` | Low |
@@ -37,7 +37,7 @@
 
 Key boundaries:
 1. **Clipboard → persistence**: content from any app (potentially hostile) enters the history. Privacy filter + secret filter gate this.
-2. **Webview → Rust**: the frontend can only call the registered Tauri commands (capability-gated); `withGlobalTauri: false`; CSP `script-src 'self'`.
+2. **Webview → Rust**: the frontend can only call the registered Tauri commands (capability-gated **per window** — paste/injection is `main` only); `withGlobalTauri: false`; CSP `script-src 'self'`.
 3. **Rust → system**: the binary can write `/dev/uinput` (keystroke injection) and run privilege helpers (`pkexec setfacl`). This is the highest-privilege capability; see §4.4.
 4. **Rust → network**: outbound HTTP only through the SSRF-validated downloader (GIFs) and the Tenor API proxy.
 
@@ -61,7 +61,7 @@ Key boundaries:
 
 ### 4.2 Local exposure (T2)
 - SQLite DB, images, settings, logs: `0600` files / `0700` dirs via `fs_atomic::restrict_permissions`.
-- History text columns are encrypted at rest (ChaCha20-Poly1305; see ADR 0004).
+- History text columns **and image files** are encrypted at rest (ChaCha20-Poly1305; see ADR 0004 and ADR 0008).
 - **Key backends (ADR-0006):** the encryption key lives in `history.key`
   (`0600`) or, on request, in the freedesktop **Secret Service** keyring
   (`secret-tool`; key never touches disk). Adoption of any backend requires
@@ -82,7 +82,7 @@ Key boundaries:
 
 ### 4.4 Keystroke injection capability (T1-adjacent risk)
 - `/dev/uinput` (Wayland) or XTest (X11) can synthesize Ctrl+V into the focused window.
-- Guards: `paste_item`, `paste_text`, and `finish_paste` all require a one-shot ticket issued after a clipboard write **and** a write recorded within 5 s; paste text is capped at 1 MiB; the paste transaction is serialized (`paste_gate`); on X11 the previous focused window is restored and **verified** before injection (`focus_manager`/`paste_sync`); the popup window hides and releases focus first.
+- Guards: paste commands accept **only the `main` window** (Rust `WebviewWindow::label` + per-window capabilities). `paste_item` / `paste_text` inject only after `wrote_recently(5s)` following their own clipboard write — they do **not** mint a self-consumed ticket. `finish_paste` (GIF path) still requires a one-shot ticket; paste text is capped at 1 MiB; the paste transaction is serialized (`paste_gate`); on X11 the previous focused window is restored and **verified** before injection (`focus_manager`/`paste_sync`); the popup window hides and releases focus first.
 - udev rule grants access only to the logged-in session (`TAG+="uaccess"`); AppArmor profile restricts the device to the app binary.
 - **Residual risk (documented):** a compromised binary could type into any focused window. Users should treat the binary like a trusted input device (README + SECURITY.md).
 

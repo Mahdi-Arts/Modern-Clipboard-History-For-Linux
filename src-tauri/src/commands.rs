@@ -6,7 +6,7 @@
 
 use std::sync::atomic::Ordering;
 use std::time::Duration;
-use tauri::{AppHandle, Emitter, Manager, State};
+use tauri::{AppHandle, Emitter, Manager, State, WebviewWindow};
 
 use crate::clipboard_manager::ClipboardItem;
 use crate::emoji_manager::EmojiUsage;
@@ -212,20 +212,38 @@ pub fn is_theme_listener_active() -> bool {
 
 const MAX_PASTE_TEXT_BYTES: usize = 1024 * 1024; // 1 MiB
 
-/// Hide popup, restore target focus, and inject Ctrl+V only after a real
-/// clipboard write in the last 5 seconds.
-/// پنجره را مخفی می‌کند، فوکوس مقصد را برمی‌گرداند و فقط پس از نوشتن واقعی
-/// کلیپ‌بورد در ۵ ثانیهٔ اخیر Ctrl+V تزریق می‌کند.
-async fn inject_authorized_paste(
-    app: &AppHandle,
-    state: &State<'_, AppState>,
-) -> Result<(), AppError> {
-    let ticket = state.issue_paste_ticket();
-    if !state.consume_paste_ticket(&ticket) {
+/// Keystroke injection is only accepted from the main clipboard window.
+/// تزریق کلیدstroke فقط از پنجرهٔ اصلی کلیپ‌بورد پذیرفته می‌شود.
+fn require_main_window(window: &WebviewWindow) -> Result<(), AppError> {
+    if window.label() != "main" {
         return Err(AppError::PermissionDenied(
-            "Invalid or expired paste ticket".into(),
+            "Keystroke injection is only allowed from the clipboard window".into(),
         ));
     }
+    Ok(())
+}
+
+/// Settings-only commands (key migration) refuse other windows.
+/// فرمان‌های مخصوص تنظیمات (مهاجرت کلید) پنجره‌های دیگر را رد می‌کنند.
+fn require_settings_window(window: &WebviewWindow) -> Result<(), AppError> {
+    if window.label() != "settings" {
+        return Err(AppError::PermissionDenied(
+            "This action is only allowed from the settings window".into(),
+        ));
+    }
+    Ok(())
+}
+
+/// Hide popup, restore target focus, and inject Ctrl+V only after a real
+/// clipboard write in the last 5 seconds. Does **not** mint a paste ticket —
+/// tickets stay reserved for the GIF path (`finish_paste`).
+/// پنجره را مخفی می‌کند، فوکوس مقصد را برمی‌گرداند و فقط پس از نوشتن واقعی
+/// کلیپ‌بورد در ۵ ثانیهٔ اخیر Ctrl+V تزریق می‌کند. بلیت صادر نمی‌شود.
+async fn inject_authorized_paste(
+    app: &AppHandle,
+    window: &WebviewWindow,
+) -> Result<(), AppError> {
+    require_main_window(window)?;
     if !crate::clipboard_io::wrote_recently(Duration::from_secs(5)) {
         return Err(AppError::Other(
             "Refusing to inject Ctrl+V: no clipboard write was recorded in the last 5 seconds"
@@ -241,6 +259,7 @@ async fn inject_authorized_paste(
 #[tauri::command]
 pub async fn paste_item(
     app: AppHandle,
+    window: WebviewWindow,
     state: State<'_, AppState>,
     id: String,
 ) -> Result<(), AppError> {
@@ -260,7 +279,7 @@ pub async fn paste_item(
                 drop(manager);
                 let _ = app.emit("history-sync", &page);
             }
-            inject_authorized_paste(&app, &state).await?;
+            inject_authorized_paste(&app, &window).await?;
         }
         None => {
             tracing::warn!(
@@ -281,6 +300,7 @@ pub async fn paste_item(
 #[tauri::command]
 pub async fn paste_text(
     app: AppHandle,
+    window: WebviewWindow,
     state: State<'_, AppState>,
     text: String,
     item_type: Option<String>,
@@ -305,42 +325,80 @@ pub async fn paste_text(
         manager.set_text_robust(&text)?;
     }
 
-    inject_authorized_paste(&app, &state).await?;
+    inject_authorized_paste(&app, &window).await?;
     Ok(())
 }
 
 #[tauri::command]
 pub async fn paste_gif_from_url(
+    window: WebviewWindow,
     state: State<'_, AppState>,
     url: String,
 ) -> Result<String, AppError> {
-    let _paste_guard = state.paste_gate.lock().await;
-
-    let url_clone = url.clone();
-    let file_uri = tokio::task::spawn_blocking(move || {
-        crate::gif_manager::paste_gif_to_clipboard_with_uri(&url_clone)
-    })
-    .await
-    .map_err(|e| AppError::Other(e.to_string()))?
-    .map_err(|e| AppError::Other(e.to_string()))?;
-
-    if let Some(uri) = file_uri {
-        let mut manager = state.clipboard_manager.lock();
-        manager.mark_text_as_pasted(&uri);
-        if let Some(trimmed) = uri.strip_suffix('\n') {
-            manager.mark_text_as_pasted(trimmed);
-        }
+    require_main_window(&window)?;
+    #[cfg(not(feature = "gif-search"))]
+    {
+        let _ = (state, url);
+        return Err(AppError::Other(
+            "GIF search is disabled in this build (compile with --features gif-search)".into(),
+        ));
     }
+    #[cfg(feature = "gif-search")]
+    {
+        let _paste_guard = state.paste_gate.lock().await;
 
-    Ok(state.issue_paste_ticket())
+        let url_clone = url.clone();
+        let file_uri = tokio::task::spawn_blocking(move || {
+            crate::gif_manager::paste_gif_to_clipboard_with_uri(&url_clone)
+        })
+        .await
+        .map_err(|e| AppError::Other(e.to_string()))?
+        .map_err(|e| AppError::Other(e.to_string()))?;
+
+        if let Some(uri) = file_uri {
+            let mut manager = state.clipboard_manager.lock();
+            manager.mark_text_as_pasted(&uri);
+            if let Some(trimmed) = uri.strip_suffix('\n') {
+                manager.mark_text_as_pasted(trimmed);
+            }
+        }
+
+        Ok(state.issue_paste_ticket())
+    }
+}
+
+/// Tenor search proxy. Stubbed out when GIF search is not compiled in.
+/// پروکسی جستجوی Tenor. بدون feature به خطا برمی‌گردد.
+#[cfg(feature = "gif-search")]
+#[tauri::command]
+pub async fn search_tenor(
+    query: Option<String>,
+    limit: Option<u32>,
+) -> Result<Vec<crate::tenor_api::GifResult>, AppError> {
+    crate::tenor_api::search_tenor(query, limit)
+        .await
+        .map_err(AppError::Network)
+}
+
+#[cfg(not(feature = "gif-search"))]
+#[tauri::command]
+pub async fn search_tenor(
+    _query: Option<String>,
+    _limit: Option<u32>,
+) -> Result<Vec<serde_json::Value>, AppError> {
+    Err(AppError::Other(
+        "GIF search is disabled in this build (compile with --features gif-search)".into(),
+    ))
 }
 
 #[tauri::command]
 pub async fn finish_paste(
     app: AppHandle,
+    window: WebviewWindow,
     state: State<'_, AppState>,
     ticket: String,
 ) -> Result<(), AppError> {
+    require_main_window(&window)?;
     let _paste_guard = state.paste_gate.lock().await;
     if !state.consume_paste_ticket(&ticket) {
         return Err(AppError::PermissionDenied(
@@ -408,7 +466,10 @@ pub fn get_history_key_backend_status(
 /// انتقال کلید رمزنگاری به Secret Service. پیش از تغییر نام کلید فایل،
 /// کلید با read-back راستی‌آزمایی می‌شود؛ بک‌اند جدید از اجرای بعدی فعال است.
 #[tauri::command]
-pub fn migrate_history_key_to_secret_service() -> Result<KeyBackendStatus, AppError> {
+pub fn migrate_history_key_to_secret_service(
+    window: WebviewWindow,
+) -> Result<KeyBackendStatus, AppError> {
+    require_settings_window(&window)?;
     let data_dir = crate::clipboard_manager::data_dir();
     HistoryCrypto::migrate_to_secret_service(&data_dir)?;
 
@@ -428,7 +489,8 @@ pub fn migrate_history_key_to_secret_service() -> Result<KeyBackendStatus, AppEr
 /// Move the encryption key back to the file backend (undo migration).
 /// بازگرداندن کلید رمزنگاری به بک‌اند فایل (واگرد مهاجرت).
 #[tauri::command]
-pub fn migrate_history_key_to_file() -> Result<KeyBackendStatus, AppError> {
+pub fn migrate_history_key_to_file(window: WebviewWindow) -> Result<KeyBackendStatus, AppError> {
+    require_settings_window(&window)?;
     let data_dir = crate::clipboard_manager::data_dir();
     HistoryCrypto::migrate_to_file(&data_dir)?;
 

@@ -248,14 +248,13 @@ fn main() {
             commands::finish_paste,
             commands::copy_text_to_clipboard,
             commands::open_safe_url,
+            commands::search_tenor,
             // Encryption key backend
             commands::get_history_key_backend_status,
             commands::migrate_history_key_to_secret_service,
             commands::migrate_history_key_to_file,
             // Setup
             commands::finish_setup,
-            // Tenor
-            tenor_api::search_tenor,
             // Permissions
             permission_checker::check_permissions,
             permission_checker::fix_permissions_now,

@@ -4,6 +4,7 @@
 GitHub Apps without the `workflows` permission cannot push
 `.github/workflows/*.yml`. The files in this directory are the intended
 blocking pipelines (audits, coverage, cargo test, SHA256SUMS, SPDX, SLSA).
+See [`docs/CI.md`](../CI.md) for the contract.
 
 برنامهٔ GitHub بدون مجوز `workflows` نمی‌تواند فایل‌های
 `.github/workflows` را پوش کند. این پوشه منبع گردش‌کارهای مورد نظر است.

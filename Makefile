@@ -360,7 +360,7 @@ hooks:
 lint:
 	@echo -e "$(CYAN)Running linters...$(RESET)"
 	npm run lint
-	cd src-tauri && cargo clippy -- -D warnings
+	cd src-tauri && cargo clippy --all-targets -- -D warnings
 
 format:
 	@echo -e "$(CYAN)Formatting code...$(RESET)"

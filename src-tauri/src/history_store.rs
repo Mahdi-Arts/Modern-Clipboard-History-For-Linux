@@ -67,6 +67,7 @@ pub fn open_database(path: &Path) -> Result<Connection, String> {
             sort_index INTEGER NOT NULL DEFAULT 0
         );
         CREATE INDEX IF NOT EXISTS idx_items_sort ON items(sort_index);
+        CREATE INDEX IF NOT EXISTS idx_items_pinned_sort ON items(pinned DESC, sort_index);
         "#,
     )
     .map_err(|e| e.to_string())?;

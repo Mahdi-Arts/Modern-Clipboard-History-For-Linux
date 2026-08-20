@@ -385,3 +385,18 @@ body {
 ::selection {
   background: rgba(0, 120, 212, 0.22);
 }
+
+/* Soft breathing glow on the empty-state icon (disabled under reduced-motion) */
+@keyframes emptyGlow {
+  0%,
+  100% {
+    box-shadow: 0 8px 24px rgba(0, 120, 212, 0.12);
+  }
+  50% {
+    box-shadow: 0 10px 28px rgba(0, 120, 212, 0.28);
+  }
+}
+
+.empty-icon-glow {
+  animation: emptyGlow 3.2s ease-in-out infinite;
+}

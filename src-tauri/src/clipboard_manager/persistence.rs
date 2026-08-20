@@ -44,7 +44,12 @@ impl ClipboardManager {
             if let ClipboardContent::Image { base64, width, height } = &item.content {
                 if let Ok(png) = BASE64.decode(base64) {
                     if let Ok(stored) =
-                        crate::image_store::store_png_bytes(&self.images_dir, &item.id, &png)
+                        crate::image_store::store_png_bytes(
+                            &self.images_dir,
+                            &item.id,
+                            &png,
+                            &self.crypto,
+                        )
                     {
                         self.image_paths
                             .insert(item.id.clone(), stored.full_path.clone());

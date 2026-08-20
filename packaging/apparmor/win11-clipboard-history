@@ -74,6 +74,10 @@ profile win11-clipboard-history /usr/bin/win11-clipboard-history-bin flags=(comp
   owner @{HOME}/.config/openbox/*.xml rw,
   owner @{HOME}/.config/cosmic/** rw,
 
-  # Crash reports / misc
-  /tmp/** rw,
+  # WebKit / GTK scratch (owner-only — never world-writable /tmp)
+  # فایل‌های موقت WebKit/GTK فقط متعلق به مالک نشست
+  owner /tmp/ rw,
+  owner /tmp/** rw,
+  owner @{HOME}/.cache/webkitgtk/** rwk,
+  owner @{HOME}/.cache/mesa_shader_cache/** rwk,
 }

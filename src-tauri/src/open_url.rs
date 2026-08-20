@@ -1,9 +1,11 @@
 //! Safe URL opener used by Smart Actions.
 //! Validation lives in Rust so the webview cannot bypass the TypeScript sanitizer.
 
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+use std::net::IpAddr;
 use std::process::{Command, Stdio};
 use url::Url;
+
+use crate::net_policy::{is_disallowed_ip, looks_like_dotted_ipv4};
 
 const MAX_URL_LEN: usize = 2048;
 
@@ -60,54 +62,6 @@ pub fn validate_open_url(raw: &str) -> Result<String, String> {
     }
 
     Ok(parsed.to_string())
-}
-
-fn looks_like_dotted_ipv4(host: &str) -> bool {
-    let parts: Vec<&str> = host.split('.').collect();
-    if parts.len() != 4 {
-        return false;
-    }
-    parts.iter().all(|p| p.parse::<u8>().is_ok())
-}
-
-fn is_disallowed_ip(ip: IpAddr) -> bool {
-    match ip {
-        IpAddr::V4(v4) => is_disallowed_v4(v4),
-        IpAddr::V6(v6) => {
-            if let Some(v4) = v6.to_ipv4_mapped() {
-                return is_disallowed_v4(v4);
-            }
-            is_disallowed_v6(v6)
-        }
-    }
-}
-
-fn is_disallowed_v4(ip: Ipv4Addr) -> bool {
-    let o = ip.octets();
-    ip.is_loopback()
-        || ip.is_private()
-        || ip.is_link_local()
-        || ip.is_unspecified()
-        || ip.is_broadcast()
-        || ip.is_multicast()
-        || o[0] == 0
-        || (o[0] == 100 && o[1] & 0b1100_0000 == 0b0100_0000)
-        || (o[0] == 192 && o[1] == 0 && o[2] == 0)
-        || (o[0] == 192 && o[1] == 0 && o[2] == 2)
-        || (o[0] == 198 && (o[1] == 18 || o[1] == 19))
-        || (o[0] == 198 && o[1] == 51 && o[2] == 100)
-        || (o[0] == 203 && o[1] == 0 && o[2] == 113)
-        || o[0] >= 224
-}
-
-fn is_disallowed_v6(ip: Ipv6Addr) -> bool {
-    let s = ip.segments();
-    ip.is_loopback()
-        || ip.is_unspecified()
-        || ip.is_multicast()
-        || (s[0] & 0xffc0) == 0xfe80
-        || (s[0] & 0xfe00) == 0xfc00
-        || (s[0] == 0x2001 && s[1] == 0x0db8)
 }
 
 #[cfg(test)]

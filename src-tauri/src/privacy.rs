@@ -98,13 +98,21 @@ fn looks_like_known_token(text: &str) -> bool {
         "ghs_",
         "ghr_",
         "github_pat_",
+        "glpat-",
+        "glptt-",
+        "gldt-",
+        "npm_",
+        "hf_",
         "xoxb-",
         "xoxp-",
         "xoxa-",
         "xoxr-",
+        "xoxe-",
+        "xoxc-",
         "sk_live_",
         "rk_live_",
         "sk_test_",
+        "sk-ant-",
         "AIza",
         "ya29.",
     ];
@@ -116,6 +124,12 @@ fn looks_like_known_token(text: &str) -> bool {
             .bytes()
             .skip(3)
             .all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_');
+    }
+    let lower = compact.to_ascii_lowercase();
+    if (lower.starts_with("bearer ") || lower.contains("authorization: bearer "))
+        && compact.len() >= 20
+    {
+        return true;
     }
     if let Some(idx) = compact.find("AKIA") {
         let slice = compact.get(idx..idx + 20).unwrap_or("");
@@ -147,6 +161,14 @@ fn looks_like_password_assignment(text: &str) -> bool {
         "secret=",
         "client_secret=",
         "api_secret=",
+        "api_key=",
+        "access_token=",
+        "refresh_token=",
+        "auth_token=",
+        "aws_secret_access_key=",
+        "accountkey=",
+        "sharedaccesssignature=",
+        "private_key=",
     ];
     KEYS.iter().any(|k| lower.contains(k))
 }

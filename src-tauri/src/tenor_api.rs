@@ -72,8 +72,9 @@ fn build_tenor_url(path: &str, key: &str, query: Option<&str>, limit: u32) -> Re
     Ok(url)
 }
 
-/// Search GIFs via Tenor API (server-side proxy)
-#[tauri::command]
+/// Search GIFs via Tenor API (server-side proxy).
+/// Registered through `commands::search_tenor` so the default build can stub it.
+/// جستجوی GIF از Tenor. ثبت از طریق `commands::search_tenor`.
 pub async fn search_tenor(
     query: Option<String>,
     limit: Option<u32>,

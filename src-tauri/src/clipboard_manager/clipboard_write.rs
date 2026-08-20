@@ -21,7 +21,7 @@ impl ClipboardManager {
                 height,
             } => {
                 if let Some(path) = self.image_paths.get(&item.id) {
-                    if let Ok(png) = crate::image_store::read_png(path) {
+                    if let Ok(png) = crate::image_store::read_png(path, &self.crypto) {
                         self.set_image_png_bytes(&png)?;
                     } else {
                         self.set_image_robust(base64, *width, *height)?;
