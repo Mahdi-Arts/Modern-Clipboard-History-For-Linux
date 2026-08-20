@@ -120,7 +120,7 @@ pub fn mark_first_run_complete() -> Result<(), String> {
         "setupDate": chrono::Utc::now().to_rfc3339()
     });
 
-    std::fs::write(&config_path, config_content.to_string())
+    crate::fs_atomic::write_atomic(&config_path, config_content.to_string().as_bytes())
         .map_err(|e| format!("Failed to write config: {}", e))?;
 
     Ok(())

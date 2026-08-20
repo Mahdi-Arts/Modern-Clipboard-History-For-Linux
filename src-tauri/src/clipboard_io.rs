@@ -6,8 +6,11 @@ use arboard::Clipboard;
 use std::cell::RefCell;
 use std::io::Read;
 use std::process::{Command, Stdio};
-use std::time::{Duration, Instant};
-use tracing::{debug, error, warn};
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+use tracing::debug;
+
+static LAST_WRITE_UNIX_MS: AtomicU64 = AtomicU64::new(0);
 
 const HELPER_TIMEOUT: Duration = Duration::from_secs(3);
 const HELPER_POLL: Duration = Duration::from_millis(2);
@@ -102,18 +105,49 @@ pub fn read_image() -> Result<Option<arboard::ImageData<'static>>, ClipError> {
     }
 }
 
+fn stamp_write() {
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or(0);
+    LAST_WRITE_UNIX_MS.store(now, Ordering::SeqCst);
+}
+
+/// Record that the OS clipboard was just written (including via xclip/wl-copy).
+pub fn notify_write() {
+    stamp_write();
+}
+
+/// True when a clipboard write happened recently enough that Ctrl+V is intentional.
+pub fn wrote_recently(window: Duration) -> bool {
+    let last = LAST_WRITE_UNIX_MS.load(Ordering::SeqCst);
+    if last == 0 {
+        return false;
+    }
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or(last);
+    now.saturating_sub(last) <= window.as_millis() as u64
+}
+
 /// Write content to clipboard using best available method.
 /// Tries external tool (xclip/wl-copy) first, falls back to arboard.
 pub fn write(payload: &Payload<'_>) -> Result<(), ClipError> {
     #[cfg(target_os = "linux")]
     {
         if write_external(payload).is_ok() {
+            stamp_write();
             return Ok(());
         }
         debug!("external clipboard tool failed, falling back to arboard");
     }
 
-    write_arboard(payload)
+    let result = write_arboard(payload);
+    if result.is_ok() {
+        stamp_write();
+    }
+    result
 }
 
 // ---------------------------------------------------------------------------

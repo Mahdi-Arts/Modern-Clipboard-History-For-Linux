@@ -80,9 +80,10 @@ If you discover a security vulnerability, please follow these steps:
 
 ### حریم خصوصی داده‌ها
 
-- تاریخچه کلیپ‌بورد **فقط به صورت محلی** ذخیره می‌شود
-- هیچ داده‌ای از طریق شبکه ارسال نمی‌شود
-- اطلاعات حساس که کپی می‌شوند در تاریخچه ذخیره می‌شوند
+- تاریخچه کلیپ‌بورد **به‌صورت محلی** در SQLite با مجوز `0600` ذخیره می‌شود
+- فیلتر اسرار و نادیده‌گرفتن مدیر رمز عبور به‌صورت پیش‌فرض روشن است
+- جستجوی GIF (اختیاری) فقط با `TENOR_API_KEY` به Tenor می‌رود
+- شبیه‌سازی Ctrl+V از `/dev/uinput` استفاده می‌کند — باینری را مثل یک دستگاه ورودی قابل‌اعتماد در نظر بگیرید
 
 ### دسترسی‌های مورد نیاز
 
@@ -98,13 +99,16 @@ If you discover a security vulnerability, please follow these steps:
 
 ### App Security Features / ویژگی‌های امنیتی برنامه
 
-✔️ **CSP (Content Security Policy)** فعال — محافظت در برابر XSS  
-✔️ `withGlobalTauri: false` — API تائوری در معرض اسکریپت‌های خارجی نیست  
-✔️ **SSRF Protection** — دانلود GIF فقط به HTTPS و آی‌پی‌های عمومی محدود شده  
-✔️ **سقف حجم** — دانلودها به ۱۰MB محدود شده‌اند  
-✔️ **رایت اتمیک** — فایل‌های داده در صورت Crash خراب نمی‌شوند  
-✔️ **ذخیره‌سازی محلی** — هیچ داده‌ای به سرور ارسال نمی‌شود  
-✏️ <sub>_منبع باز: امنیت با شفافیت کد_</sub>
+✔️ **CSP** — `script-src 'self'`  
+✔️ `withGlobalTauri: false`  
+✔️ **SSRF** — HTTPS + host allowlist + DNS/IP checks + no redirects  
+✔️ **10 MB** GIF cap (streamed)  
+✔️ **SQLite WAL** + chmod `0600`  
+✔️ **Secret filter** and password-manager skip (defaults on)  
+✔️ **Scoped** `shell:allow-open` (`https`, `http`, `mailto`)  
+✔️ **Opt-in** tiling WM config rewrite  
+
+If you copy a password into an unsandboxed terminal, it can still land in history unless the secret filter matches. Review Settings → Privacy.
 
 ---
 

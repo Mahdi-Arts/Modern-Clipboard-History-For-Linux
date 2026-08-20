@@ -77,6 +77,11 @@ export interface UserSettings {
   auto_delete_unit: 'minutes' | 'hours' | 'days' | 'weeks'
   custom_kaomojis: CustomKaomoji[]
   ui_scale: number
+  filter_secrets: boolean
+  save_images: boolean
+  exclude_sensitive_apps: boolean
+  extra_excluded_apps: string[]
+  allow_wm_config_rewrite: boolean
 }
 
 /** Helper type for boolean settings keys */
