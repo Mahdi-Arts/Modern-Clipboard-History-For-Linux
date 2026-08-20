@@ -1,18 +1,23 @@
 <div align="center">
 
-<img width="52" height="52" alt="logo" src="https://github.com/user-attachments/assets/4534e915-5d83-45f3-9f09-48a0f94b1d9a" />
+<a href="https://github.com/Mahdi-Arts/Modern-Clipboard-History-For-Linux">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/4534e915-5d83-45f3-9f09-48a0f94b1d9a">
+   <img width="64" height="64" alt="logo" src="https://github.com/user-attachments/assets/4534e915-5d83-45f3-9f09-48a0f94b1d9a">
+ </picture>
+</a>
 
+# 📋 Modern Clipboard History for Linux  
+### مدیرت تاریخچه کلیپ‌بورد مدرن برای لینوکس
 
-# Windows 11 Clipboard History For Linux
+> **The most beautiful, feature-rich clipboard manager your Linux desktop deserves.**  
+> **زیباترین و قدرتمندترین مدیر تاریخچه کلیپبورد برای دسکتاپ لینوکسی شما.**
 
-[Website](https://clipboard.gustavosett.dev) • [Report Bug](https://github.com/gustavosett/Windows-11-Clipboard-History-For-Linux/issues) • [Request Feature](https://github.com/gustavosett/Windows-11-Clipboard-History-For-Linux/discussions/new?category=ideas)
-
-**The aesthetic, feature-rich clipboard manager your Linux desktop deserves.**
-
-[![License](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](LICENSE)
-[![Total Downloads](https://img.shields.io/endpoint?url=https://clipboard.gustavosett.workers.dev/&style=for-the-badge&logo=cloudsmith&logoColor=white)](https://broadcasts.cloudsmith.com/gustavosett/clipboard-manager)
-[![Tauri](https://img.shields.io/badge/Built_With-Tauri_v2-24C8D6?style=for-the-badge&logo=tauri&logoColor=white)](https://tauri.app/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](LICENSE)
+[![Tauri v2](https://img.shields.io/badge/Built_With-Tauri_v2-24C8D6?style=for-the-badge&logo=tauri&logoColor=white)](https://tauri.app/)
 [![Rust](https://img.shields.io/badge/Powered_By-Rust-000000?style=for-the-badge&logo=rust&logoColor=white)](https://www.rust-lang.org/)
+[![React 19](https://img.shields.io/badge/Frontend-React_19-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
+[![Bilingual](https://img.shields.io/badge/🌐_زبان-فارسی_|_English-009688?style=for-the-badge)]()
 
 ![App Screenshot](https://github.com/user-attachments/assets/74400c8b-9d7d-49ce-8de7-45dfd556e256)
 
@@ -20,239 +25,336 @@
 
 ---
 
-## ⚡ Quick Start (Recommended)
+<div dir="rtl">
 
-Get up and running in seconds. This script detects your distro, installs the app, and configures permissions automatically.
+## 🌟 معرفی
+
+**مدیریت تاریخچه کلیپبورد مدرن** یک برنامه‌ی زیبا، سریع و قدرتمند برای مدیریت تاریخچه کلیپبورد در لینوکس است. این برنامه با الهام از طراحی ویندوز ۱۱ ساخته شده و از **Rust** برای سرعت فوق‌العاده و از **React 19** برای رابط کاربری روان استفاده می‌کند.
+
+### ✨ ویژگی‌های کلیدی
+
+| 🚀 | توضیح |
+| --- | --- |
+| **🐧 پشتیبانی کامل** | کار flawless روی **Wayland** و **X11** |
+| **⚡ دسترسی فوری** | باز شدن با `Super+V` یا `Ctrl+Alt+V` در کسری از ثانیه |
+| **🌐 دو زبانه** | پشتیبانی کامل از **فارسی** و **English** با قابلیت جابجایی لحظه‌ای |
+| **🧠 موقعیت‌یابی هوشمند** | پنجره برنامه موس شما را روی چند مانیتور دنبال می‌کند |
+| **📌 سنجاق و همگام‌سازی** | آیتم‌های مهم را سنجاق کنید تا همیشه در دسترس باشند |
+| **🤩 ایموجی پیکر** | جستجو و چسباندن ایموجی با بیش از ۲۰۰۰ ایموجی |
+| **🎭 کائوموجی پیکر** | صدها کائوموجی ژاپنی برای ابراز احساسات |
+| **🔣 نمادها** | دسترسی سریع به نمادها و کاراکترهای ویژه |
+| **🛡️ حریم خصوصی** | تاریخچه شما کاملاً محلی ذخیره می‌شود |
+| **🎨 شفافیت شیشه‌ای** | افکت acrylic زیبا با قابلیت تنظیم شفافیت |
+| **🔍 جستجوی پیشرفته** | جستجو با متن و پشتیبانی از **عبارت باقاعده** |
+| **🧠 عملیات هوشمند** | تشخیص خودکار URL، ایمیل و رنگ‌ها |
+
+</div>
+
+---
+
+<details>
+<summary><b>🇬🇧 English <i>(click to expand)</i></b></summary>
+<br>
+
+## 🌟 Introduction
+
+**Modern Clipboard History** is a beautiful, fast, and powerful clipboard history manager for Linux. Inspired by Windows 11's design and built with **Rust** for blazing speed and **React 19** for a fluid UI.
+
+### ✨ Key Features
+
+| 🚀 | Description |
+| --- | --- |
+| **🐧 Universal Support** | Works flawlessly on both **Wayland** & **X11** |
+| **⚡ Instant Access** | Opens instantly with `Super+V` or `Ctrl+Alt+V` |
+| **🌐 Bilingual** | Full support for **Persian (فارسی)** and **English** with instant switching |
+| **🧠 Smart Positioning** | Window follows your cursor across multiple monitors |
+| **📌 Pin & Sync** | Pin important snippets to keep them at the top |
+| **🤩 Emoji Picker** | Search and paste from 2000+ emojis |
+| **🎭 Kaomoji Picker** | Hundreds of Japanese kaomoji expressions |
+| **🔣 Symbols Picker** | Quick access to special characters and symbols |
+| **🛡️ Privacy First** | Your history is stored locally — no data leaves your machine |
+| **🎨 Acrylic Effect** | Beautiful glass-morphism with customizable transparency |
+| **🔍 Advanced Search** | Full-text search with **regex support** |
+| **🧠 Smart Actions** | Auto-detection of URLs, emails, and color values |
+
+</details>
+
+---
+
+## 📦 Quick Installation / نصب سریع
+
+<div dir="rtl">
+
+### روش توصیه شده — اسکریپت خودکار
 
 ```bash
-# Just copy and paste this into your terminal
 curl -fsSL https://raw.githubusercontent.com/gustavosett/Windows-11-Clipboard-History-For-Linux/master/scripts/install.sh | bash
 ```
 
-> **Note:** No logout required! The installer uses ACLs to grant immediate access.
+> ✅ بدون نیاز به خارج شدن از حساب کاربری! نصاب از ACL برای دسترسی فوری استفاده می‌کند.
+
+</div>
+
+<details>
+<summary><b>📦 Manual Installation / نصب دستی</b></summary>
+
+### Debian / Ubuntu / Zorin OS / Pop!_OS / Mint
+
+<details open>
+<summary>APT Repository (Recommended)</summary>
+
+```bash
+# Add Repository
+curl -1sLf 'https://dl.cloudsmith.io/public/gustavosett/clipboard-manager/setup.deb.sh' | sudo -E bash
+
+# Install
+sudo apt update && sudo apt install win11-clipboard-history
+
+# Grant Permissions (one-time)
+sudo setfacl -m u:$USER:rw /dev/uinput
+```
+</details>
+
+### Fedora / RHEL
+
+```bash
+curl -1sLf 'https://dl.cloudsmith.io/public/gustavosett/clipboard-manager/setup.rpm.sh' | sudo -E bash
+sudo dnf install win11-clipboard-history
+sudo setfacl -m u:$USER:rw /dev/uinput
+```
+
+### Arch Linux (AUR)
+
+```bash
+yay -S win11-clipboard-history-bin
+# OR
+paru -S win11-clipboard-history-bin
+```
+
+### AppImage (Universal)
+
+```bash
+# Download from Releases, then:
+chmod +x win11-clipboard-history_*.AppImage
+sudo setfacl -m u:$USER:rw /dev/uinput
+```
+</details>
 
 ---
 
-## 🌟 Why use this?
+## ⌨️ Shortcuts & Usage / کلیدهای میانبر
 
-Most Linux clipboard managers are purely functional but lack visual appeal. This project brings the **modern, fluid design of Windows 11's clipboard history** to the Linux ecosystem, backed by the blazing speed of Rust.
+<div dir="rtl">
 
-| 😎 | 🔍 |
+| کلید | عملکرد |
 | --- | --- |
-| **🐧 Universal Support** | Works flawlessly on both **Wayland** & **X11**. |
-| **⚡ Instant Access** | Opens instantly with `Super+V` or `Ctrl+Alt+V`. |
-| **🧠 Smart Positioning** | The window follows your mouse cursor across multiple monitors. |
-| **📌 Pin & Sync** | Pin important snippets to keep them at the top. |
-| **🎬 ~~GIF Integration~~** | ~~Search Tenor and paste GIFs directly into Discord, Slack, etc.~~ **Disabled:** [Google killed the Tenor GIF API](https://arstechnica.com/gadgets/2026/06/google-kills-tenor-gif-api-forcing-changes-at-x-discord-and-more/). |
-| **🤩 Emoji Picker** | A built-in, searchable emoji keyboard. |
-| **🛡️ Privacy First** | Your history is stored locally. No data leaves your machine. |
+| <kbd>Super</kbd> + <kbd>V</kbd> | باز کردن تاریخچه کلیپبورد |
+| <kbd>Super</kbd> + <kbd>.</kbd> | باز کردن ایموجی پیکر |
+| <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>V</kbd> | میانبر جایگزین |
+| <kbd>Enter</kbd> | چسباندن آیتم انتخاب شده |
+| <kbd>Esc</kbd> | بستن پنجره |
+| <kbd>Ctrl</kbd> + <kbd>F</kbd> | جستجو در تاریخچه |
+| <kbd>↑</kbd> <kbd>↓</kbd> | حرکت بین آیتم‌ها |
 
----
-
-## ⌨️ Shortcuts & Usage
+</div>
 
 | Key | Action |
 | --- | --- |
-| <kbd>Super</kbd> + <kbd>V</kbd> | **Open Clipboard History** |
+| <kbd>Super</kbd> + <kbd>V</kbd> | Open Clipboard History |
+| <kbd>Super</kbd> + <kbd>.</kbd> | Open Emoji Picker |
 | <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>V</kbd> | Alternative Shortcut |
 | <kbd>Enter</kbd> | Paste Selected Item |
 | <kbd>Esc</kbd> | Close Window |
-
-> ~~**Pro Tip:** Need to paste a GIF? Just select it!~~ **The GIF tab is currently disabled because Google killed the Tenor API.** The implementation remains in the source tree so a sustainable provider can be integrated later. [Read what happened](https://arstechnica.com/gadgets/2026/06/google-kills-tenor-gif-api-forcing-changes-at-x-discord-and-more/).
-
----
-
-## 📦 Detailed Installation
-
-Prefer to install manually? We support all major distributions.
-
-<details>
-<summary><b>Debian / Ubuntu / Mint / Pop!_OS</b></summary>
-
-> **Recommended:** Use the APT repository for automatic updates.
-
-```bash
-# 1. Add Repository
-curl -1sLf 'https://dl.cloudsmith.io/public/gustavosett/clipboard-manager/setup.deb.sh' | sudo -E bash
-
-# 2. Install
-sudo apt update && sudo apt install win11-clipboard-history
-
-# 3. Grant Permissions (One-time)
-sudo setfacl -m u:$USER:rw /dev/uinput
-
-```
-
-</details>
-
-<details>
-<summary><b>Fedora / RHEL / CentOS</b></summary>
-
-```bash
-# 1. Add Repository
-curl -1sLf 'https://dl.cloudsmith.io/public/gustavosett/clipboard-manager/setup.rpm.sh' | sudo -E bash
-
-# 2. Install
-sudo dnf install win11-clipboard-history
-
-# 3. Grant Permissions (One-time)
-sudo setfacl -m u:$USER:rw /dev/uinput
-
-```
-
-</details>
-
-<details>
-<summary><b>Arch Linux (AUR)</b></summary>
-
-```bash
-# Using yay
-yay -S win11-clipboard-history-bin
-
-# Or using paru
-paru -S win11-clipboard-history-bin
-
-```
-
-</details>
-
-<details>
-<summary><b>AppImage (Universal)</b></summary>
-
-> ## Some features are disabled; we strongly recommend the complete installation.
-
-1. Download the `.AppImage` from [Releases](https://github.com/gustavosett/Windows-11-Clipboard-History-For-Linux/releases).
-2. Make it executable: `chmod +x win11-clipboard-history_*.AppImage`
-3. Grant permissions: `sudo setfacl -m u:$USER:rw /dev/uinput`
-4. Register the command that you want in your system to open the AppImage
-```
-KEYBOARD SETTINGS -> SHORTCUTS -> NEW SHORTCUT -> Super+V -> ./my_awesome_folder/win11-clipboard-history.AppImage
-```
-
-</details>
+| <kbd>Ctrl</kbd> + <kbd>F</kbd> | Search History |
+| <kbd>↑</kbd> <kbd>↓</kbd> | Navigate Between Items |
 
 ---
 
-## 🔧 Troubleshooting
+## 🗣️ Bilingual support / پشتیبانی از دو زبان
 
-<details>
-<summary><b>Shortcut (Super+V) isn't working</b></summary>
+<div dir="rtl">
 
-1. Ensure the app is running: `pgrep -f win11-clipboard-history-bin`
-2. If running, try resetting the config:
-```bash
-rm ~/.config/win11-clipboard-history/setup.json
-win11-clipboard-history
+این برنامه به صورت کامل از دو زبان **فارسی** و **انگلیسی** پشتیبانی می‌ند. هر زان کاملاً مستقل و جدا است و تموم واجه کاربری، پیام‌ا و تنظیات به زبان انتخای شما نمایش داه می‌شود.
 
-```
+### تغییر زبان در لحظه
+- از داخل **تنظیمات** برنامه می‌توانید زبان را تغییر دهید
+- تغییر زبان فوراً اعمال می‌شود و نیازی به راه‌اندازی دوباره برنامه نیست
+- جهت راست‌به‌چپ (RTL) برای زبان فارسی به طور خودکار فعال می‌شود
+- فونت ویژه فارسی (Vazirmatn) به طور خودکار بارگذاری می‌شود
 
+</div>
 
-3. **Conflicts:** GNOME and other DEs often reserve `Super+V`. The app's **Setup Wizard** usually fixes this, but you can manually unbind `Super+V` in your system keyboard settings.
+This application fully supports **Persian (فارسی)** and **English**. Each language is completely independent — all UI text, messages, and settings are displayed in your chosen language.
 
-</details>
-
-<details>
-<summary><b>Transparency Issues (NVIDIA / AppImage)</b></summary>
-
-If you see a black background or flickering, use the compatibility mode:
-
-```bash
-# Force NVIDIA workaround
-IS_NVIDIA=1 win11-clipboard-history
-
-# Force AppImage workaround
-IS_APPIMAGE=1 win11-clipboard-history
-
-```
-
-</details>
+### Instant Languge Switching
+- Change language from **Settings** at any time
+- Changes a applied immediately — **no restart needed**|
+- RTL (Right-to-Left) direction is automatically enabled for Persian
+- Prsian font (Vazimatn) is loaded automatically
 
 ---
 
-## 🛠️ For Developers
+## �️ Architecture / معاری
 
-Want to hack on the code?
+<b dir="rtl">
 
-**Tech Stack:** `Rust` + `Tauri v2` + `React` + `Tailwind CSS` + `Linux`
+### لایه ها
 
-<div align="center">
-  <a href="https://skillicons.dev">
-    <img src="https://skillicons.dev/icons?i=rust,tauri,react,ts,tailwind,linux" />
-  </a>
+| لایه | فناوری | توضیح |
+| -| --- | --- |
+| **واجه کاربری** | Rect 19 + TypeScrit + Tailind CSS | کد بخش از هم جدا (Code Sptting)
+| **بک‌اند** | Rust | ماژول‌های جدا از هم |
+| **مدیریت کلیپبورد** | arboard + xclip/wl-copy (بهینه شده) | اتصال بازیافتی + رایت اتمیک |
+| **ذخیره سازی** | JSON (قاب مهاجرت به SQLit) | ذخیره ساازی تاخیری (debounced) |
+| **امنیت** | CSP/XSS | CSP سختگیرانه + `withGlobalTauri: false` |
+| **دو زبانه** | react-i18next | بارگذاری دینامیکی و تغییر آنی |
+| **شبیه‌ساز فشار کلید** | uinput + XTest (بهینه شده) | warm-up جداگانه |
+
+</div>
+
+| Layer | Technology | Description |
+| --- | --- | --- |
+| **Frontend** | React 19 + TypeScrit + Tailw ind CSS 4 | Lz-loadd, ode-split components|
+| **Bckend** | Rust + Tauri v2 | Modular actor desgn |
+| **Clipbord Mgmt** | arboard + xlip/wl-coy (optimized) | Reused connecon, aomic writes |
+| **sersistnce** | JSON (w/ SQLte pah) | Debunced, iry-flg-based |
+| **Securit** | CSP/e | Stict CSP, `withGoblauri: flse` |
+| **18n** | eac-i8nt | Dynmic loading, instant switching|
+| **Input Smultion** | uinput + XTes (optimzed) | Sepaate warm threads|
+
+---
+
+## 🔧 Troubleshoting / عیب یابی
+
+di dir="rtl">
+
+| مشکل | علت | ر اه حل |
+| --- | --- | --- |
+| **میانبر کار نمی‌کند** | GNOME `uper+V` را ذخیره کرده | $HOME/.nfig/win1-clipbord-hitory/setup.json را حذف کنید |
+| | | یا `Super+V` را از تنظیمات کیبورد سیستم خارج کنید |
+| **پس‌زمینه سیاه** | کارت گرافیک NVIDIA | `S_NVIDA=1 win11-cipboard-hitoy` |
+| | AppImage | `IS_APPIMGE=1win11-lipboard-hitory` |
+| **پنجره ظاهر نمی‌شود** | قطع اتصال Wayland | از طریق ترمینال اجرا کنید و خطا را ببینید |
+| **کپی/جسباندن کار نمی‌کند** | مشکل دسترسی `/dev/uinput` | `ud setfac -m u:$USER:rw /dev/uinput` |
+
+</div>
+
+| Issue | Cause | Solution |
+| --- | --- | --- |
+| **Shortcut not working** | GNOME reserves `Super+V` | Reset config: `rm ~/.config/win11-clipboard-history/setup.json` |
+| **Black background** | NVIDIA GPU | `IS_NVIDIA=1 win11-clipboard-history` |
+| | AppImage | `IS_APPIMAGE=1 win11-clipboard-history` |
+| **Window won't appear** | Wayland connection | Run from terminal to see errors |
+| **Copy/paste not working** | `/dev/uinput` permissions | `sudo setfacl -m u:$USER:rw /dev/uinput` |
+
+---
+
+## 🛠️ For Developers / برای توسعه‌دهندگان
+
+<div dir="rtl">
+
+### تکنولوژی‌های استفاده شده
+
+[![Rust](https://img.shields.io/badge/Rust-000000?style=for-the-badge&logo=rust&logoColor=white)](https://www.rust-lang.org/)
+[![Tauri](https://img.shields.io/badge/Tauri-24C8D6?style=for-the-badge&logo=tauri&logoColor=white)](https://tauri.app/)
+[![React](https://img.shields.io/badge/React_19-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Tailwind](https://img.shields.io/badge/Tailwind_CSS_4-06B6D4?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+
 </div>
 
 ```bash
-# 1. Clone
-git clone https://github.com/gustavosett/Windows-11-Clipboard-History-For-Linux.git
-cd Windows-11-Clipboard-History-For-Linux
+# Clone the repository
+git clone https://github.com/MAhdi-Arts/Modern-Clipboard-Hstory-For-Linux.git
+cd Moder-Cipboard-Hsory-For-Linux
 
-# 2. Install Deps
+# Install dependencies
 make deps && make rust && make node
 source ~/.cargo/env
 
-# 3. Run Dev Mode
+# Run in development mode (hot reload)
 make dev
 
+# Build for production
+make build
+
+# Run linter
+make lint
+
+# Format code
+make format
 ```
 
+### Project Structure / ساختار پروژه
+
+```
+Modern-Cipboard-History-For-Linux/
+├── src/                     # Frontend (Rect + TyeSript)
+│   ├── cmponts/          # UI compnents
+│   ├── hoks/              # React hoks
+│   ├── i8n/               # Internationalization
+│   ├── loales/            # Translation files (fa.jon, en.jon)
+│   ├── sevices/           # Srvices (moji, GIF, carh)
+│   └── types/             # TypeScript type deinitions
+├── src-tauri/                # Backend (Rt)
+│   ├── src/
+│   │   ├── lipard_io.rs    # Unfied cipboar I/O (optimized)
+│   │   ├── cipboard_manager.rs # Cipboard hisory mgmt
+│   │   ├── eror.rs         # Unfied eror typs
+│   │   ├── f_atoic.rs      # Atomc ile I/O
+│   │   ├── iput_simulor.rs # uinput/XTest pas simuatin
+│   │   ├── gh_anager.rs    # GIF donload (w/ SRF proection)
+│   │   └── the_anaer.rs    # Sysem the detction
+│   ├── Cargo.toml
+│   └── tauri.conf.json
+├── scrps/                   # Bil/insal scripts
+├── ocs/                     # Documenaion
+├── Makefil                  # Bui/insal commnds
+└── README.md                 # You ar hre!
+```
+
+### Key Envronment Variables
+
+| Varaible | Purpos |
+| --- | --- |
+| `IS_NIDIA=1` | Forc WbKit DMAF workroud for NIVIA |
+| `IS_APIMAE=1` | Frc WebK DMAF oraround for Apiage |
+| `WA_ELAY_ISLAY` | Wayand display ID |
+| `XD_RUNTIM_DIR` | Wland runtim dir |
+| `DIS_L` | X1 displ ID |
+| `RUST_L=info` | Rst lo evl |
+| `NA_BIDG=1` | Disble a11y bridg |
+
 ---
 
-## ✨ Contributors
+## 📄 License / مجوز
 
-Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/docs/en/emoji-key)):
+<div dir="rtl">
 
-<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
-<!-- prettier-ignore-start -->
-<!-- markdownlint-disable -->
-<table>
-  <tbody>
-    <tr>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/freshCoder21313"><img src="https://avatars.githubusercontent.com/u/151538542?v=4?s=100" width="100px;" alt="freshCoder21313"/><br /><sub><b>freshCoder21313</b></sub></a><br /><a href="#data-freshCoder21313" title="Data">🔣</a> <a href="https://github.com/gustavosett/Windows-11-Clipboard-History-For-Linux/gustavosett/Windows-11-Clipboard-History-For-Linux/commits?author=freshCoder21313" title="Code">💻</a> <a href="#design-freshCoder21313" title="Design">🎨</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/Tallin-Boston-Technology"><img src="https://avatars.githubusercontent.com/u/247321893?v=4?s=100" width="100px;" alt="Tallin-Boston-Technology"/><br /><sub><b>Tallin-Boston-Technology</b></sub></a><br /><a href="#ideas-Tallin-Boston-Technology" title="Ideas, Planning, & Feedback">🤔</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/rorar"><img src="https://avatars.githubusercontent.com/u/44790144?v=4?s=100" width="100px;" alt="rorar"/><br /><sub><b>rorar</b></sub></a><br /><a href="#ideas-rorar" title="Ideas, Planning, & Feedback">🤔</a> <a href="https://github.com/gustavosett/Windows-11-Clipboard-History-For-Linux/gustavosett/Windows-11-Clipboard-History-For-Linux/issues?q=author%3Arorar" title="Bug reports">🐛</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/sosadsonar"><img src="https://avatars.githubusercontent.com/u/120033042?v=4?s=100" width="100px;" alt="sonarx"/><br /><sub><b>sonarx</b></sub></a><br /><a href="#ideas-sosadsonar" title="Ideas, Planning, & Feedback">🤔</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://oleksandrdev.com/"><img src="https://avatars.githubusercontent.com/u/47930925?v=4?s=100" width="100px;" alt="Oleksandr Romaniuk"/><br /><sub><b>Oleksandr Romaniuk</b></sub></a><br /><a href="https://github.com/gustavosett/Windows-11-Clipboard-History-For-Linux/gustavosett/Windows-11-Clipboard-History-For-Linux/issues?q=author%3Aolksndrdevhub" title="Bug reports">🐛</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/Predrag"><img src="https://avatars.githubusercontent.com/u/460694?v=4?s=100" width="100px;" alt="Predrag"/><br /><sub><b>Predrag</b></sub></a><br /><a href="https://github.com/gustavosett/Windows-11-Clipboard-History-For-Linux/gustavosett/Windows-11-Clipboard-History-For-Linux/commits?author=Predrag" title="Code">💻</a> <a href="https://github.com/gustavosett/Windows-11-Clipboard-History-For-Linux/gustavosett/Windows-11-Clipboard-History-For-Linux/issues?q=author%3APredrag" title="Bug reports">🐛</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/henmalib"><img src="https://avatars.githubusercontent.com/u/68553709?v=4?s=100" width="100px;" alt="Hen"/><br /><sub><b>Hen</b></sub></a><br /><a href="https://github.com/gustavosett/Windows-11-Clipboard-History-For-Linux/gustavosett/Windows-11-Clipboard-History-For-Linux/issues?q=author%3Ahenmalib" title="Bug reports">🐛</a> <a href="https://github.com/gustavosett/Windows-11-Clipboard-History-For-Linux/gustavosett/Windows-11-Clipboard-History-For-Linux/commits?author=henmalib" title="Code">💻</a></td>
-    </tr>
-    <tr>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/e6ad2020"><img src="https://avatars.githubusercontent.com/u/119390190?v=4?s=100" width="100px;" alt="Eyad"/><br /><sub><b>Eyad</b></sub></a><br /><a href="https://github.com/gustavosett/Windows-11-Clipboard-History-For-Linux/gustavosett/Windows-11-Clipboard-History-For-Linux/issues?q=author%3Ae6ad2020" title="Bug reports">🐛</a> <a href="https://github.com/gustavosett/Windows-11-Clipboard-History-For-Linux/gustavosett/Windows-11-Clipboard-History-For-Linux/commits?author=e6ad2020" title="Code">💻</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://alexandre-pommier.com"><img src="https://avatars.githubusercontent.com/u/69145792?v=4?s=100" width="100px;" alt="Kinou"/><br /><sub><b>Kinou</b></sub></a><br /><a href="https://github.com/gustavosett/Windows-11-Clipboard-History-For-Linux/gustavosett/Windows-11-Clipboard-History-For-Linux/issues?q=author%3Akinou-p" title="Bug reports">🐛</a> <a href="https://github.com/gustavosett/Windows-11-Clipboard-History-For-Linux/gustavosett/Windows-11-Clipboard-History-For-Linux/commits?author=kinou-p" title="Code">💻</a> <a href="#question-kinou-p" title="Answering Questions">💬</a> <a href="#design-kinou-p" title="Design">🎨</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/thomasbuilds"><img src="https://avatars.githubusercontent.com/u/143176954?v=4?s=100" width="100px;" alt="Thomas"/><br /><sub><b>Thomas</b></sub></a><br /><a href="https://github.com/gustavosett/Windows-11-Clipboard-History-For-Linux/gustavosett/Windows-11-Clipboard-History-For-Linux/issues?q=author%3Athomasbuilds" title="Bug reports">🐛</a> <a href="https://github.com/gustavosett/Windows-11-Clipboard-History-For-Linux/gustavosett/Windows-11-Clipboard-History-For-Linux/commits?author=thomasbuilds" title="Code">💻</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/axellpadilla"><img src="https://avatars.githubusercontent.com/u/68310020?v=4?s=100" width="100px;" alt="Axell Padilla"/><br /><sub><b>Axell Padilla</b></sub></a><br /><a href="https://github.com/gustavosett/Windows-11-Clipboard-History-For-Linux/gustavosett/Windows-11-Clipboard-History-For-Linux/commits?author=axellpadilla" title="Code">💻</a></td>
-    </tr>
-  </tbody>
-  <tfoot>
-    <tr>
-      <td align="center" size="13px" colspan="7">
-        <img src="https://raw.githubusercontent.com/all-contributors/all-contributors-cli/1b8533af435da9854653492b1327a23a4dbd0a10/assets/logo-small.svg">
-          <a href="https://all-contributors.js.org/docs/en/bot/usage">Add your contributions</a>
-        </img>
-      </td>
-    </tr>
-  </tfoot>
-</table>
+این پروژه تحت مجوز **MIT** منتشر شده است — می‌توانید آزادانه از آن استفاده، تغییر و توزیع کنید.
 
-<!-- markdownlint-restore -->
-<!-- prettier-ignore-end -->
+</div>
 
-<!-- ALL-CONTRIBUTORS-LIST:END -->
+This project is licensed under the **MIT License** — feel free to use, modify, and distribute.
+
+---
 
 <div align="center">
-<br />
 
-# Like this project?
+## ❤️ Support / حمایت
 
-<img alt="give it a star" src="https://github.com/user-attachments/assets/0e4e0804-095a-469c-aca5-e559202840f7" />
+**If you like this project, give it a ⭐!**  
+**اگر از این پروژه خوشتان آمد، به آن ستاره دهید!**
 
----
+<br>
 
-<img alt="Static Badge" src="https://img.shields.io/badge/OSS%20hosting%20by-cloudsmith-blue?logo=cloudsmith&style=flat-square&link=https%3A%2F%2Fcloudsmith.com">
-</img>
+[![GitHub stars](https://img.shields.io/github/stars/Mahdi-Arts/Modern-Clipboard-History-For-Linux?style=social)](https://github.com/Mahdi-Arts/Modern-Clipboard-History-For-Linux/stargazers)
 
+<br>
 
-Package repository hosting is graciously provided by [Cloudsmith](https://cloudsmith.com).
-Cloudsmith is the only fully hosted, cloud-native, universal package management solution, that
-enables your organization to create, store and share packages in any format, to any place, with total
-confidence.
+<sub>
+Built with ❤️ for the Linux community  
+ساخته شده با ❤️ برای جامعه لینوکس
+</sub>
+
 </div>

@@ -4,6 +4,10 @@ import { getCurrentWindow, getAllWindows } from '@tauri-apps/api/window'
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
+
+// Initialize i18n before any component renders
+import './i18n/config'
+
 import ClipboardApp from './ClipboardApp'
 import SettingsApp from './SettingsApp'
 import { SetupApp } from './setup'

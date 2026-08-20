@@ -1,25 +1,30 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect, useRef, Suspense, lazy } from 'react'
 import { clsx } from 'clsx'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { getCurrentWebview } from '@tauri-apps/api/webview'
 import { listen } from '@tauri-apps/api/event'
 import { invoke } from '@tauri-apps/api/core'
+import { useTranslation } from 'react-i18next'
 import { useClipboardHistory } from './hooks/useClipboardHistory'
 import { TabBar, TabBarRef } from './components/TabBar'
 import { DragHandle } from './components/DragHandle'
-import { EmojiPicker } from './components/EmojiPicker'
-import { KaomojiPicker } from './components/KaomojiPicker'
-import { SymbolPicker } from './components/SymbolPicker'
 import { calculateSecondaryOpacity, calculateTertiaryOpacity } from './utils/themeUtils'
 import { useSystemThemePreference } from './utils/systemTheme'
 import { useRenderingEnv } from './hooks/useRenderingEnv'
+import { useLanguageEffect } from './i18n/useLanguage'
 import type { ActiveTab, UserSettings } from './types/clipboard'
 import { ClipboardTab } from './components/ClipboardTab'
+
+// Lazy-loaded tabs for code splitting
+const EmojiPicker = lazy(() => import('./components/EmojiPicker').then(m => ({ default: m.EmojiPicker })))
+const KaomojiPicker = lazy(() => import('./components/KaomojiPicker').then(m => ({ default: m.KaomojiPicker })))
+const SymbolPicker = lazy(() => import('./components/SymbolPicker').then(m => ({ default: m.SymbolPicker })))
 
 const DEFAULT_SETTINGS: UserSettings = {
   theme_mode: 'system',
   dark_background_opacity: 0.7,
   light_background_opacity: 0.7,
+  language: 'en',
   enable_smart_actions: true,
   enable_ui_polish: true,
   enable_dynamic_tray_icon: true,
@@ -89,6 +94,10 @@ async function applyUIScale(scale: number) {
  * Main Clipboard App Component
  */
 function ClipboardApp() {
+  // i18n: language change listener updates all translations reactively
+  useLanguageEffect()
+  const { t } = useTranslation()
+
   const [activeTab, setActiveTab] = useState<ActiveTab>('clipboard')
   const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS)
   const [settingsLoaded, setSettingsLoaded] = useState(false)
@@ -152,6 +161,19 @@ function ClipboardApp() {
       unlistenPromise.then((unlisten) => unlisten())
       unlistenSwitchTab.then((unlisten) => unlisten())
     }
+  }, [])
+
+  // Listen for language change events from settings/backend
+  useEffect(() => {
+    const unlistenLang = listen<string>('app-language-changed', (event) => {
+      const lang = event.payload
+      if (lang === 'fa' || lang === 'en') {
+        import('./i18n/config').then(({ changeLanguage }) => {
+          changeLanguage(lang)
+        })
+      }
+    })
+    return () => { unlistenLang.then(u => u()) }
   }, [])
 
   // Re-apply CSS opacity variables whenever renderingEnv or settings change
@@ -235,8 +257,14 @@ function ClipboardApp() {
     invoke('set_mouse_state', { inside: false }).catch(console.error)
   }
 
-  // Render content based on active tab
+  // Render content based on active tab (with lazy loading via Suspense)
   const renderContent = () => {
+    const spinner = (
+      <div className="flex items-center justify-center h-full p-8">
+        <div className="w-5 h-5 border-2 border-win11-bg-accent border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+
     switch (activeTab) {
       case 'clipboard':
         return (
@@ -256,27 +284,37 @@ function ClipboardApp() {
         )
 
       case 'emoji':
-        return <EmojiPicker isDark={isDark} opacity={secondaryOpacity} />
+        return (
+          <Suspense fallback={spinner}>
+            <EmojiPicker isDark={isDark} opacity={secondaryOpacity} />
+          </Suspense>
+        )
 
       // case 'gifs':
       //   return <GifPicker isDark={isDark} opacity={secondaryOpacity} />
 
       case 'kaomoji':
         return (
-          <KaomojiPicker
-            isDark={isDark}
-            opacity={secondaryOpacity}
-            customKaomojis={settings.custom_kaomojis}
-          />
+          <Suspense fallback={spinner}>
+            <KaomojiPicker
+              isDark={isDark}
+              opacity={secondaryOpacity}
+              customKaomojis={settings.custom_kaomojis}
+            />
+          </Suspense>
         )
 
       case 'symbols':
-        return <SymbolPicker isDark={isDark} opacity={secondaryOpacity} />
+        return (
+          <Suspense fallback={spinner}>
+            <SymbolPicker isDark={isDark} opacity={secondaryOpacity} />
+          </Suspense>
+        )
 
       default:
         return null
     }
-  }
+ }
 
   // Don't render until settings are loaded to prevent FOUC
   if (!settingsLoaded) {

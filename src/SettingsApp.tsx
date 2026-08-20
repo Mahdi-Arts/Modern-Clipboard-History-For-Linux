@@ -4,11 +4,14 @@ import { getCurrentWindow, Window } from '@tauri-apps/api/window'
 import { listen } from '@tauri-apps/api/event'
 import { emit } from '@tauri-apps/api/event'
 import { clsx } from 'clsx'
+import { useTranslation } from 'react-i18next'
 
 import type { UserSettings, CustomKaomoji, BooleanSettingKey } from './types/clipboard'
 import { FeaturesSection } from './components/FeaturesSection'
 import { Switch } from './components/Switch'
 import { useSystemThemePreference } from './utils/systemTheme'
+import { useLanguageEffect } from './i18n/useLanguage'
+import { changeLanguage } from './i18n/config'
 import { useRenderingEnv } from './hooks/useRenderingEnv'
 
 const MIN_HISTORY_SIZE = 1
@@ -18,6 +21,7 @@ const DEFAULT_SETTINGS: UserSettings = {
   theme_mode: 'system',
   dark_background_opacity: 0.7,
   light_background_opacity: 0.7,
+  language: 'en',
   enable_smart_actions: true,
   enable_ui_polish: true,
   enable_dynamic_tray_icon: true,
@@ -294,6 +298,10 @@ function SettingsApp() {
 
   // Rendering environment (NVIDIA / AppImage detection)
   const renderingEnv = useRenderingEnv()
+
+  // i18n
+  useLanguageEffect()
+  const { t, i18n } = useTranslation()
 
   // Apply theme to settings window itself
   const isDark = useThemeMode(settings.theme_mode)

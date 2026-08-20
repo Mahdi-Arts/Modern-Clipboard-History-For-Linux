@@ -17,6 +17,11 @@ pub struct UserSettings {
     /// Background opacity for light mode (0.0 to 1.0)
     pub light_background_opacity: f32,
 
+    // --- Language ---
+    /// App UI language: "en" or "fa"
+    #[serde(default = "default_language")]
+    pub language: String,
+
     // --- Feature Flags ---
     /// Enable Dynamic Tray Icon (changes color based on system theme)
     /// Only relevant for GNOME/Pop!_OS where it defaults to true
@@ -83,6 +88,10 @@ fn default_unit() -> String {
     "hours".to_string()
 }
 
+fn default_language() -> String {
+    "en".to_string()
+}
+
 impl Default for UserSettings {
     fn default() -> Self {
         Self {
@@ -102,6 +111,13 @@ impl Default for UserSettings {
 }
 
 impl UserSettings {
+    /// Update language, only accepts "en" or "fa"
+    pub fn set_language(&mut self, lang: &str) {
+        if lang == "en" || lang == "fa" {
+            self.language = lang.to_string();
+        }
+    }
+
     pub fn auto_delete_interval_in_minutes(&self) -> u64 {
         if self.auto_delete_interval == 0 {
             return 0;
@@ -137,6 +153,11 @@ impl UserSettings {
         // Validate auto_delete_unit
         if !["minutes", "hours", "days", "weeks"].contains(&self.auto_delete_unit.as_str()) {
             self.auto_delete_unit = "hours".to_string();
+        }
+
+        // Validate language
+        if !["en", "fa"].contains(&self.language.as_str()) {
+            self.language = "en".to_string();
         }
     }
 }
