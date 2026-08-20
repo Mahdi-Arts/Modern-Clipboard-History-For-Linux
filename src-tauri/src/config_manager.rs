@@ -30,7 +30,7 @@ impl ConfigManager {
         };
 
         if let Err(e) = manager.load() {
-            eprintln!(
+            etracing::info!(
                 "[ConfigManager] Warning: Failed to load config: {}. Defaulting to empty state.",
                 e
             );
@@ -55,7 +55,7 @@ impl ConfigManager {
     pub fn sync_to_disk(&mut self) {
         if self.dirty {
             if let Err(e) = self.save_to_disk() {
-                eprintln!("[ConfigManager] Failed to save config: {}", e);
+                etracing::info!("[ConfigManager] Failed to save config: {}", e);
             } else {
                 self.dirty = false;
             }

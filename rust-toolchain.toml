@@ -1,0 +1,7 @@
+# Pin the Rust toolchain for reproducible builds across CI and local machines.
+# Keep `channel` on stable and bump deliberately; the lockfile pins crate
+# versions, and this file pins the compiler.
+[toolchain]
+channel = "stable"
+components = ["rustfmt", "clippy"]
+profile = "minimal"

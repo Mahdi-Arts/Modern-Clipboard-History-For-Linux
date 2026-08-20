@@ -1,7 +1,7 @@
 Source: win11-clipboard-history
 Section: utils
 Priority: optional
-Maintainer: Mahdi Arts <gustaavoribeeiro@hotmail.com>
+Maintainer: Mahdi Arts <mahdi-arts@users.noreply.github.com>
 Build-Depends: debhelper-compat (= 13),
                nodejs (>= 18),
                npm,

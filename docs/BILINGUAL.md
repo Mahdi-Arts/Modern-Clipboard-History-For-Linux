@@ -79,7 +79,7 @@ This application fully supports **Persian (فارسی)** and **English**. The tr
 | --- | --- |
 | **Instant Switching** | Language changes apply immediately — **no restart needed** |
 | **Automatic RTL** | Selecting Persian switches layout to Right-to-Left |
-| **Persian Font** | **Vazirmatn** font loads automatically for Persian |
+| **Persian Font** | **Vazirmatn** is bundled locally (SIL OFL 1.1) and loads automatically for Persian — fully offline |
 | **Cross-window Sync** | Language changes in Settings sync to all windows instantly |
 | **Persistent** | Language choice is saved and restored on next launch |
 

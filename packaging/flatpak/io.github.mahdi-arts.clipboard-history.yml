@@ -1,4 +1,4 @@
-app-id: dev.gustavosett.ClipboardHistory
+app-id: io.github.mahdi-arts.clipboard-history
 runtime: org.gnome.Platform
 runtime-version: '46'
 sdk: org.gnome.Sdk
@@ -19,9 +19,9 @@ finish-args:
   - --env=NO_AT_BRIDGE=1
   # Paste via /dev/uinput is not possible under Flathub's device policy.
   # Install the .deb/.rpm for full paste, or:
-  #   flatpak override --user --device=all dev.gustavosett.ClipboardHistory
+  #   flatpak override --user --device=all io.github.mahdi-arts.clipboard-history
   # Optional GIF search:
-  #   flatpak override --user --share=network dev.gustavosett.ClipboardHistory
+  #   flatpak override --user --share=network io.github.mahdi-arts.clipboard-history
 
 modules:
   - name: xclip
@@ -62,6 +62,8 @@ modules:
         ${FLATPAK_DEST}/share/icons/hicolor/256x256/apps/${FLATPAK_ID}.png
       - install -Dm644 src-tauri/icons/icon.svg
         ${FLATPAK_DEST}/share/icons/hicolor/scalable/apps/${FLATPAK_ID}.svg
+      - install -Dm644 packaging/flatpak/${FLATPAK_ID}.metainfo.xml
+        ${FLATPAK_DEST}/share/metainfo/${FLATPAK_ID}.metainfo.xml
     sources:
       - type: dir
         path: ../..

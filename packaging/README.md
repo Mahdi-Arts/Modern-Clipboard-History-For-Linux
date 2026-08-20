@@ -32,13 +32,13 @@ sudo setfacl -m u:$USER:rw /dev/uinput
 
 ## Flatpak
 
-Manifest: `packaging/flatpak/dev.gustavosett.ClipboardHistory.yml`
+Manifest: `packaging/flatpak/io.github.mahdi-arts.clipboard-history.yml`
 
 The sandbox **does not** request `--device=all` (Flathub policy). Clipboard
 history and UI work; simulated Ctrl+V needs a native `.deb`/`.rpm` or:
 
 ```bash
-flatpak override --user --device=all dev.gustavosett.ClipboardHistory
+flatpak override --user --device=all io.github.mahdi-arts.clipboard-history
 ```
 
 GIF search additionally needs `--share=network`.
@@ -47,3 +47,17 @@ GIF search additionally needs `--share=network`.
 
 GitHub Releases include `SHA256SUMS`. `scripts/install.sh` verifies downloads
 when that file is present.
+
+## AppArmor (optional hardening)
+
+A profile is shipped with the deb under
+`/usr/share/doc/win11-clipboard-history/apparmor/win11-clipboard-history`
+and lives in the repo at `packaging/apparmor/`. It is installed in
+**complain mode** by default (logs only, never blocks). To enforce:
+
+```bash
+sudo /usr/share/doc/win11-clipboard-history/apparmor/install.sh --enforce
+```
+
+Test it on your desktop environment first — see the header of the profile
+for the access list (XDG dirs, /dev/uinput, helper binaries, display sockets).

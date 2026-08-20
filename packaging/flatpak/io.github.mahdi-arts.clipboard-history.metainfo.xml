@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
-  <id>dev.gustavosett.ClipboardHistory</id>
+  <id>io.github.mahdi-arts.clipboard-history</id>
   <metadata_license>MIT</metadata_license>
   <project_license>MIT</project_license>
 
@@ -27,25 +27,38 @@
       <li>Acrylic/glass UI with light, dark, and system theme support</li>
       <li>Search with optional regex</li>
       <li>Image clipboard support with thumbnail previews</li>
+      <li>Fully offline: bundled Vazirmatn font, zero network calls at runtime</li>
     </ul>
   </description>
 
-  <launchable type="desktop-id">dev.gustavosett.ClipboardHistory.desktop</launchable>
+  <launchable type="desktop-id">io.github.mahdi-arts.clipboard-history.desktop</launchable>
 
   <url type="homepage">https://github.com/Mahdi-Arts/Modern-Clipboard-History-For-Linux</url>
   <url type="bugtracker">https://github.com/Mahdi-Arts/Modern-Clipboard-History-For-Linux/issues</url>
   <url type="vcs-browser">https://github.com/Mahdi-Arts/Modern-Clipboard-History-For-Linux</url>
 
-  <developer id="dev.gustavosett">
+  <developer id="io.github.mahdi-arts">
     <name>Mahdi Arts</name>
   </developer>
 
   <content_rating type="oars-1.1" />
 
   <releases>
-    <release version="1.1.0" date="2026-08-20">
+    <release version="2.1.0" date="2026-08-20">
       <description>
-        <p>Production release with SQLite persistence, privacy filters, SSRF protection, and bilingual UI.</p>
+        <p>Enterprise hardening release:</p>
+        <ul>
+          <li>Fully offline (bundled Vazirmatn font, tightened CSP)</li>
+          <li>Hardened URL sanitizer (IPv6/private-range SSRF protection)</li>
+          <li>Mandatory SHA256SUMS verification in the installer</li>
+          <li>Blocking dependency audits in CI + coverage gate + smoke tests</li>
+          <li>SLSA build provenance and SPDX SBOM published per release</li>
+        </ul>
+      </description>
+    </release>
+    <release version="2.0.0" date="2026-08-20">
+      <description>
+        <p>SQLite persistence, privacy filters (secrets + password-manager skip), SSRF protection with DNS pinning, bilingual UI, and multi-distro packaging (deb/rpm/AppImage/AUR/Flatpak).</p>
       </description>
     </release>
   </releases>

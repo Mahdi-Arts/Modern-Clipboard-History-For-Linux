@@ -13,7 +13,7 @@
 در عوض، از یکی از روش‌های زیر استفاده کنید:
 
 1. **GitHub Security Advisory**: از [قابلیت گزارش خصوصی GitHub](https://github.com/Mahdi-Arts/Modern-Clipboard-History-For-Linux/security/advisories/new) استفاده کنید
-2. **ایمیل**: gustaavoribeeiro@hotmail.com
+2. **ایمیل**: mahdi-arts@users.noreply.github.com (ترجیحاً از GitHub Advisory استفاده کنید)
 
 ### اطلاعات مورد نیاز
 
@@ -46,7 +46,7 @@ If you discover a security vulnerability, please follow these steps:
 ### Private Disclosure Methods
 
 1. **GitHub Security Advisory**: Use [private vulnerability reporting](https://github.com/Mahdi-Arts/Modern-Clipboard-History-For-Linux/security/advisories/new)
-2. **Email**: gustaavoribeeiro@hotmail.com
+2. **Email**: mahdi-arts@users.noreply.github.com (prefer the GitHub Advisory flow)
 
 ### What to Include
 
@@ -99,14 +99,17 @@ If you discover a security vulnerability, please follow these steps:
 
 ### App Security Features / ویژگی‌های امنیتی برنامه
 
-✔️ **CSP** — `script-src 'self'`  
+✔️ **CSP** — `script-src 'self'` + `font-src 'self'` (fonts bundled, app fully offline)  
 ✔️ `withGlobalTauri: false`  
-✔️ **SSRF** — HTTPS + host allowlist + DNS/IP checks + no redirects  
+✔️ **SSRF** — HTTPS + host allowlist + DNS pinning + no redirects  
 ✔️ **10 MB** GIF cap (streamed)  
 ✔️ **SQLite WAL** + chmod `0600`  
 ✔️ **Secret filter** and password-manager skip (defaults on)  
 ✔️ **Scoped** `shell:allow-open` (`https`, `http`, `mailto`)  
 ✔️ **Opt-in** tiling WM config rewrite  
+✔️ **Mandatory SHA256SUMS verification** in the installer (optional GPG)  
+✔️ **Blocking** `cargo audit` + `npm audit` in CI  
+✔️ **SLSA provenance + SPDX SBOM** published per release  
 
 If you copy a password into an unsandboxed terminal, it can still land in history unless the secret filter matches. Review Settings → Privacy.
 

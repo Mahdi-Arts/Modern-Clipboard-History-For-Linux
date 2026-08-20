@@ -10,7 +10,34 @@ All notable changes to this project will be documented in this file.
 
 ---
 
-## [2.0.0] - 2026-08-20
+## [2.1.0] - 2026-08-20
+
+### Security / امنیت
+
+- **Fully offline**: Vazirmatn font bundled locally; Google Fonts removed; CSP tightened to `font-src 'self' data:` — the app makes zero network calls at runtime.
+- **Hardened URL sanitizer**: blocks IPv6 loopback/ULA/link-local/mapped, private/CGNAT/benchmark/multicast IPv4, raw control characters, and `.internal` hosts (tests caught the original gaps).
+- **Mandatory supply-chain verification**: `install.sh` now *implements* `verify_downloaded_file` (previously referenced but undefined — every GitHub-releases fallback path was broken) and requires SHA256SUMS matches; optional GPG verification via `WIN11_CLIPBOARD_TRUST_KEY`.
+- **Blocking security audits in CI**: `cargo audit` and `npm audit` are hard gates (previously `continue-on-error: true`).
+- **Release hardening**: SLSA build provenance attestation, SPDX SBOM, SHA256SUMS published per release; all release URLs fixed to the Mahdi-Arts repository (previously pointed at the upstream fork's install scripts and Cloudsmith/AUR sources).
+- Optional **AppArmor profile** (complain mode) shipped in `packaging/apparmor/` and installed by the deb to `/usr/share/doc/`.
+- Identifier migrated to `io.github.mahdi-arts.clipboard-history` (Flatpak ID, developer metadata).
+
+### Quality / کیفیت
+
+- **Settings UI refactored**: 1106-line `SettingsApp.tsx` split into single-responsibility sections under `src/components/settings/` with a shared `SectionCard`; added `:focus-visible` rings, `prefers-reduced-motion` support, and fixed the undefined `custom-scrollbar` class.
+- **Rust refactor**: 1622-line `linux_shortcut_manager.rs` split into `shortcut_config`, `shortcut_error`, `shortcut_utils`, `shortcut_gsettings`, and `shortcut_tiling` submodules (i3/Sway/Hyprland now share idempotent atomic helpers); all `println!/eprintln!` replaced with `tracing`.
+- **Testing**: component tests (Testing Library + jsdom), real hook tests with `renderHook`, SSRF edge-case tests (28 urlSafety cases), keyboard-nav tests; **67→72+ tests**; Vitest coverage gate (85%+ lines on covered units).
+- `rust-toolchain.toml` added for reproducible Rust builds.
+
+### Packaging / بسته‌بندی
+
+- Desktop file localized (fa); AppStream metainfo updated with 2.1.0 release entry; Flatpak manifest installs metainfo and uses the new app-id.
+- Debian metadata: maintainer/author fields point to the project owner; AppArmor profile shipped in the deb.
+
+### Documentation / مستندات
+
+- New `docs/THREAT_MODEL.md` and `docs/adr/` (SQLite persistence, paste injection, SSRF DNS pinning).
+
 
 ### Reliability / پایداری
 
