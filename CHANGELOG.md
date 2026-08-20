@@ -12,15 +12,34 @@ All notable changes to this project will be documented in this file.
 
 ## [2.0.0] - 2026-08-20
 
-### Architecture / معماری
+### Reliability / پایداری
 
-- **Refactored `main.rs`** from 1219 lines to ~300 lines by extracting:
-  - `commands.rs` — all Tauri command handlers with `AppError` return types
-  - `window_controller.rs` — WindowController, SettingsController, PasteHelper
-  - `clipboard_watcher.rs` — clipboard polling watcher with adaptive intervals
-- **Unified error handling**: all Tauri commands now return `AppError` instead of `Result<T, String>`
-- **Added `ClipError → AppError` conversion** for seamless `?` operator usage
-- **Added `PermissionDenied` variant** to `AppError` enum
+- Incremental SQLite persistence (upsert / delete / sort-index updates) instead of rewriting the whole table on every copy.
+- History hard-cap lowered to **2000** items (was 100 000 on a full-rewrite store).
+- Clipboard watcher no longer re-reads `user_settings.json` every poll.
+
+### Security / امنیت
+
+- Tiling WM config rewrite (`i3` / Sway / Hyprland) is **actually gated** on `allow_wm_config_rewrite` (default off).
+- Outbound HTTPS clients pin DNS to already-validated public addresses (DNS-rebinding window closed).
+- Conflict resolver no longer shells out via `sh -c`; only `gsettings` / `xfconf-query` argv.
+- `install.sh` verifies `SHA256SUMS` when GitHub Releases publish them.
+- CSP tightened (`img-src` no longer `https:`); Google Fonts allowed only for Vazirmatn.
+- Smart-action URL sanitizer rejects loopback and link-local metadata IPs.
+- Settings UI warns that password-manager skip is X11-only.
+
+### Quality / کیفیت
+
+- Fixed compile breaks from the 2.0 module split (`Ordering`, `Mutex`, command module paths).
+- CI now **requires** `npm test` and `cargo test` before Linux builds.
+- History / paste / pin commands return `Result<_, AppError>`.
+- Bilingual strings for header, empty state, tray (fa/en), and smart actions.
+
+### Packaging / بسته‌بندی
+
+- Debian `changelog` / `copyright` / `source/format`; `postrm` no longer walks `/home/*`.
+- Flatpak manifest no longer requests `--device=all` or `--share=network` by default.
+- GitHub Releases publish `SHA256SUMS`.
 
 ### Testing / تست
 

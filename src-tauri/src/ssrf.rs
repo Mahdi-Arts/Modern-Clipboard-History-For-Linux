@@ -1,8 +1,17 @@
 //! SSRF protection for outbound downloads (GIF paste).
 //! HTTPS-only, host allowlist, DNS resolution checks, no redirects.
 
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, ToSocketAddrs};
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, ToSocketAddrs};
+use std::time::Duration;
 use url::Url;
+
+/// A URL that has been allowlisted and whose DNS records were all public.
+#[derive(Debug, Clone)]
+pub struct ValidatedDownload {
+    pub url: Url,
+    pub host: String,
+    pub addrs: Vec<SocketAddr>,
+}
 
 const ALLOWED_HOST_SUFFIXES: &[&str] = &["tenor.com", "giphy.com", "media.tenor.co"];
 
@@ -48,6 +57,61 @@ pub fn validate_public_https_url(url: &str) -> Result<Url, String> {
     }
 
     Ok(parsed)
+}
+
+/// Validate `url` and return the parsed URL plus the public addresses it resolved to.
+pub fn validate_and_pin(url: &str) -> Result<ValidatedDownload, String> {
+    let parsed = validate_public_https_url(url)?;
+    let host = parsed
+        .host_str()
+        .ok_or_else(|| "URL is missing a host".to_string())?
+        .to_ascii_lowercase();
+    let port = parsed.port().unwrap_or(443);
+    let addrs: Vec<SocketAddr> = (host.as_str(), port)
+        .to_socket_addrs()
+        .map_err(|e| format!("DNS resolution failed for {host}: {e}"))?
+        .collect();
+    if addrs.is_empty() {
+        return Err(format!("No DNS records for {host}"));
+    }
+    for addr in &addrs {
+        if is_disallowed_ip(addr.ip()) {
+            return Err(format!(
+                "Refusing download: {host} resolved to non-public IP {}",
+                addr.ip()
+            ));
+        }
+    }
+    Ok(ValidatedDownload {
+        url: parsed,
+        host,
+        addrs,
+    })
+}
+
+/// HTTP client that pins DNS to the already-validated public addresses.
+/// This closes the DNS-rebinding window between validate and connect.
+pub fn pinned_client(validated: &ValidatedDownload, timeout: Duration) -> Result<reqwest::Client, String> {
+    reqwest::Client::builder()
+        .timeout(timeout)
+        .https_only(true)
+        .redirect(no_redirects())
+        .resolve_to_addrs(&validated.host, &validated.addrs)
+        .build()
+        .map_err(|e| format!("HTTP client: {e}"))
+}
+
+pub fn pinned_blocking_client(
+    validated: &ValidatedDownload,
+    timeout: Duration,
+) -> Result<reqwest::blocking::Client, String> {
+    reqwest::blocking::Client::builder()
+        .timeout(timeout)
+        .https_only(true)
+        .redirect(no_redirects())
+        .resolve_to_addrs(&validated.host, &validated.addrs)
+        .build()
+        .map_err(|e| format!("HTTP client: {e}"))
 }
 
 fn is_allowed_host(host: &str) -> bool {

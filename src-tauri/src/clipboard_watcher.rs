@@ -45,10 +45,10 @@ pub fn start(app: AppHandle, clipboard_manager: Arc<Mutex<ClipboardManager>>) {
                 std::thread::sleep(delay);
                 cleanup_counter += 1;
 
-                let settings = UserSettingsManager::new().load();
-                let policy = settings.privacy_policy();
+                let policy = clipboard_manager.lock().privacy_policy();
 
-                // Privacy: skip sensitive apps (password managers, incognito)
+                // Privacy: skip sensitive apps (password managers, incognito).
+                // On Wayland this is a no-op because compositors do not expose focus identity.
                 if policy.exclude_sensitive_apps {
                     if let Some(src) =
                         crate::window_identity::focused_source()
@@ -68,12 +68,11 @@ pub fn start(app: AppHandle, clipboard_manager: Arc<Mutex<ClipboardManager>>) {
                 let (text, html, image) = read_system_clipboard(&mut clipboard);
 
                 let mut manager = clipboard_manager.lock();
-                manager.set_privacy_policy(policy);
 
                 // Periodic cleanup of old items
                 if cleanup_counter >= 40 {
                     cleanup_counter = 0;
-                    let interval_in_minutes = settings.auto_delete_interval_in_minutes();
+                    let interval_in_minutes = manager.auto_delete_interval_minutes();
                     if interval_in_minutes > 0
                         && manager.cleanup_old_items(interval_in_minutes)
                     {

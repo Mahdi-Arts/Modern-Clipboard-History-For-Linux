@@ -36,6 +36,11 @@ describe('sanitizeOpenUrl', () => {
     expect(sanitizeOpenUrl('http://localhost:3000')).toBeNull()
   })
 
+  it('rejects loopback and metadata IPs', () => {
+    expect(sanitizeOpenUrl('http://127.0.0.1/')).toBeNull()
+    expect(sanitizeOpenUrl('http://169.254.169.254/latest')).toBeNull()
+  })
+
   it('rejects *.localhost URLs', () => {
     expect(sanitizeOpenUrl('http://api.localhost:8080')).toBeNull()
   })

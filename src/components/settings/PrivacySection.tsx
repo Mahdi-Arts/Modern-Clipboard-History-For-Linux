@@ -1,4 +1,6 @@
+import { useEffect, useState } from 'react'
 import { clsx } from 'clsx'
+import { invoke } from '@tauri-apps/api/core'
 import { useTranslation } from 'react-i18next'
 import { Switch } from '../Switch'
 import type { UserSettings } from '../../types/clipboard'
@@ -15,6 +17,13 @@ export function PrivacySection({
   ) => void
 }) {
   const { t } = useTranslation()
+  const [waylandLimited, setWaylandLimited] = useState(false)
+
+  useEffect(() => {
+    invoke<{ is_wayland: boolean; app_identity_available: boolean }>('get_session_info')
+      .then((info) => setWaylandLimited(info.is_wayland && !info.app_identity_available))
+      .catch(() => setWaylandLimited(false))
+  }, [])
 
   const rows: {
     key: 'filter_secrets' | 'save_images' | 'exclude_sensitive_apps' | 'allow_wm_config_rewrite'
@@ -77,6 +86,18 @@ export function PrivacySection({
         </div>
       </div>
       <div className="p-6 space-y-6">
+        {waylandLimited && (
+          <div
+            className={clsx(
+              'text-xs leading-relaxed rounded-lg p-3 border',
+              isDark
+                ? 'bg-amber-500/10 text-amber-200 border-amber-500/20'
+                : 'bg-amber-50 text-amber-800 border-amber-200'
+            )}
+          >
+            {t('settings_page.privacy.wayland_note')}
+          </div>
+        )}
         {rows.map((row) => (
           <div key={row.key} className="flex items-start justify-between gap-4">
             <div className="min-w-0">

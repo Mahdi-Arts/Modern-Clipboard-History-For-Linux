@@ -80,11 +80,6 @@ pub async fn search_tenor(
 ) -> Result<Vec<GifResult>, String> {
     let key = api_key()?;
     let limit = limit.unwrap_or(30).min(50);
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(10))
-        .redirect(crate::ssrf::no_redirects())
-        .build()
-        .map_err(|e| format!("HTTP client: {e}"))?;
 
     let url = if let Some(q) = query.as_ref().filter(|q| !q.trim().is_empty()) {
         build_tenor_url("search", &key, Some(q.trim()), limit)?
@@ -92,8 +87,11 @@ pub async fn search_tenor(
         build_tenor_url("trending", &key, None, limit)?
     };
 
+    let validated = crate::ssrf::validate_and_pin(url.as_str())?;
+    let client = crate::ssrf::pinned_client(&validated, Duration::from_secs(10))?;
+
     let resp = client
-        .get(url)
+        .get(validated.url)
         .send()
         .await
         .map_err(|e| format!("Network: {e}"))?;

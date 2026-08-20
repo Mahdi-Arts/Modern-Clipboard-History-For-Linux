@@ -1280,16 +1280,18 @@ impl ShortcutHandler for I3Handler {
             let mut lines: Vec<String> = content.lines().map(String::from).collect();
             let mut had_existing = false;
 
-            for line in lines.iter_mut() {
-                let trimmed = line.trim().to_lowercase();
-                // Skip if already a comment
-                if trimmed.starts_with('#') {
-                    continue;
-                }
-                // Check for existing mod+v bindings (word boundary check)
-                if trimmed.starts_with("bindsym") && has_mod_v_binding(&trimmed) {
-                    *line = format!("# {} # Commented by win11-clipboard-history", line);
-                    had_existing = true;
+            if allow_wm_config_rewrite() {
+                for line in lines.iter_mut() {
+                    let trimmed = line.trim().to_lowercase();
+                    // Skip if already a comment
+                    if trimmed.starts_with('#') {
+                        continue;
+                    }
+                    // Check for existing mod+v bindings (word boundary check)
+                    if trimmed.starts_with("bindsym") && has_mod_v_binding(&trimmed) {
+                        *line = format!("# {} # Commented by win11-clipboard-history", line);
+                        had_existing = true;
+                    }
                 }
             }
 
@@ -1409,15 +1411,17 @@ impl ShortcutHandler for SwayHandler {
             let mut lines: Vec<String> = content.lines().map(String::from).collect();
             let mut had_existing = false;
 
-            for line in lines.iter_mut() {
-                let trimmed = line.trim().to_lowercase();
-                if trimmed.starts_with('#') {
-                    continue;
-                }
-                // Check for existing mod+v bindings (word boundary check)
-                if trimmed.starts_with("bindsym") && has_mod_v_binding(&trimmed) {
-                    *line = format!("# {} # Commented by win11-clipboard-history", line);
-                    had_existing = true;
+            if allow_wm_config_rewrite() {
+                for line in lines.iter_mut() {
+                    let trimmed = line.trim().to_lowercase();
+                    if trimmed.starts_with('#') {
+                        continue;
+                    }
+                    // Check for existing mod+v bindings (word boundary check)
+                    if trimmed.starts_with("bindsym") && has_mod_v_binding(&trimmed) {
+                        *line = format!("# {} # Commented by win11-clipboard-history", line);
+                        had_existing = true;
+                    }
                 }
             }
 
@@ -1496,30 +1500,6 @@ impl HyprlandHandler {
             .map_err(|_| ShortcutError::UnsupportedEnvironment("HOME not set".into()))?;
 
         let xdg_config =
-            env::var("XDG_CONFIG_HOME").unwrap_or_else(|_| format_lines.push(line.to_string());
-                }
-            }
-
-            Ok(Some(new_lines.join("\n")))
-        })?;
-
-        // Reload Sway only after file was successfully written
-        if modified {
-            Self::reload_sway();
-        }
-        Ok(())
-    }
-}
-
-// --- Hyprland ---
-
-struct HyprlandHandler;
-impl HyprlandHandler {
-    fn get_config_path() -> Result<PathBuf> {
-        let home = env::var("HOME")
-            .map_err(|_| ShortcutError::UnsupportedEnvironment("HOME not set".into()))?;
-
-        let xdg_config =
             env::var("XDG_CONFIG_HOME").unwrap_or_else(|_| format!("{}/.config", home));
 
         let path = PathBuf::from(&xdg_config).join("hypr/hyprland.conf");
@@ -1547,18 +1527,20 @@ impl ShortcutHandler for HyprlandHandler {
             let mut lines: Vec<String> = content.lines().map(String::from).collect();
             let mut modified = false;
 
-            for line in lines.iter_mut() {
-                let trimmed = line.trim().to_lowercase();
-                if trimmed.starts_with('#') {
-                    continue;
-                }
-                // Check for existing SUPER, V bindings
-                if trimmed.starts_with("bind")
-                    && trimmed.contains("super")
-                    && (trimmed.contains(", v,") || trimmed.contains(",v,"))
-                {
-                    *line = format!("# {} # Commented by win11-clipboard-history", line);
-                    modified = true;
+            if allow_wm_config_rewrite() {
+                for line in lines.iter_mut() {
+                    let trimmed = line.trim().to_lowercase();
+                    if trimmed.starts_with('#') {
+                        continue;
+                    }
+                    // Check for existing SUPER, V bindings
+                    if trimmed.starts_with("bind")
+                        && trimmed.contains("super")
+                        && (trimmed.contains(", v,") || trimmed.contains(",v,"))
+                    {
+                        *line = format!("# {} # Commented by win11-clipboard-history", line);
+                        modified = true;
+                    }
                 }
             }
 
@@ -1566,7 +1548,7 @@ impl ShortcutHandler for HyprlandHandler {
             lines.push(binding_line.clone());
 
             if modified {
-                println!("[HyprlandHandler] Commented out existing SUPER+V binding(s)");
+                tracing::info!("[HyprlandHandler] Commented out existing SUPER+V binding(s)");
             }
 
             // Hyprland auto-reloads config, no explicit reload needed
@@ -1618,8 +1600,23 @@ impl ShortcutHandler for HyprlandHandler {
         Ok(())
     }
 }
-)
-        })?;
-        Ok(())
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn wm_rewrite_defaults_off() {
+        assert!(!allow_wm_config_rewrite());
+        set_allow_wm_config_rewrite(true);
+        assert!(allow_wm_config_rewrite());
+        set_allow_wm_config_rewrite(false);
+        assert!(!allow_wm_config_rewrite());
+    }
+
+    #[test]
+    fn xml_escape_prevents_injection() {
+        assert_eq!(escape_xml("<cmd>"), "&lt;cmd&gt;");
+        assert_eq!(escape_xml("a&b"), "a&amp;b");
     }
 }

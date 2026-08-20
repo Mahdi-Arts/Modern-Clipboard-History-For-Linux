@@ -1,5 +1,6 @@
 import { clsx } from 'clsx'
 import { ExternalLink, Mail } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import type { SmartAction } from '../services/smartActionService'
 
 export function HistorySmartActions({
@@ -13,6 +14,7 @@ export function HistorySmartActions({
   isDark: boolean
   onActionClick: (e: React.MouseEvent, action: SmartAction) => void
 }) {
+  const { t } = useTranslation()
   if (!linkAction && !emailAction) return null
 
   const buttonClasses = (isDark: boolean) =>
@@ -29,7 +31,7 @@ export function HistorySmartActions({
         <button
           onClick={(e) => onActionClick(e, linkAction)}
           className={buttonClasses(isDark)}
-          title="Open Link"
+          title={t('smart_actions.open_link')}
           tabIndex={-1}
         >
           <ExternalLink className="w-4 h-4" />
@@ -39,7 +41,7 @@ export function HistorySmartActions({
         <button
           onClick={(e) => onActionClick(e, emailAction)}
           className={buttonClasses(isDark)}
-          title="Compose Email"
+          title={t('smart_actions.compose_email')}
           tabIndex={-1}
         >
           <Mail className="w-4 h-4" />

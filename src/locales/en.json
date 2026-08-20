@@ -32,7 +32,7 @@
   "clipboard": {
     "title": "Clipboard History",
     "empty_state": "Clipboard history is empty",
-    "empty_state_desc": "Copy some text or an image to see it here",
+    "empty_state_desc": "Copy some text or an image to see it here. Press Super+V to open anytime.",
     "search_placeholder": "Search history...",
     "no_items_found": "No items found",
     "pinned_section": "Pinned",
@@ -142,7 +142,8 @@
       "exclude_apps_desc": "On X11, skip capture from KeePass, 1Password, Bitwarden, and private browsing windows.",
       "wm_rewrite": "Allow rewriting tiling WM configs",
       "wm_rewrite_desc": "Off by default. When enabled, setup may comment out existing Super+V bindings in i3/Sway/Hyprland.",
-      "storage_note": "History is stored locally at ~/.local/share/win11-clipboard-history/ (mode 0600). Nothing is uploaded unless you search GIFs with TENOR_API_KEY set."
+      "storage_note": "History is stored locally at ~/.local/share/win11-clipboard-history/ (mode 0600). Nothing is uploaded unless you search GIFs with TENOR_API_KEY set.",
+      "wayland_note": "Wayland does not expose the focused window. Password-manager skipping works on X11 only; keep Skip secrets enabled."
     }
   },
   "tray": {

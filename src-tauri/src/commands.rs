@@ -4,11 +4,12 @@
 //! delegate to the domain modules (`ClipboardManager`, `EmojiManager`, etc.)
 //! and return [`AppError`] for structured, serialisable error reporting.
 
+use std::sync::atomic::Ordering;
 use std::time::Duration;
 use tauri::{AppHandle, Emitter, Manager, State};
 
-use crate::clipboard_manager::{ClipboardItem, ClipboardManager};
-use crate::emoji_manager::{EmojiManager, EmojiUsage};
+use crate::clipboard_manager::ClipboardItem;
+use crate::emoji_manager::EmojiUsage;
 use crate::error::AppError;
 use crate::input_simulator::simulate_paste_keystroke;
 use crate::theme_manager::{self, ThemeInfo};
@@ -20,27 +21,29 @@ use crate::AppState;
 // ---------------------------------------------------------------------------
 
 #[tauri::command]
-pub fn get_history(state: State<AppState>) -> Vec<ClipboardItem> {
-    state.clipboard_manager.lock().get_history()
+pub fn get_history(state: State<AppState>) -> Result<Vec<ClipboardItem>, AppError> {
+    Ok(state.clipboard_manager.lock().get_history())
 }
 
 #[tauri::command]
-pub fn clear_history(state: State<AppState>) {
+pub fn clear_history(state: State<AppState>) -> Result<(), AppError> {
     state.clipboard_manager.lock().clear();
+    Ok(())
 }
 
 #[tauri::command]
-pub fn delete_item(state: State<AppState>, id: String) {
+pub fn delete_item(state: State<AppState>, id: String) -> Result<(), AppError> {
     state.clipboard_manager.lock().remove_item(&id);
+    Ok(())
 }
 
 #[tauri::command]
-pub fn toggle_pin(state: State<AppState>, id: String) -> Option<ClipboardItem> {
+pub fn toggle_pin(state: State<AppState>, id: String) -> Result<Option<ClipboardItem>, AppError> {
     let result = state.clipboard_manager.lock().toggle_pin(&id);
     if result.is_none() {
         tracing::warn!("[toggle_pin] Item with id '{}' not found in history.", id);
     }
-    result
+    Ok(result)
 }
 
 // ---------------------------------------------------------------------------
@@ -86,6 +89,8 @@ pub fn set_user_settings(
             clipboard_manager.set_max_history_size(new_settings.max_history_size);
         }
         clipboard_manager.set_privacy_policy(new_settings.privacy_policy());
+        clipboard_manager
+            .set_auto_delete_interval_minutes(new_settings.auto_delete_interval_in_minutes());
     }
     crate::linux_shortcut_manager::set_allow_wm_config_rewrite(
         new_settings.allow_wm_config_rewrite,

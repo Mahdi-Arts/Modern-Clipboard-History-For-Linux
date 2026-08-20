@@ -46,7 +46,7 @@ impl SessionType {
 pub fn get_session_type() -> SessionType {
     *SESSION_TYPE.get_or_init(|| {
         let (session, source) = SessionType::detect();
-        eprintln!("[Session] Detected {:?} via {}", session, source);
+        tracing::info!("[Session] Detected {:?} via {}", session, source);
         session
     })
 }

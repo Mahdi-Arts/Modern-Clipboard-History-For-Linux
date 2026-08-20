@@ -165,7 +165,10 @@ impl UserSettings {
             self.theme_mode = "system".to_string();
         }
 
-        self.max_history_size = self.max_history_size.clamp(1, 100_000);
+        self.max_history_size = self.max_history_size.clamp(
+            1,
+            crate::clipboard_manager::MAX_HISTORY_HARD_CAP,
+        );
         self.ui_scale = self.ui_scale.clamp(0.5, 2.0);
 
         if !["minutes", "hours", "days", "weeks"].contains(&self.auto_delete_unit.as_str()) {

@@ -17,7 +17,7 @@ import { useRenderingEnv } from './hooks/useRenderingEnv'
 import { DEFAULT_SETTINGS } from './utils/defaultSettings'
 
 const MIN_HISTORY_SIZE = 1
-const MAX_HISTORY_SIZE = 100_000
+const MAX_HISTORY_SIZE = 2_000
 
 type ThemeMode = 'system' | 'dark' | 'light'
 

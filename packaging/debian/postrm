@@ -2,19 +2,17 @@
 set -e
 
 case "$1" in
-    remove|purge)
-        # Update desktop database
+    remove)
         update-desktop-database /usr/share/applications 2>/dev/null || true
-
-        # Update icon cache
         gtk-update-icon-cache -f -t /usr/share/icons/hicolor 2>/dev/null || true
-
-        # Remove autostart entries for all users
-        for user_home in /home/*; do
-            if [ -d "$user_home" ]; then
-                rm -f "$user_home/.config/autostart/win11-clipboard-history.desktop" 2>/dev/null || true
-            fi
-        done
+        ;;
+    purge)
+        update-desktop-database /usr/share/applications 2>/dev/null || true
+        gtk-update-icon-cache -f -t /usr/share/icons/hicolor 2>/dev/null || true
+        if [ -n "$SUDO_USER" ]; then
+            user_home=$(getent passwd "$SUDO_USER" | cut -d: -f6)
+            rm -f "$user_home/.config/autostart/win11-clipboard-history.desktop" 2>/dev/null || true
+        fi
         ;;
 esac
 

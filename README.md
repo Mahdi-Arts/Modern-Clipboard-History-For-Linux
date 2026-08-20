@@ -42,33 +42,36 @@ Clipboard history is stored **only on this machine**:
 **Defaults (on):**
 
 - Skip private keys, API tokens, JWTs, and `password=` values
-- Skip password-manager and private-browsing windows on X11
+- Skip password-manager and private-browsing windows on **X11** (Wayland compositors do not expose the focused app)
 - Save images (can be turned off)
 
-**Network:** the app does not upload clipboard contents. GIF search (optional, currently hidden) requires `TENOR_API_KEY` in the environment and only talks to Tenor.
+History size is capped at **2000** items. Persistence is incremental (upsert/delete), not a full rewrite on every copy.
+
+**Network:** the app does not upload clipboard contents. GIF search (optional, currently hidden) requires `TENOR_API_KEY` in the environment and only talks to Tenor over pinned HTTPS.
 
 This project needs `/dev/uinput` (or XTest) to simulate Ctrl+V. That is a powerful permission — treat the binary like a trusted input device.
+
+Tiling window managers (i3 / Sway / Hyprland) are **not** rewritten unless you enable *Allow rewriting tiling WM configs* in Settings.
 
 ---
 
 ## Installation / نصب
 
-Prefer your package manager over piping scripts to `bash`.
+Prefer your package manager over piping scripts to `bash`. Verify `SHA256SUMS` from GitHub Releases.
 
 ### Debian / Ubuntu
 
 ```bash
-# Optional Cloudsmith repo (auto-updates), then:
-sudo apt update && sudo apt install win11-clipboard-history
+sudo apt install ./win11-clipboard-history_2.0.0_amd64.deb
 sudo setfacl -m u:$USER:rw /dev/uinput
 ```
 
-Or install a `.deb` from [GitHub Releases](https://github.com/Mahdi-Arts/Modern-Clipboard-History-For-Linux/releases) after verifying the published checksum.
+Download the `.deb` from [GitHub Releases](https://github.com/Mahdi-Arts/Modern-Clipboard-History-For-Linux/releases) after verifying the published checksum.
 
 ### Fedora
 
 ```bash
-sudo dnf install win11-clipboard-history
+sudo dnf install ./win11-clipboard-history-2.0.0-1.x86_64.rpm
 sudo setfacl -m u:$USER:rw /dev/uinput
 ```
 
@@ -78,6 +81,10 @@ sudo setfacl -m u:$USER:rw /dev/uinput
 yay -S win11-clipboard-history-bin
 ```
 
+### Flatpak
+
+See `packaging/README.md`. The Flatpak sandbox does not grant `/dev/uinput`; use the `.deb`/`.rpm` for paste simulation, or override with `--device=all`.
+
 ### Convenience installer (review before running)
 
 ```bash
@@ -85,6 +92,8 @@ curl -fsSL https://raw.githubusercontent.com/Mahdi-Arts/Modern-Clipboard-History
 less install-clipboard.sh
 bash install-clipboard.sh
 ```
+
+The installer verifies `SHA256SUMS` when GitHub Releases publish that file.
 
 ---
 
@@ -99,8 +108,6 @@ bash install-clipboard.sh
 | <kbd>Esc</kbd> | Close |
 | <kbd>Ctrl</kbd>+<kbd>F</kbd> | Search |
 
-Tiling window managers (i3 / Sway / Hyprland) are **not** rewritten unless you enable *Allow rewriting tiling WM configs* in Settings.
-
 ---
 
 ## Architecture / معماری
@@ -110,9 +117,9 @@ Tiling window managers (i3 / Sway / Hyprland) are **not** rewritten unless you e
 | UI | React 19, TypeScript, Tailwind CSS 4, lazy-loaded pickers |
 | Backend | Rust, Tauri v2 |
 | Clipboard I/O | arboard + `wl-copy` / `xclip` |
-| Persistence | SQLite (WAL) + PNG files, atomic JSON for settings |
+| Persistence | SQLite (WAL) incremental upsert, PNG files, atomic JSON for settings |
 | Input | Persistent uinput device (Wayland) / XTest (X11) |
-| Security | CSP, `withGlobalTauri: false`, SSRF allowlist, scoped `shell:allow-open` |
+| Security | CSP, `withGlobalTauri: false`, SSRF allowlist + DNS pin, scoped `shell:allow-open` |
 
 ---
 
@@ -124,6 +131,7 @@ Tiling window managers (i3 / Sway / Hyprland) are **not** rewritten unless you e
 | Black / opaque window on NVIDIA | `IS_NVIDIA=1 win11-clipboard-history` |
 | Paste does nothing | `sudo setfacl -m u:$USER:rw /dev/uinput` then log out/in |
 | Window missing on Wayland | Run from a terminal and read the log in `~/.local/share/win11-clipboard-history/logs/` |
+| Password manager still captured | On Wayland, focused-app skip is unavailable. Keep *Skip secrets* on. |
 
 ---
 
@@ -140,6 +148,8 @@ make lint
 make build
 ```
 
+CI runs `npm test`, `cargo test`, Clippy (`-D warnings`), and `npm audit --audit-level=high`.
+
 ### Environment
 
 | Variable | Purpose |
@@ -148,6 +158,8 @@ make build
 | `IS_APPIMAGE=1` | Same workaround for AppImage |
 | `TENOR_API_KEY` | Optional GIF search (not bundled) |
 | `RUST_LOG=info` | Tracing level |
+
+Packaging notes: `packaging/README.md`.
 
 ---
 

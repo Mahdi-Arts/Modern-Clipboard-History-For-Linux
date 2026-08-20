@@ -18,6 +18,7 @@ use uuid::Uuid;
 use crate::privacy::{self, PrivacyPolicy};
 
 pub const DEFAULT_MAX_HISTORY_SIZE: usize = 50;
+pub const MAX_HISTORY_HARD_CAP: usize = 2_000;
 const PREVIEW_TEXT_MAX_LEN: usize = 100;
 const GIF_CACHE_MARKER: &str = "win11-clipboard-history/gifs/";
 const FILE_URI_PREFIX: &str = "file://";
@@ -137,14 +138,15 @@ pub struct ClipboardManager {
     max_history_size: usize,
     dirty: bool,
     privacy: PrivacyPolicy,
+    auto_delete_interval_minutes: u64,
 }
 
 impl ClipboardManager {
     fn clamp_max_history_size(size: usize) -> usize {
         match size {
             0 => DEFAULT_MAX_HISTORY_SIZE,
-            1..=100_000 => size,
-            _ => 100_000,
+            1..=MAX_HISTORY_HARD_CAP => size,
+            _ => MAX_HISTORY_HARD_CAP,
         }
     }
 
@@ -181,6 +183,7 @@ impl ClipboardManager {
             max_history_size: max_size,
             dirty: false,
             privacy: PrivacyPolicy::default(),
+            auto_delete_interval_minutes: 0,
         };
         manager.migrate_legacy_json();
         manager.load_from_db();
@@ -190,6 +193,18 @@ impl ClipboardManager {
 
     pub fn set_privacy_policy(&mut self, policy: PrivacyPolicy) {
         self.privacy = policy;
+    }
+
+    pub fn privacy_policy(&self) -> PrivacyPolicy {
+        self.privacy.clone()
+    }
+
+    pub fn set_auto_delete_interval_minutes(&mut self, minutes: u64) {
+        self.auto_delete_interval_minutes = minutes;
+    }
+
+    pub fn auto_delete_interval_minutes(&self) -> u64 {
+        self.auto_delete_interval_minutes
     }
 
     pub fn set_max_history_size(&mut self, new_size: usize) {
@@ -369,72 +384,28 @@ impl ClipboardManager {
     }
 
     fn persist_sqlite(&mut self) -> Result<(), String> {
-        let snapshot: Vec<(usize, ClipboardItem, Option<String>)> = self
-            .history
-            .iter()
-            .enumerate()
-            .map(|(idx, item)| {
-                let path = self
-                    .image_paths
-                    .get(&item.id)
-                    .map(|p| p.to_string_lossy().into_owned());
-                (idx, item.clone(), path)
-            })
-            .collect();
-
+        let rows = self.collect_persist_rows();
         let tx = self.conn.transaction().map_err(|e| e.to_string())?;
         tx.execute("DELETE FROM items", []).map_err(|e| e.to_string())?;
         {
             let mut stmt = tx
-                .prepare(
-                    "INSERT INTO items
-                        (id, kind, text, html, image_path, image_hash, width, height,
-                         preview, pinned, created_at, thumb_base64, sort_index)
-                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
-                )
+                .prepare(INSERT_ITEM_SQL)
                 .map_err(|e| e.to_string())?;
-
-            for (idx, item, image_path) in snapshot {
-                let (kind, text, html, image_hash, width, height, thumb) = match &item.content {
-                    ClipboardContent::Text(t) => ("text", Some(t.clone()), None, None, None, None, None),
-                    ClipboardContent::RichText { plain, html } => (
-                        "richtext",
-                        Some(plain.clone()),
-                        Some(html.clone()),
-                        None,
-                        None,
-                        None,
-                        None,
-                    ),
-                    ClipboardContent::Image {
-                        base64,
-                        width,
-                        height,
-                    } => (
-                        "image",
-                        None,
-                        None,
-                        item.extract_image_hash().map(|h| h as i64),
-                        Some(*width as i64),
-                        Some(*height as i64),
-                        Some(base64.clone()),
-                    ),
-                };
-
+            for row in &rows {
                 stmt.execute(params![
-                    item.id,
-                    kind,
-                    text,
-                    html,
-                    image_path,
-                    image_hash,
-                    width,
-                    height,
-                    item.preview,
-                    if item.pinned { 1 } else { 0 },
-                    item.timestamp.timestamp_millis(),
-                    thumb,
-                    idx as i64,
+                    row.id,
+                    row.kind,
+                    row.text,
+                    row.html,
+                    row.image_path,
+                    row.image_hash,
+                    row.width,
+                    row.height,
+                    row.preview,
+                    row.pinned,
+                    row.created_at,
+                    row.thumb,
+                    row.sort_index,
                 ])
                 .map_err(|e| e.to_string())?;
             }
@@ -442,6 +413,86 @@ impl ClipboardManager {
         tx.commit().map_err(|e| e.to_string())?;
         crate::fs_atomic::restrict_permissions(&self.db_path);
         Ok(())
+    }
+
+    fn persist_upsert_item(&mut self, item: &ClipboardItem, sort_index: i64) -> Result<(), String> {
+        let row = persist_row_from_item(
+            sort_index as usize,
+            item,
+            self.image_paths
+                .get(&item.id)
+                .map(|p| p.to_string_lossy().into_owned()),
+        );
+        execute_insert(&self.conn, &row)?;
+        crate::fs_atomic::restrict_permissions(&self.db_path);
+        Ok(())
+    }
+
+    fn persist_delete_ids(&mut self, ids: &[String]) -> Result<(), String> {
+        if ids.is_empty() {
+            return Ok(());
+        }
+        let tx = self.conn.transaction().map_err(|e| e.to_string())?;
+        for id in ids {
+            tx.execute("DELETE FROM items WHERE id = ?1", params![id])
+                .map_err(|e| e.to_string())?;
+        }
+        tx.commit().map_err(|e| e.to_string())?;
+        Ok(())
+    }
+
+    fn persist_meta(&mut self) -> Result<(), String> {
+        let meta: Vec<(String, i64, i64)> = self
+            .history
+            .iter()
+            .enumerate()
+            .map(|(idx, item)| {
+                (
+                    item.id.clone(),
+                    idx as i64,
+                    if item.pinned { 1 } else { 0 },
+                )
+            })
+            .collect();
+        let tx = self.conn.transaction().map_err(|e| e.to_string())?;
+        {
+            let mut stmt = tx
+                .prepare("UPDATE items SET sort_index = ?1, pinned = ?2 WHERE id = ?3")
+                .map_err(|e| e.to_string())?;
+            for (id, idx, pinned) in &meta {
+                stmt.execute(params![idx, pinned, id])
+                    .map_err(|e| e.to_string())?;
+            }
+        }
+        tx.commit().map_err(|e| e.to_string())?;
+        Ok(())
+    }
+
+    fn persist_mutation(&mut self) {
+        if let Err(e) = self.persist_meta() {
+            tracing::warn!("[ClipboardManager] Incremental persist failed ({e}); rewriting");
+            if let Err(e) = self.persist_sqlite() {
+                error!("[ClipboardManager] Failed to save history: {e}");
+                return;
+            }
+        }
+        self.dirty = false;
+    }
+
+    fn collect_persist_rows(&self) -> Vec<PersistRow> {
+        self.history
+            .iter()
+            .enumerate()
+            .map(|(idx, item)| {
+                persist_row_from_item(
+                    idx,
+                    item,
+                    self.image_paths
+                        .get(&item.id)
+                        .map(|p| p.to_string_lossy().into_owned()),
+                )
+            })
+            .collect()
     }
 
     pub fn add_text(&mut self, text: String, html: Option<String>) -> Option<ClipboardItem> {
@@ -601,11 +652,34 @@ impl ClipboardManager {
             .iter()
             .position(|i| !i.pinned)
             .unwrap_or(self.history.len());
+        let inserted_id = item.id.clone();
         self.history.insert(insert_pos, item);
         self.dirty = true;
-        self.enforce_history_limit();
+        let overflow: Vec<String> = {
+            let mut ids = Vec::new();
+            while self.history.len() > self.max_history_size {
+                if let Some(pos) = self.history.iter().rposition(|i| !i.pinned) {
+                    let removed = self.history.remove(pos);
+                    ids.push(removed.id.clone());
+                    self.remove_image_file(&removed.id);
+                } else {
+                    break;
+                }
+            }
+            ids
+        };
         self.rebuild_hash_index();
-        self.save_history();
+        if let Some(item) = self.history.iter().find(|i| i.id == inserted_id).cloned() {
+            if let Err(e) = self.persist_upsert_item(&item, insert_pos as i64) {
+                tracing::warn!("[ClipboardManager] Upsert failed ({e}); rewriting");
+                self.save_history();
+                return;
+            }
+        }
+        if let Err(e) = self.persist_delete_ids(&overflow) {
+            tracing::warn!("[ClipboardManager] Overflow delete failed ({e})");
+        }
+        self.persist_mutation();
     }
 
     fn enforce_history_limit(&mut self) -> bool {
@@ -643,12 +717,17 @@ impl ClipboardManager {
             .map(|i| i.id.clone())
             .collect();
         self.history.retain(|item| item.pinned);
-        for id in removed {
-            self.remove_image_file(&id);
+        for id in &removed {
+            self.remove_image_file(id);
         }
         self.dirty = true;
         self.rebuild_hash_index();
-        self.save_history();
+        if let Err(e) = self.persist_delete_ids(&removed) {
+            tracing::warn!("[ClipboardManager] Clear delete failed ({e}); rewriting");
+            self.save_history();
+            return;
+        }
+        self.persist_mutation();
     }
 
     pub fn remove_item(&mut self, id: &str) {
@@ -656,7 +735,12 @@ impl ClipboardManager {
         self.remove_image_file(id);
         self.dirty = true;
         self.rebuild_hash_index();
-        self.save_history();
+        if let Err(e) = self.persist_delete_ids(&[id.to_string()]) {
+            tracing::warn!("[ClipboardManager] Delete failed ({e}); rewriting");
+            self.save_history();
+            return;
+        }
+        self.persist_mutation();
     }
 
     pub fn toggle_pin(&mut self, id: &str) -> Option<ClipboardItem> {
@@ -671,7 +755,7 @@ impl ClipboardManager {
         self.history.insert(insert_pos, item);
         let item_clone = self.history[insert_pos].clone();
         self.dirty = true;
-        self.save_history();
+        self.persist_mutation();
         Some(item_clone)
     }
 
@@ -695,7 +779,7 @@ impl ClipboardManager {
         let item = self.history.remove(current_pos);
         self.history.insert(insert_pos, item);
         self.dirty = true;
-        self.save_history();
+        self.persist_mutation();
         true
     }
 
@@ -980,6 +1064,93 @@ impl Drop for ClipboardManager {
     }
 }
 
+const INSERT_ITEM_SQL: &str = "INSERT OR REPLACE INTO items
+    (id, kind, text, html, image_path, image_hash, width, height,
+     preview, pinned, created_at, thumb_base64, sort_index)
+ VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)";
+
+struct PersistRow {
+    id: String,
+    kind: &'static str,
+    text: Option<String>,
+    html: Option<String>,
+    image_path: Option<String>,
+    image_hash: Option<i64>,
+    width: Option<i64>,
+    height: Option<i64>,
+    preview: String,
+    pinned: i64,
+    created_at: i64,
+    thumb: Option<String>,
+    sort_index: i64,
+}
+
+fn persist_row_from_item(idx: usize, item: &ClipboardItem, image_path: Option<String>) -> PersistRow {
+    let (kind, text, html, image_hash, width, height, thumb) = match &item.content {
+        ClipboardContent::Text(t) => ("text", Some(t.clone()), None, None, None, None, None),
+        ClipboardContent::RichText { plain, html } => (
+            "richtext",
+            Some(plain.clone()),
+            Some(html.clone()),
+            None,
+            None,
+            None,
+            None,
+        ),
+        ClipboardContent::Image {
+            base64,
+            width,
+            height,
+        } => (
+            "image",
+            None,
+            None,
+            item.extract_image_hash().map(|h| h as i64),
+            Some(*width as i64),
+            Some(*height as i64),
+            Some(base64.clone()),
+        ),
+    };
+    PersistRow {
+        id: item.id.clone(),
+        kind,
+        text,
+        html,
+        image_path,
+        image_hash,
+        width,
+        height,
+        preview: item.preview.clone(),
+        pinned: if item.pinned { 1 } else { 0 },
+        created_at: item.timestamp.timestamp_millis(),
+        thumb,
+        sort_index: idx as i64,
+    }
+}
+
+fn execute_insert(conn: &Connection, row: &PersistRow) -> Result<(), String> {
+    conn.execute(
+        INSERT_ITEM_SQL,
+        params![
+            row.id,
+            row.kind,
+            row.text,
+            row.html,
+            row.image_path,
+            row.image_hash,
+            row.width,
+            row.height,
+            row.preview,
+            row.pinned,
+            row.created_at,
+            row.thumb,
+            row.sort_index,
+        ],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 struct DbRow {
     id: String,
     kind: String,
@@ -1108,5 +1279,24 @@ mod tests {
         assert!(mgr.add_text("same".into(), None).is_some());
         assert!(mgr.add_text("same".into(), None).is_none());
         assert_eq!(mgr.get_history().len(), 1);
+    }
+
+    #[test]
+    fn incremental_persist_keeps_order() {
+        let dir = temp_dir().join(format!("clip-inc-{}", Uuid::new_v4()));
+        let path = dir.join("history.json");
+        {
+            let mut mgr = ClipboardManager::new(path.clone(), 10);
+            assert!(mgr.add_text("one".into(), None).is_some());
+            assert!(mgr.add_text("two".into(), None).is_some());
+            mgr.remove_item(&mgr.get_history()[1].id.clone());
+        }
+        let mgr2 = ClipboardManager::new(path, 10);
+        let hist = mgr2.get_history();
+        assert_eq!(hist.len(), 1);
+        match &hist[0].content {
+            ClipboardContent::Text(t) => assert_eq!(t, "two"),
+            _ => panic!("expected remaining text"),
+        }
     }
 }
