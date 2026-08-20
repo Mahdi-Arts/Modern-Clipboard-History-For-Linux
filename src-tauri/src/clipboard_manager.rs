@@ -6,6 +6,7 @@ use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
 use chrono::{DateTime, Utc};
 use image::{DynamicImage, ImageFormat};
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 use std::fs;
 use std::hash::{Hash, Hasher};
 use std::io::Cursor;
@@ -13,9 +14,9 @@ use std::path::PathBuf;
 use std::thread;
 use std::time::{Duration, Instant};
 use uuid::Uuid;
+use tracing::{debug, error, info, warn};
 
 // --- Constants ---
-
 pub const DEFAULT_MAX_HISTORY_SIZE: usize = 50;
 const PREVIEW_TEXT_MAX_LEN: usize = 100;
 const GIF_CACHE_MARKER: &str = "win11-clipboard-history/gifs/";
@@ -165,6 +166,8 @@ impl ClipboardItem {
 /// Manages clipboard operations and history
 pub struct ClipboardManager {
     history: Vec<ClipboardItem>,
+    /// O(1) dedup index: text hashes of all non-pinned items (stable FNV)
+    text_hashes: HashSet<u64>,
     /// Track the last pasted content to avoid re-adding it to history
     last_pasted_text: Option<String>,
     last_pasted_image_hash: Option<u64>,
@@ -174,6 +177,8 @@ pub struct ClipboardManager {
     persistence_path: PathBuf,
     /// Maximum number of history items to keep
     max_history_size: usize,
+    /// Dirty flag for debounced persistence
+    dirty: bool,
 }
 
 impl ClipboardManager {
@@ -190,13 +195,16 @@ impl ClipboardManager {
         let max_size = Self::clamp_max_history_size(max_history_size);
         let mut manager = Self {
             history: Vec::with_capacity(max_size),
+            text_hashes: HashSet::new(),
             last_pasted_text: None,
             last_pasted_image_hash: None,
             last_added_text_hash: None,
             persistence_path,
             max_history_size: max_size,
+            dirty: false,
         };
         manager.load_history();
+        manager.rebuild_hash_index();
         manager
     }
 
@@ -283,16 +291,9 @@ impl ClipboardManager {
     }
 
     pub fn save_history(&self) {
-        match serde_json::to_string_pretty(&self.history) {
-            Ok(content) => {
-                if let Some(parent) = self.persistence_path.parent() {
-                    let _ = fs::create_dir_all(parent);
-                }
-                if let Err(e) = fs::write(&self.persistence_path, content) {
-                    eprintln!("Failed to save history: {}", e);
-                }
-            }
-            Err(e) => eprintln!("Failed to serialize history: {}", e),
+        // Atomic write: write to .tmp then rename (crash-safe)
+        if let Err(e) = crate::fs_atomic::write_json_atomic(&self.persistence_path, &self.history) {
+            error!("[ClipboardManager] Failed to save history: {e}");
         }
     }
 
@@ -449,6 +450,11 @@ impl ClipboardManager {
     }
 
     fn remove_duplicate_text_from_history(&mut self, text: &str) {
+        let hash = calculate_hash(text);
+        // O(1) check: if hash not in index, skip scan
+        if !self.text_hashes.contains(&hash) {
+            return;
+        }
         if let Some(pos) = self.history.iter().position(|item| {
             if item.pinned {
                 return false;
@@ -460,7 +466,38 @@ impl ClipboardManager {
             }
         }) {
             self.history.remove(pos);
+            self.rebuild_hash_index();
         }
+    }
+
+    /// Rebuild the text hash index from scratch.
+    /// Called after structural changes to history.
+    fn rebuild_hash_index(&mut self) {
+        self.text_hashes.clear();
+        for item in &self.history {
+            if let Some(text) = match &item.content {
+                ClipboardContent::Text(t) => Some(t),
+                ClipboardContent::RichText { plain, .. } => Some(plain),
+                _ => None,
+            } {
+                self.text_hashes.insert(calculate_hash(text));
+            }
+        }
+    }
+
+    /// Returns true if there are unsaved changes.
+    pub fn is_dirty(&self) -> bool {
+        self.dirty
+    }
+
+    /// Marks the manager as having unsaved changes.
+    pub fn mark_dirty(&mut self) {
+        self.dirty = true;
+    }
+
+    /// Clears the dirty flag (after persistence).
+    pub fn mark_clean(&mut self) {
+        self.dirty = false;
     }
 
     fn convert_image_to_base64(&self, image_data: &ImageData<'_>) -> Option<String> {
@@ -486,10 +523,11 @@ impl ClipboardManager {
             .position(|i| !i.pinned)
             .unwrap_or(self.history.len());
         self.history.insert(insert_pos, item);
+        self.dirty = true;
 
         // Trim history
         self.enforce_history_limit();
-        self.save_history();
+        // Debounced: caller decides when to persist
     }
 
     /// Enforce the configured history size. Returns true if trimming occurred.
@@ -519,12 +557,14 @@ impl ClipboardManager {
 
     pub fn clear(&mut self) {
         self.history.retain(|item| item.pinned);
-        self.save_history();
+        self.dirty = true;
+        self.rebuild_hash_index();
     }
 
     pub fn remove_item(&mut self, id: &str) {
         self.history.retain(|item| item.id != id);
-        self.save_history();
+        self.dirty = true;
+        self.rebuild_hash_index();
     }
 
     pub fn toggle_pin(&mut self, id: &str) -> Option<ClipboardItem> {
@@ -542,7 +582,7 @@ impl ClipboardManager {
         self.history.insert(insert_pos, item);
 
         let item_clone = self.history[insert_pos].clone();
-        self.save_history();
+        self.dirty = true;
         Some(item_clone)
     }
 
@@ -574,7 +614,7 @@ impl ClipboardManager {
         // Now actually move the item
         let item = self.history.remove(current_pos);
         self.history.insert(insert_pos, item);
-        self.save_history();
+        self.dirty = true;
         true
     }
 
@@ -607,7 +647,7 @@ impl ClipboardManager {
         });
 
         if changed {
-            self.save_history();
+            self.dirty = true;
         }
 
         changed

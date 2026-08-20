@@ -1,0 +1,164 @@
+{
+  "app": {
+    "name": "مدیریت کلیپ‌بورد مدرن",
+    "name_en": "Modern Clipboard History",
+    "description": "مدیریت تاریخچه کلیپ‌بورد به سبک ویندوز ۱۱ برای لینوکس"
+  },
+  "common": {
+    "loading": "در حال بارگذاری...",
+    "error": "خطا",
+    "close": "بستن",
+    "save": "ذخیره",
+    "cancel": "لغو",
+    "search": "جستجو",
+    "no_results": "نتیجه‌ای یافت نشد",
+    "empty": "خالی",
+    "clear": "پاک کردن",
+    "delete": "حذف",
+    "edit": "ویرایش",
+    "copy": "کپی",
+    "paste_action": "چسباندن",
+    "pin": "سنجاق کردن",
+    "unpin": "برداشتن سنجاق",
+    "pinned": "سنجاق شده",
+    "unpinned": "سنجاق نشده",
+    "confirm": "تأیید",
+    "yes": "بله",
+    "no": "خیر",
+    "settings": "تنظیمات",
+    "version": "نسخه",
+    "language": "زبان"
+  },
+  "clipboard": {
+    "title": "تاریخچه کلیپ‌بورد",
+    "empty_state": "تاریخچه کلیپ‌بورد خالی است",
+    "empty_state_desc": "متن یا تصویری را کپی کنید تا در اینجا ظاهر شود",
+    "search_placeholder": "جستجو در تاریخچه...",
+    "no_items_found": "موردی یافت نشد",
+    "pinned_section": "سنجاق شده",
+    "recent_section": "اخیرا",
+    "clear_all": "پاک کردن همه",
+    "clear_confirm": "آیا از پاک کردن همه تاریخچه مطمئن هستید؟",
+    "copied": "کپی شد",
+    "pasted": "چسبانده شد",
+    "compact_mode": "حالت فشرده",
+    "normal_mode": "حالت عادی",
+    "image_preview": "پیش‌نمایش تصویر",
+    "text_preview": "پیش‌نمایش متن",
+    "delete_confirm": "این آیتم حذف شود؟",
+    "history_cleared": "تاریخچه پاک شد",
+    "item_deleted": "آیتم حذف شد",
+    "item_pinned": "آیتم سنجاق شد",
+    "item_unpinned": "سنجاق آیتم برداشته شد"
+  },
+  "emoji": {
+    "title": "ایموجی",
+    "search_placeholder": "جستجوی ایموجی...",
+    "recently_used": "اخیرا استفاده شده",
+    "no_results": "ایموجی‌ای یافت نشد",
+    "click_to_paste": "برای چسباندن کلیک کنید",
+    "categories": {
+      "smileys_people": "صورک‌ها و افراد",
+      "animals_nature": "حیوانات و طبیعت",
+      "food_drink": "غذا و نوشیدنی",
+      "activities": "فعالیت‌ها",
+      "travel_places": "سفر و مکان‌ها",
+      "objects": "اشیاء",
+      "symbols": "نمادها",
+      "flags": "پرچم‌ها",
+      "other": "سایر"
+    }
+  },
+  "kaomoji": {
+    "title": "کائوموجی",
+    "search_placeholder": "جستجوی کائوموجی...",
+    "custom_manage": "مدیریت کائوموجی‌های سفارشی",
+    "add_custom": "افزودن کائوموجی سفارشی"
+  },
+  "symbols": {
+    "title": "نمادها",
+    "search_placeholder": "جستجوی نماد...",
+    "no_results": "نمادی یافت نشد",
+    "click_to_copy": "برای کپی کلیک کنید"
+  },
+  "gif": {
+    "title": "گیف",
+    "search_placeholder": "جستجوی گیف...",
+    "no_results": "گیفی یافت نشد",
+    "loading": "در حال بارگذاری گیف‌ها..."
+  },
+  "settings_page": {
+    "title": "تنظیمات",
+    "appearance": "ظاهر",
+    "theme": {
+      "label": "حالت رنگ",
+      "system": "سیستم",
+      "dark": "تاریک",
+      "light": "روشن"
+    },
+    "language": {
+      "label": "زبان برنامه",
+      "persian": "فارسی",
+      "english": "English"
+    },
+    "opacity": {
+      "dark": "شفافیت پس‌زمینه (تاریک)",
+      "light": "شفافیت پس‌زمینه (روشن)"
+    },
+    "history": {
+      "label": "تاریخچه",
+      "max_size": "حداکثر تعداد آیتم‌ها",
+      "auto_delete": "حذف خودکار",
+      "auto_delete_desc": "پاک کردن آیتم‌های قدیمی پس از",
+      "disabled": "غیرفعال",
+      "minutes": "دقیقه",
+      "hours": "ساعت",
+      "days": "روز",
+      "weeks": "هفته"
+    },
+    "features": {
+      "label": "ویژگی‌ها",
+      "smart_actions": "عملیات هوشمند",
+      "smart_actions_desc": "تشخیص URL، ایمیل و رنگ در متن",
+      "dynamic_tray": "آیکون پویا",
+      "dynamic_tray_desc": "تغییر خودکار آیکون بر اساس تم سیستم",
+      "ui_polish": "بهبود ظاهر",
+      "ui_polish_desc": "حالت فشرده و انیمیشن‌ها"
+    },
+    "ui_scale": "بزرگنمایی رابط کاربری",
+    "permissions": {
+      "label": "دسترسی‌ها",
+      "fix": "رفع دسترسی‌ها",
+      "fix_desc": "بررسی و رفع دسترسی ورودی برای شبیه‌ساز حروف"
+    }
+  },
+  "tray": {
+    "show": "نمایش کلیپ‌بورد",
+    "settings": "تنظیمات",
+    "quit": "خروج"
+  },
+  "setup": {
+    "welcome": "به Clipboard History خوش آمدید!",
+    "welcome_desc": "ابزاری مدرن و زیبا برای مدیریت تاریخچه کلیپ‌بورد در لینوکس",
+    "step_permissions": "دسترسی‌های ورودی",
+    "step_permissions_desc": "بررسی دسترسی به شبیه‌سازی صفحه کلید مجازی",
+    "step_shortcut": "کلید میانبر",
+    "step_shortcut_desc": "تنظیم کلید میانبر برای نمایش سریع تاریخچه",
+    "step_done": "تکمیل",
+    "start_using": "شروع استفاده",
+    "skip": "رد شدن از این مرحله",
+    "fix_now": "همین حالا رفع کن"
+  },
+  "smart_actions": {
+    "open_link": "باز کردن لینک",
+    "compose_email": "ارسال ایمیل",
+    "color": "رنگ"
+  },
+  "shortcuts": {
+    "clipboard": "نمایش تاریخچه (Super+V)",
+    "emoji": "باز کردن ایموجی (Super+.)",
+    "alternative": "میانبر جایگزین (Ctrl+Alt+V)",
+    "search": "جستجو در تاریخچه (Ctrl+F)",
+    "close": "بستن پنجره (Escape)"
+  }
+}

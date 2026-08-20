@@ -1,81 +1,112 @@
-# Security Policy
+# 🔐 Security Policy / سیاست امنیتی
 
-## Supported Versions
+<div dir="rtl">
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 1.x.x   | :white_check_mark: |
-| < 1.0   | :x:                |
+## امنیت برای ما اولویت است
 
-## Reporting a Vulnerability
+ما امنیت این پروژه را جدی می‌گیریم. اگر آسیب‌پذیری امنیتی کشف کرده‌اید، لطفاً مراحل زیر را دنبال کنید.
 
-We take security seriously. If you discover a security vulnerability, please follow these steps:
+## گزارش آسیب‌پذیری
 
-### 🔒 Private Disclosure
+**⚠️ لطفاً برای گزارش آسیب‌پذیری‌های امنیتی، issue عمومی باز نکنید.**
 
-**Do NOT open a public issue for security vulnerabilities.**
+در عوض، از یکی از روش‌های زیر استفاده کنید:
 
-Instead, please report security issues via one of these methods:
+1. **GitHub Security Advisory**: از [قابلیت گزارش خصوصی GitHub](https://github.com/Mahdi-Arts/Modern-Clipboard-History-For-Linux/security/advisories/new) استفاده کنید
+2. **ایمیل**: gustaavoribeeiro@hotmail.com
 
-1. **GitHub Security Advisory**: Use [GitHub's private vulnerability reporting](https://github.com/gustavosett/Windows-11-Clipboard-History-For-Linux/security/advisories/new)
+### اطلاعات مورد نیاز
 
-2. **Email**: gustaavoribeeiro@hotmail.com
+- **شرح** آسیب‌پذیری
+- **مراحل بازتولید** مسئله
+- **تأثیر بالقوه** آسیب‌پذیری
+- **راه حل پیشنهادی** (اگر دارید)
 
-### 📝 What to Include
+### زمان‌بندی پاسخ
 
-When reporting a vulnerability, please include:
+| سطح | زمان پاسخ |
+| --- | --- |
+| پاسخ اولیه | تا ۴۸ ساعت |
+| به‌روزرسانی وضعیت | تا ۱ هفته |
+| رفع بحرانی | ۲۴-۷۲ ساعت |
+| رفع بالا | ۱ هفته |
+| رفع متوسط | ۲ هفته |
+| رفع پایین | انتشار بعدی |
 
-- **Description** of the vulnerability
-- **Steps to reproduce** the issue
-- **Potential impact** of the vulnerability
-- **Suggested fix** (if you have one)
-- **Your contact information** for follow-up questions
-
-### ⏱️ Response Timeline
-
-- **Initial Response**: Within 48 hours
-- **Status Update**: Within 1 week
-- **Fix Timeline**: Depends on severity
-  - Critical: 24-72 hours
-  - High: 1 week
-  - Medium: 2 weeks
-  - Low: Next release
-
-### 🎁 Recognition
-
-We appreciate security researchers who help keep our project safe. With your permission, we will:
-
-- Acknowledge your contribution in release notes
-- Add you to our security hall of fame (if created in the future)
-
-## Security Best Practices
-
-When using Windows 11 Clipboard History For Linux:
-
-1. **Keep Updated**: Always use the latest version
-2. **Build from Source**: When possible, verify the source code
-3. **Check Signatures**: Verify release artifacts when available
-4. **Report Issues**: Help us by reporting any suspicious behavior
-
-## Known Security Considerations
-
-### Clipboard Data
-
-- Clipboard history is stored **locally only**
-- No data is transmitted over the network
-- History is stored in memory (not persisted to disk by default)
-- Sensitive data copied to clipboard will be stored in history
-
-### Permissions
-
-- **Global hotkey capture**: Required for global shortcuts (Super+V, Ctrl+Alt+V)
-- **System tray**: For background operation
-- **Clipboard access**: Core functionality
-
-### Wayland Security
-
-On Wayland, clipboard access follows the compositor's security model, which may restrict access to clipboard contents from background applications in some configurations.
+</div>
 
 ---
 
-Thank you for helping keep Windows 11 Clipboard History For Linux secure! 🔐
+## We Take Security Seriously
+
+If you discover a security vulnerability, please follow these steps:
+
+**⚠️ Do NOT open a public issue for security vulnerabilities.**
+
+### Private Disclosure Methods
+
+1. **GitHub Security Advisory**: Use [private vulnerability reporting](https://github.com/Mahdi-Arts/Modern-Clipboard-History-For-Linux/security/advisories/new)
+2. **Email**: gustaavoribeeiro@hotmail.com
+
+### What to Include
+
+- **Description** of the vulnerability
+- **Steps to reproduce**
+- **Potential impact**
+- **Suggested fix** (if any)
+
+### Response Timeline
+
+| Severity | Response Time |
+| --- | --- |
+| Initial Response | Within 48 hours |
+| Status Update | Within 1 week |
+| Critical Fix | 24-72 hours |
+| High | 1 week |
+| Medium | 2 weeks |
+| Low | Next release |
+
+---
+
+## Security Best Practices / بهترین روش‌های امنیتی
+
+<div dir="rtl">
+
+### هنگام استفاده
+
+1. **همیشه به‌روز باشید**: از آخرین نسخه استفاده کنید
+2. **از منبع معتبر نصب کنید**: از مخازن رسمی استفاده کنید
+3. **مشکلات را گزارش دهید**: به ما در شناسایی رفتارهای مشکوک کمک کنید
+
+### حریم خصوصی داده‌ها
+
+- تاریخچه کلیپ‌بورد **فقط به صورت محلی** ذخیره می‌شود
+- هیچ داده‌ای از طریق شبکه ارسال نمی‌شود
+- اطلاعات حساس که کپی می‌شوند در تاریخچه ذخیره می‌شوند
+
+### دسترسی‌های مورد نیاز
+
+- **کلید میانبر سراسری**: برای `Super+V` و `Ctrl+Alt+V`
+- **System Tray**: برای اجرای پس‌زمینه
+- **دسترسی به کلیپ‌بورد**: عملکرد اصلی برنامه
+
+### امنیت Wayland
+
+در Wayland، دسترسی به کلیپ‌بورد تابع مدل امنیتی کامپوزیتور است که ممکن است دسترسی برنامه‌های پس‌زمینه را محدود کند.
+
+</div>
+
+### App Security Features / ویژگی‌های امنیتی برنامه
+
+✔️ **CSP (Content Security Policy)** فعال — محافظت در برابر XSS  
+✔️ `withGlobalTauri: false` — API تائوری در معرض اسکریپت‌های خارجی نیست  
+✔️ **SSRF Protection** — دانلود GIF فقط به HTTPS و آی‌پی‌های عمومی محدود شده  
+✔️ **سقف حجم** — دانلودها به ۱۰MB محدود شده‌اند  
+✔️ **رایت اتمیک** — فایل‌های داده در صورت Crash خراب نمی‌شوند  
+✔️ **ذخیره‌سازی محلی** — هیچ داده‌ای به سرور ارسال نمی‌شود  
+✏️ <sub>_منبع باز: امنیت با شفافیت کد_</sub>
+
+---
+
+**Thank you for helping keep this project secure! 🔐**  
+**از کمک شما برای امنیت این پروژه سپاسگزاریم! 🔐**

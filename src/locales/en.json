@@ -1,0 +1,164 @@
+{
+  "app": {
+    "name": "Modern Clipboard History",
+    "name_en": "Modern Clipboard History",
+    "description": "A Windows 11-style clipboard history manager for Linux"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "close": "Close",
+    "save": "Save",
+    "cancel": "Cancel",
+    "search": "Search",
+    "no_results": "No results found",
+    "empty": "Empty",
+    "clear": "Clear",
+    "delete": "Delete",
+    "edit": "Edit",
+    "copy": "Copy",
+    "paste_action": "Paste",
+    "pin": "Pin",
+    "unpin": "Unpin",
+    "pinned": "Pinned",
+    "unpinned": "Unpinned",
+    "confirm": "Confirm",
+    "yes": "Yes",
+    "no": "No",
+    "settings": "Settings",
+    "version": "Version",
+    "language": "Language"
+  },
+  "clipboard": {
+    "title": "Clipboard History",
+    "empty_state": "Clipboard history is empty",
+    "empty_state_desc": "Copy some text or an image to see it here",
+    "search_placeholder": "Search history...",
+    "no_items_found": "No items found",
+    "pinned_section": "Pinned",
+    "recent_section": "Recent",
+    "clear_all": "Clear All",
+    "clear_confirm": "Are you sure you want to clear all history?",
+    "copied": "Copied!",
+    "pasted": "Pasted",
+    "compact_mode": "Compact Mode",
+    "normal_mode": "Normal Mode",
+    "image_preview": "Image Preview",
+    "text_preview": "Text Preview",
+    "delete_confirm": "Delete this item?",
+    "history_cleared": "History cleared",
+    "item_deleted": "Item deleted",
+    "item_pinned": "Item pinned",
+    "item_unpinned": "Item unpinned"
+  },
+  "emoji": {
+    "title": "Emoji",
+    "search_placeholder": "Search emojis...",
+    "recently_used": "Recently used",
+    "no_results": "No emojis found",
+    "click_to_paste": "Click to paste emoji",
+    "categories": {
+      "smileys_people": "Smileys & People",
+      "animals_nature": "Animals & Nature",
+      "food_drink": "Food & Drink",
+      "activities": "Activities",
+      "travel_places": "Travel & Places",
+      "objects": "Objects",
+      "symbols": "Symbols",
+      "flags": "Flags",
+      "other": "Other"
+    }
+  },
+  "kaomoji": {
+    "title": "Kaomoji",
+    "search_placeholder": "Search kaomoji...",
+    "custom_manage": "Manage custom kaomoji",
+    "add_custom": "Add custom kaomoji"
+  },
+  "symbols": {
+    "title": "Symbols",
+    "search_placeholder": "Search symbols...",
+    "no_results": "No symbols found",
+    "click_to_copy": "Click to copy"
+  },
+  "gif": {
+    "title": "GIF",
+    "search_placeholder": "Search GIFs...",
+    "no_results": "No GIFs found",
+    "loading": "Loading GIFs..."
+  },
+  "settings_page": {
+    "title": "Settings",
+    "appearance": "Appearance",
+    "theme": {
+      "label": "Theme Mode",
+      "system": "System",
+      "dark": "Dark",
+      "light": "Light"
+    },
+    "language": {
+      "label": "App Language",
+      "persian": "فارسی",
+      "english": "English"
+    },
+    "opacity": {
+      "dark": "Background Opacity (Dark)",
+      "light": "Background Opacity (Light)"
+    },
+    "history": {
+      "label": "History",
+      "max_size": "Maximum Items",
+      "auto_delete": "Auto-delete",
+      "auto_delete_desc": "Remove items older than",
+      "disabled": "Disabled",
+      "minutes": "Minutes",
+      "hours": "Hours",
+      "days": "Days",
+      "weeks": "Weeks"
+    },
+    "features": {
+      "label": "Features",
+      "smart_actions": "Smart Actions",
+      "smart_actions_desc": "Detect URLs, emails, colors in text",
+      "dynamic_tray": "Dynamic Tray Icon",
+      "dynamic_tray_desc": "Auto-change icon based on system theme",
+      "ui_polish": "UI Polish",
+      "ui_polish_desc": "Compact mode and animations"
+    },
+    "ui_scale": "UI Scale",
+    "permissions": {
+      "label": "Permissions",
+      "fix": "Fix Permissions",
+      "fix_desc": "Check and fix input permissions for keystroke simulation"
+    }
+  },
+  "tray": {
+    "show": "Show Clipboard",
+    "settings": "Settings",
+    "quit": "Quit"
+  },
+  "setup": {
+    "welcome": "Welcome to Clipboard History!",
+    "welcome_desc": "A modern, beautiful clipboard history manager for Linux",
+    "step_permissions": "Input Permissions",
+    "step_permissions_desc": "Check access to virtual keyboard simulation",
+    "step_shortcut": "Keyboard Shortcut",
+    "step_shortcut_desc": "Set up a shortcut to quickly show clipboard history",
+    "step_done": "Complete",
+    "start_using": "Start Using",
+    "skip": "Skip this step",
+    "fix_now": "Fix Now"
+  },
+  "smart_actions": {
+    "open_link": "Open Link",
+    "compose_email": "Compose Email",
+    "color": "Color"
+  },
+  "shortcuts": {
+    "clipboard": "Show Clipboard History (Super+V)",
+    "emoji": "Open Emoji Picker (Super+.)",
+    "alternative": "Alternative Shortcut (Ctrl+Alt+V)",
+    "search": "Search History (Ctrl+F)",
+    "close": "Close Window (Escape)"
+  }
+}

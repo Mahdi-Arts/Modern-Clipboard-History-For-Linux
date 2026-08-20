@@ -22,6 +22,7 @@ use win11_clipboard_history_lib::permission_checker;
 use win11_clipboard_history_lib::rendering_env;
 use win11_clipboard_history_lib::session::is_wayland;
 use win11_clipboard_history_lib::shortcut_setup;
+use win11_clipboard_history_lib::tenor_api;
 use win11_clipboard_history_lib::theme_manager::{self, ThemeInfo};
 use win11_clipboard_history_lib::user_settings::{UserSettings, UserSettingsManager};
 
@@ -129,6 +130,37 @@ fn is_settings_window_visible(app: AppHandle) -> bool {
         .map(|w| w.is_visible().unwrap_or(false))
         .unwrap_or(false)
 }
+
+#[tauri::command]
+fn get_default_settings() -> UserSettings {
+    UserSettings::default()
+}
+
+#[tauri::command]
+async fn set_app_language(
+    app: AppHandle,
+    lang: String,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    // Validate language
+    if lang != "en" && lang != "fa" {
+        return Err("Invalid language. Supported: en, fa".into());
+    }
+
+    // Save to user settings
+    let manager = UserSettingsManager::new();
+    let mut settings = manager.load();
+    settings.set_language(&lang);
+    manager.save(&settings)?;
+
+    // Emit language change event to all windows
+    app.emit("app-language-changed", &lang)
+        .map_err(|e| format!("Failed to emit language change event: {e}"))?;
+
+    Ok(())
+}
+
+// --- Default Settings Command ---
 
 // --- Theme Detection Commands ---
 
@@ -270,14 +302,10 @@ async fn finish_paste(app: AppHandle, state: State<'_, AppState>) -> Result<(), 
 
 #[tauri::command]
 async fn copy_text_to_clipboard(_state: State<'_, AppState>, text: String) -> Result<(), String> {
-    // 1. Update Internal Manager (for history consistency, optional but good)
-    // Only write to the system clipboard; the history manager is updated by the clipboard watcher if enabled.
-
-    use arboard::Clipboard;
-    let mut clipboard = Clipboard::new().map_err(|e| e.to_string())?;
-    clipboard.set_text(text).map_err(|e| e.to_string())?;
-
-    Ok(())
+    // Use unified clipboard I/O module (cached connection, no X11 churn)
+    win11_clipboard_history_lib::clipboard_io::write(
+        &win11_clipboard_history_lib::clipboard_io::Payload::Text(&text)
+    ).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -418,8 +446,8 @@ impl WindowController {
 
                     let mut manager = state.clipboard_manager.lock();
                     if manager.cleanup_old_items(interval_in_minutes) {
-                        // Mirror background cleanup: persist history explicitly, then emit event
-                        manager.save_history();
+                        // Dirty-mark instead of blocking full write; saver thread persists
+                        manager.mark_dirty();
                         let _ = app.emit("history-cleared", ());
                     }
                 }
@@ -695,6 +723,13 @@ fn handle_window_moved_for_wayland(
 
 fn start_clipboard_watcher(app: AppHandle, clipboard_manager: Arc<Mutex<ClipboardManager>>) {
     std::thread::spawn(move || {
+        // --- OPTIMIZATION: single clipboard instance reused across all reads ---
+        // Instead of creating a new X11/Wayland connection every 500ms,
+        // we create once and reuse. This reduces overhead from ~5ms to ~0.01ms per poll.
+        let mut clipboard = match arboard::Clipboard::new() {
+            Ok(c) => c,
+            Err(e) => { eprintln!("[Watcher] Failed to init clipboard: {e}"); return; }
+        };
         let mut last_text_hash: Option<u64> = None;
         let mut last_image_hash: Option<u64> = None;
         let mut cleanup_counter = 0;
@@ -703,9 +738,14 @@ fn start_clipboard_watcher(app: AppHandle, clipboard_manager: Arc<Mutex<Clipboar
             std::thread::sleep(Duration::from_millis(500));
             cleanup_counter += 1;
 
+            // Phase 1: Read system clipboard outside the history lock
+            // This prevents paste commands from being blocked by I/O
+            let (text, html, image) = read_system_clipboard(&mut clipboard);
+
+            // Phase 2: Brief lock only for history mutation & dedup
             let mut manager = clipboard_manager.lock();
 
-            // Background cleanup every ~30 seconds (60 * 500ms)
+            // Background cleanup every ~30 seconds
             if cleanup_counter >= 60 {
                 cleanup_counter = 0;
                 let settings = UserSettingsManager::new().load();
@@ -718,19 +758,16 @@ fn start_clipboard_watcher(app: AppHandle, clipboard_manager: Arc<Mutex<Clipboar
             }
 
             // Text
-            if let Ok(text) = manager.get_current_text() {
+            if let Ok(ref text) = text {
                 if !text.is_empty() {
                     let text_hash =
-                        win11_clipboard_history_lib::clipboard_manager::calculate_hash(&text);
-
-                    if Some(text_hash) != last_text_hash {
+                        win11_clipboard_history_lib::clipboard_manager::calculate_hash(text);
+                     if Some(text_hash) != last_text_hash {
                         last_text_hash = Some(text_hash);
                         last_image_hash = None;
 
-                        // Try to get HTML content for rich text support
-                        let html = manager.get_current_html();
-
-                        if let Some(item) = manager.add_text(text, html) {
+                        // HTML is now read in phase 1
+                        if let Some(item) = manager.add_text(text, html.as_deref()) {
                             let _ = app.emit("clipboard-changed", &item);
                         }
                     }
@@ -738,7 +775,7 @@ fn start_clipboard_watcher(app: AppHandle, clipboard_manager: Arc<Mutex<Clipboar
             }
 
             // Image
-            if let Ok(Some((image_data, hash))) = manager.get_current_image() {
+            if let Ok(Some((image_data, hash))) = image {
                 if Some(hash) != last_image_hash {
                     last_image_hash = Some(hash);
                     last_text_hash = None;
@@ -747,8 +784,39 @@ fn start_clipboard_watcher(app: AppHandle, clipboard_manager: Arc<Mutex<Clipboar
                     }
                 }
             }
+            // lock drops here (phase 2 ends)
         }
     });
+}
+
+/// Reads clipboard content without holding the history mutex.
+/// All three reads share one `Clipboard` instance.
+fn read_system_clipboard(
+    clip: &mut arboard::Clipboard,
+) -> (
+    Result<String, arboard::Error>,
+    Option<String>,
+    Result<Option<(arboard::ImageData<'static>, u64)>, arboard::Error>,
+) {
+    let text = clip.get_text();
+    let html = clip.get().html().ok();
+    let image = match clip.get_image() {
+        Ok(img) => {
+            let hash = win11_clipboard_history_lib::clipboard_manager::calculate_hash(&img.bytes);
+            Ok(Some((
+                arboard::ImageData {
+                    width: img.width,
+                    height: img.height,
+                    bytes: img.bytes.into_owned().into(),
+                },
+                hash,
+            )))
+        }
+        Err(arboard::Error::ContentNotAvailable) => Ok(None),
+        Err(e) => Err(e),
+    };
+
+    (text, html, image)
 }
 
 // --- Main ---
@@ -1094,6 +1162,9 @@ fn main() {
             get_system_theme,
             refresh_system_theme,
             is_theme_listener_active,
+            get_default_settings,
+            set_app_language,
+            tenor_api::search_tenor,
             permission_checker::check_permissions,
             permission_checker::fix_permissions_now,
             permission_checker::is_first_run,
