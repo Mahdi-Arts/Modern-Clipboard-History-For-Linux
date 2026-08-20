@@ -182,7 +182,7 @@ export function SymbolPicker({ isDark, opacity }: SymbolPickerProps) {
   // Handle symbol selection
   const handleSelect = useCallback(
     (symbol: SymbolItem) => {
-      pasteSymbol(symbol)
+      void pasteSymbol(symbol)
     },
     [pasteSymbol]
   )

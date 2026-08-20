@@ -4,12 +4,17 @@ name: CI
 # گیت کیفیت سخت‌گیرانه — تمام بررسی‌های این فایل «مسدودکننده» هستند.
 #
 # Contract (mirrored in docs/CI.md and README.md — keep all three in sync):
-#   - ESLint + tsc, zero warnings
+#   - ESLint (type-aware) + tsc, zero warnings
 #   - Frontend unit tests WITH coverage thresholds
 #   - cargo fmt + clippy -D warnings
 #   - cargo test (default features, no HTTP) AND cargo test --all-features
 #   - cargo audit / npm audit --audit-level=high / cargo-deny (no continue-on-error)
 #   - Release build + CLI smoke (--version / --help) under Xvfb
+#
+# Supply chain: every action is pinned to a full commit SHA (OpenSSF
+# recommendation) — tags are listed in comments for review, not used.
+# زنجیرهٔ تأمین: هر action به SHA کامل کامیت پین شده است (توصیهٔ OpenSSF) —
+# تگ‌ها فقط در کامنت برای بازبینی آمده‌اند، نه برای اجرا.
 
 on:
   push:
@@ -34,21 +39,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: '20'
           cache: 'npm'
 
       - name: Install Rust (from rust-toolchain.toml)
-        uses: dtolnay/rust-toolchain@master
+        uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
 
       - name: Cache Cargo
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: |
             ~/.cargo/bin/
@@ -68,8 +73,11 @@ jobs:
       - name: Install npm dependencies
         run: npm ci
 
-      - name: ESLint + TypeScript
+      - name: ESLint (type-aware) + TypeScript
         run: npm run lint
+
+      - name: Fast Rust syntax gate (tree-sitter)
+        run: node scripts/check-rust-syntax.mjs
 
       - name: Frontend tests with coverage gate
         run: npm run test:coverage
@@ -91,15 +99,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
 
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@master
+        uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
 
       - name: Install cargo-audit + cargo-deny
-        uses: taiki-e/install-action@v2
+        uses: taiki-e/install-action@a2a5f6e99e1a31540baa0468acfa302cff0f359f # v2
         with:
           tool: cargo-audit,cargo-deny
 
@@ -110,7 +118,7 @@ jobs:
         run: cd src-tauri && cargo deny check advisories bans licenses sources
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: '20'
           cache: 'npm'
@@ -127,21 +135,21 @@ jobs:
     needs: [quality, security]
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: '20'
           cache: 'npm'
 
       - name: Install Rust (from rust-toolchain.toml)
-        uses: dtolnay/rust-toolchain@master
+        uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
 
       - name: Cache Cargo
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: |
             ~/.cargo/bin/
@@ -173,7 +181,7 @@ jobs:
           xvfb-run --auto-servernum "$BIN" --version
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: linux-artifacts
           path: |

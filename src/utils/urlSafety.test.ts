@@ -6,8 +6,9 @@ describe('sanitizeOpenUrl', () => {
     expect(sanitizeOpenUrl('https://example.com')).toBe('https://example.com/')
   })
 
-  it('accepts valid http URLs', () => {
-    expect(sanitizeOpenUrl('http://example.com')).toBe('http://example.com/')
+  it('rejects plain http URLs (HTTPS-only policy)', () => {
+    expect(sanitizeOpenUrl('http://example.com')).toBeNull()
+    expect(sanitizeOpenUrl('http://www.example.org/path')).toBeNull()
   })
 
   it('accepts mailto URLs', () => {
@@ -66,8 +67,8 @@ describe('normalizeHttpUrl', () => {
     expect(normalizeHttpUrl('https://example.com')).toBe('https://example.com')
   })
 
-  it('returns http URLs unchanged', () => {
-    expect(normalizeHttpUrl('http://example.com')).toBe('http://example.com')
+  it('upgrades http URLs to https (HTTPS-only policy)', () => {
+    expect(normalizeHttpUrl('http://example.com')).toBe('https://example.com')
   })
 
   it('prepends https:// to bare domains', () => {
@@ -107,8 +108,8 @@ describe('urlSafety edge cases (SSRF hardening)', () => {
     expect(sanitizeOpenUrl('http://0.0.0.0/')).toBeNull()
   })
 
-  it('still allows public IPv4 and global IPv6 addresses', () => {
-    expect(sanitizeOpenUrl('http://8.8.8.8/dns')).not.toBeNull()
+  it('still allows public IPv4 and global IPv6 addresses over https', () => {
+    expect(sanitizeOpenUrl('https://8.8.8.8/dns')).not.toBeNull()
     expect(sanitizeOpenUrl('https://[2606:4700::1111]/')).not.toBeNull()
     expect(sanitizeOpenUrl('https://[2001:4860:4860::8888]/')).not.toBeNull()
   })
@@ -138,7 +139,7 @@ describe('urlSafety edge cases (SSRF hardening)', () => {
   it('normalizes bare domains to https', () => {
     expect(normalizeHttpUrl('example.com')).toBe('https://example.com')
     expect(normalizeHttpUrl('https://example.com')).toBe('https://example.com')
-    expect(normalizeHttpUrl('http://example.com')).toBe('http://example.com')
+    expect(normalizeHttpUrl('http://example.com')).toBe('https://example.com')
   })
 
   it('accepts legitimate public URLs', () => {

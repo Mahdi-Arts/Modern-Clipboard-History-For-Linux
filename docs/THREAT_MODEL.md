@@ -56,7 +56,17 @@ Key boundaries:
 ### 4.1 Clipboard poisoning (T3)
 - **Secret filter** (`privacy.rs`): drops PEM private keys, JWTs, known token prefixes (`ghp_`, `sk_live_`, `AKIA…`), and `password=`-style assignments of **any length** before they reach history. Default ON.
 - **Sensitive-source skip** (X11 only): password managers and incognito/private windows are excluded via WM_CLASS/title matching (`window_identity.rs`). Wayland compositors do not expose focus identity — documented limitation.
-- **Smart-action URL sanitizer** (`urlSafety.ts` + `open_url.rs`): protocol allowlist (`http/https/mailto`), blocks credentials, control chars, localhost, private/loopback/CGNAT IPs. The webview calls `open_safe_url`; Rust re-validates and execs `xdg-open` (no Tauri `shell:allow-open`).
+- **Event-driven capture** (`clipboard_events.rs`): XFixes `SelectionNotify` on
+  X11 and `wl-paste --watch` on Wayland wake the watcher instantly; any
+  failure falls back to adaptive polling (200/800 ms), so capture latency
+  shrinks without a correctness regression. The Wayland helper child is
+  reaped via `PR_SET_PDEATHSIG` — no orphan processes survive the app.
+- **Smart-action URL sanitizer** (`urlSafety.ts` + `open_url.rs`): HTTPS-only
+  protocol allowlist (`https/mailto`); plain `http://` input is upgraded to
+  `https://` in the frontend and rejected outright by Rust. Blocks
+  credentials, control chars, localhost, private/loopback/CGNAT IPs. The
+  webview calls `open_safe_url`; Rust re-validates and execs `xdg-open` (no
+  Tauri `shell:allow-open`).
 - **Regex search guard** (`historySearch.ts`): length cap (80), nested-quantifier detection, try/catch — prevents ReDoS on the UI thread.
 
 ### 4.2 Local exposure (T2)
@@ -88,15 +98,25 @@ Key boundaries:
 
 ### 4.5 Supply chain (T5)
 - Installer verifies artifacts against release `SHA256SUMS` (**mandatory**; `ALLOW_UNVERIFIED=1` required to skip) and optionally verifies a detached GPG signature.
-- CI runs `cargo audit` + `cargo deny` (advisories/bans/licenses/sources) +
-  `npm audit` as **blocking** gates; `cargo clippy -D warnings`; frontend
-  coverage thresholds; release-binary smoke (`--version`/`--help`).
-- Releases publish: SHA256SUMS, **per-artifact** SPDX SBOM (syft),
-  SLSA build-provenance attestations (`actions/attest-build-provenance`).
+- The hardened CI contract (`.github/workflows/` after `git am
+  docs/patches/hardened-ci-workflows.patch`; GitHub Apps cannot push
+  workflow files without the `workflows` permission) runs `cargo audit` +
+  `cargo deny` (advisories/bans/licenses/sources) + `npm audit` as
+  **blocking** gates (no `continue-on-error`); type-aware ESLint + `tsc`;
+  `cargo clippy -D warnings`; frontend coverage thresholds; a tree-sitter
+  Rust syntax gate; release-binary smoke (`--version`/`--help`, bare and
+  under `xvfb-run`). Every workflow action is pinned to a full commit SHA
+  (OpenSSF recommendation).
+- Releases publish: SHA256SUMS (plus an optional GPG `SHA256SUMS.sig` when
+  `RELEASE_GPG_PRIVATE_KEY` is configured), **per-artifact** SPDX SBOM
+  (syft), SLSA build-provenance attestations.
 - Every URL in the release pipeline points at
   `Mahdi-Arts/Modern-Clipboard-History-For-Linux`; optional channels
   (Cloudsmith/AUR) activate only when repository secrets exist.
-- AUR PKGBUILD checksums are populated by the release workflow.
+- AUR PKGBUILD checksums are populated by the release workflow. The AUR SSH
+  connection is **fail-closed**: `StrictHostKeyChecking yes` with
+  `known_hosts` pinned via the `AUR_KNOWN_HOSTS` secret — trust-on-first-use
+  is never accepted.
 
 ## 5. Known limitations (accepted risk)
 
@@ -114,7 +134,7 @@ Key boundaries:
 - [ ] `npm run lint`, `npm test`, coverage thresholds pass
 - [ ] `cargo test`, `cargo clippy -D warnings`, `cargo fmt --check` pass
 - [ ] Release-binary smoke (`--version` / `--help`) passes
-- [ ] SHA256SUMS generated and attached
+- [ ] SHA256SUMS generated and attached (GPG `.sig` when key configured)
 - [ ] Per-artifact SBOM + provenance attestations attached
-- [ ] AUR checksums updated by workflow
+- [ ] AUR checksums updated by workflow (`AUR_SSH_KEY` + `AUR_KNOWN_HOSTS`)
 - [ ] CHANGELOG entry added

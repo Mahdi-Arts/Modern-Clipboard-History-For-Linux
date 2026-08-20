@@ -136,13 +136,13 @@ function ClipboardApp() {
         const merged = { ...DEFAULT_SETTINGS, ...loadedSettings }
         setSettings(merged)
         applyBackgroundOpacity(merged)
-        applyUIScale(merged.ui_scale)
+        void applyUIScale(merged.ui_scale)
         setSettingsLoaded(true)
       })
       .catch((err) => {
         console.error('Failed to load user settings:', err)
         applyBackgroundOpacity(DEFAULT_SETTINGS)
-        applyUIScale(DEFAULT_SETTINGS.ui_scale)
+        void applyUIScale(DEFAULT_SETTINGS.ui_scale)
         setSettingsLoaded(true)
       })
 
@@ -151,7 +151,7 @@ function ClipboardApp() {
       const newSettings = event.payload
       setSettings(newSettings)
       applyBackgroundOpacity(newSettings)
-      applyUIScale(newSettings.ui_scale)
+      void applyUIScale(newSettings.ui_scale)
     })
 
     // Listen for switch-tab events from Rust (e.g., when Super+. is pressed)
@@ -163,8 +163,16 @@ function ClipboardApp() {
     })
 
     return () => {
-      unlistenPromise.then((unlisten) => unlisten())
-      unlistenSwitchTab.then((unlisten) => unlisten())
+      // Cleanup is fire-and-forget; the unlisten functions are sync, but the
+      // `.then` chain is void-marked to keep the lint contract explicit.
+      // پاک‌سازی fire-and-forget است؛ توابع unlisten همگام‌اند اما زنجیرهٔ
+      // `.then` با `void` علامت‌گذاری می‌شود تا قرارداد lint صریح بماند.
+      void unlistenPromise.then((unlisten) => {
+        unlisten()
+      })
+      void unlistenSwitchTab.then((unlisten) => {
+        unlisten()
+      })
     }
   }, [])
 
@@ -173,11 +181,13 @@ function ClipboardApp() {
     const unlistenLang = listen<string>('app-language-changed', (event) => {
       const lang = event.payload
       if (lang === 'fa' || lang === 'en') {
-        changeLanguage(lang)
+        void changeLanguage(lang)
       }
     })
     return () => {
-      unlistenLang.then((u) => u())
+      void unlistenLang.then((u) => {
+        u()
+      })
     }
   }, [])
 
@@ -201,16 +211,20 @@ function ClipboardApp() {
     applyThemeClass(isDark)
   }, [isDark])
 
-  // Handle ESC key to close/hide window
+  // Handle ESC key to close/hide window.
+  // The listener itself stays sync (DOM API expects a void listener); the
+  // window-hide promise is handled explicitly inside.
+  // مدیریت کلید ESC برای بستن پنجره. خود شنونده همگام می‌ماند (DOM
+  // شنوندهٔ void می‌خواهد)؛ پرامیس مخفی‌شدن پنجره داخل آن مدیریت می‌شود.
   useEffect(() => {
-    const handleKeyDown = async (e: KeyboardEvent) => {
+    const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault()
-        try {
-          await getCurrentWindow().hide()
-        } catch (err) {
-          console.error('Failed to hide window:', err)
-        }
+        void getCurrentWindow()
+          .hide()
+          .catch((err) => {
+            console.error('Failed to hide window:', err)
+          })
       }
     }
 
@@ -245,7 +259,9 @@ function ClipboardApp() {
     const unlistenWindowShown = listen('window-shown', focusFirstItem)
 
     return () => {
-      unlistenWindowShown.then((unlisten) => unlisten())
+      void unlistenWindowShown.then((unlisten) => {
+        unlisten()
+      })
     }
   }, []) // Empty dependency array - listener is registered once
 
@@ -279,14 +295,14 @@ function ClipboardApp() {
             isLoadingMore={isLoadingMore}
             total={total}
             hasMore={hasMore}
-            onLoadMore={loadMore}
+            onLoadMore={() => void loadMore()}
             isDark={isDark}
             tertiaryOpacity={tertiaryOpacity}
             secondaryOpacity={secondaryOpacity}
-            clearHistory={clearHistory}
-            deleteItem={deleteItem}
-            togglePin={togglePin}
-            onPaste={pasteItem}
+            clearHistory={() => void clearHistory()}
+            deleteItem={(id) => void deleteItem(id)}
+            togglePin={(id) => void togglePin(id)}
+            onPaste={(id) => void pasteItem(id)}
             settings={settings}
             tabBarRef={tabBarRef}
           />

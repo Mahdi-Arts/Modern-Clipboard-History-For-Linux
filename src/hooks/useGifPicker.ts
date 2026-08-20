@@ -55,7 +55,7 @@ export function useGifPicker() {
   useEffect(() => {
     isMountedRef.current = true
     const initialFetchTimer = globalThis.setTimeout(() => {
-      fetchGifs('')
+      void fetchGifs('')
     }, 0)
 
     return () => {
@@ -79,7 +79,7 @@ export function useGifPicker() {
 
       // Set new debounced search
       debounceTimerRef.current = setTimeout(() => {
-        fetchGifs(query)
+        void fetchGifs(query)
       }, SEARCH_DEBOUNCE_MS)
     },
     [fetchGifs]
@@ -124,7 +124,7 @@ export function useGifPicker() {
       clearTimeout(debounceTimerRef.current)
     }
     setSearchQuery('')
-    fetchGifs('')
+    void fetchGifs('')
   }, [fetchGifs])
 
   return {

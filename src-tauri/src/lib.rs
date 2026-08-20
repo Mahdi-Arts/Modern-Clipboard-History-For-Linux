@@ -129,6 +129,7 @@ pub fn init_tracing() {
 pub mod autostart_manager;
 pub mod clipboard_io;
 pub mod clipboard_manager;
+pub mod clipboard_events;
 pub mod content_hash;
 pub mod clipboard_watcher;
 pub mod commands;

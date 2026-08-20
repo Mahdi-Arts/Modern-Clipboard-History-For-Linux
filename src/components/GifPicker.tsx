@@ -213,7 +213,7 @@ export function GifPicker({ isDark, opacity }: GifPickerProps) {
   // Handle GIF selection
   const handleSelect = useCallback(
     (gif: Gif) => {
-      pasteGif(gif)
+      void pasteGif(gif)
     },
     [pasteGif]
   )

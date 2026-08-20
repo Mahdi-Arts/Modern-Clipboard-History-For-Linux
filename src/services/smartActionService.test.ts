@@ -2,7 +2,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { smartActionService } from './smartActionService'
 import { sanitizeOpenUrl } from '../utils/urlSafety'
 
-const invokeMock = vi.fn()
+const invokeMock = vi.fn<(...args: unknown[]) => Promise<unknown>>()
 
 vi.mock('@tauri-apps/api/core', () => ({
   invoke: (...args: unknown[]) => invokeMock(...args),
@@ -16,6 +16,17 @@ describe('smartActionService', () => {
   it('detects https URLs', () => {
     const actions = smartActionService.detectActions('https://example.com/docs')
     expect(actions.some((a) => a.id === 'open-link')).toBe(true)
+  })
+
+  it('upgrades http URLs to https before opening (HTTPS-only policy)', () => {
+    // Plain http input is detected, but the produced action data must be the
+    // https:// upgrade — the raw http:// URL is never handed to xdg-open.
+    // ورودی سادهٔ http شناسایی می‌شود اما دادهٔ action باید نسخهٔ ارتقایافتهٔ
+    // https:// باشد — URL خام http هرگز به xdg-open داده نمی‌شود.
+    const actions = smartActionService.detectActions('http://example.com/docs')
+    const action = actions.find((a) => a.id === 'open-link')
+    expect(action).toBeDefined()
+    expect(action?.data).toBe('https://example.com/docs')
   })
 
   it('detects emails', () => {

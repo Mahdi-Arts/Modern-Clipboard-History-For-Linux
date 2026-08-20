@@ -1,0 +1,95 @@
+# 📦 Flatpak build & deployment guide / راهنمای ساخت و استقرار فلت‌پک
+
+> This directory holds everything needed to build and publish the Flatpak of
+> **Modern Clipboard History for Linux** (`io.github.mahdi-arts.clipboard-history`).
+> این پوشه شامل همهٔ آنچه برای ساخت و انتشار فلت‌پک پروژه لازم است می‌باشد.
+
+---
+
+## 1. Files / فایل‌ها
+
+| File | Purpose / هدف |
+| --- | --- |
+| `io.github.mahdi-arts.clipboard-history.yml` | Flathub-style build manifest / مانیفست ساخت |
+| `io.github.mahdi-arts.clipboard-history.metainfo.xml` | AppStream metadata (name, screenshots, `<releases>`) |
+| `build.sh` | One-command local build helper / راه‌انداز ساخت محلی |
+
+---
+
+## 2. Local build / ساخت محلی
+
+```bash
+# 1) Install the runtime + extensions (once)
+#     نصب runtime و افزونه‌ها (یک‌بار)
+flatpak install --user flathub \
+  org.gnome.Sdk//46 org.gnome.Platform//46 \
+  org.freedesktop.Sdk.Extension.rust-stable \
+  org.freedesktop.Sdk.Extension.node20
+
+# 2) Build + install + launch (from the repo root)
+#     ساخت + نصب + اجرا (از ریشهٔ مخزن)
+./packaging/flatpak/build.sh
+```
+
+The helper wraps `flatpak-builder` with the official manifest and a
+`.flatpak-builder` cache directory (git-ignored, see repo root `.gitignore`).
+اسکریپت کمکی، `flatpak-builder` را با مانیفست رسمی و پوشهٔ کش
+`.flatpak-builder` اجرا می‌کند.
+
+### What the sandbox allows / سندباکس چه اجازه‌هایی دارد
+
+| Permission | Granted? | Why / چرا |
+| --- | --- | --- |
+| `--socket=wayland` + `--socket=fallback-x11` | ✅ | windowing / نمایش پنجره |
+| `--share=ipc` | ✅ | X11 shared memory / حافظهٔ مشترک X11 |
+| Desktop + Settings portals | ✅ | theme detection / تشخیص تم |
+| `org.kde.StatusNotifierWatcher` | ✅ | system tray / تری سیستم |
+| XDG data/config dirs (`create`) | ✅ | history DB + settings / دیتابیس و تنظیمات |
+| `--device=all` (`/dev/uinput`) | ❌ default | paste simulation needs a user override |
+| `--share=network` | ❌ default | optional GIF search only |
+
+```bash
+# Enable paste simulation (Ctrl+V injection)
+# فعال‌سازی شبیه‌سازی paste (تزریق Ctrl+V)
+flatpak override --user --device=all io.github.mahdi-arts.clipboard-history
+
+# Optional GIF search
+# جستجوی اختیاری GIF
+flatpak override --user --share=network io.github.mahdi-arts.clipboard-history
+```
+
+---
+
+## 3. Flathub publication / انتشار در Flathub
+
+1. Fork/PR the `flathub/io.github.mahdi-arts.clipboard-history` repository
+   with this manifest. / مخزن `flathub/io.github.mahdi-arts.clipboard-history`
+   را با همین مانیفست PR کنید.
+2. Bump the `<releases>` entry in the metainfo for every version (date +
+   version). / در هر نسخه رکورد `<releases>` متادیتا را به‌روز کنید.
+3. Attach screenshots (1280×800 or larger) and a 128×128 icon.
+   / اسکرین‌شات (۱۲۸۰×۸۰۰ یا بزرگ‌تر) و آیکون ۱۲۸×۱۲۸ پیوست کنید.
+4. Flathub's CI will build against the pinned runtime; the manifest must
+   stay reproducible (no network in the sandbox at runtime).
+   / CI فلت‌هاب با runtime پین‌شده بیلد می‌گیرد؛ مانیفست باید قابل بازتولید
+   بماند (بدون شبکه در زمان اجرا).
+
+### Version bump checklist / چک‌لیست نسخه
+
+- [ ] `app-id` unchanged / بدون تغییر
+- [ ] `runtime-version` supported by Flathub / پشتیبانی‌شده در فلت‌هاب
+- [ ] metainfo `<releases>` entry added / رکورد انتشار اضافه شود
+- [ ] screenshots current / اسکرین‌شات‌ها به‌روز
+
+---
+
+## 4. Known limitations / محدودیت‌های شناخته‌شده
+
+1. Paste (Ctrl+V injection) requires `--device=all` — Flathub's policy does
+   not grant `/dev/uinput` by default. / paste تا قبل از `--device=all`
+   غیرفعال است — سیاست فلت‌هاب `/dev/uinput` را پیش‌فرض نمی‌دهد.
+2. Global shortcuts (`Super+V`) cannot be registered from inside the sandbox.
+   Use `Ctrl+Alt+V` or the native packages. / میانبر سراسری (`Super+V`) از
+   داخل سندباکس ثبت نمی‌شود؛ از `Ctrl+Alt+V` یا بسته‌های بومی استفاده کنید.
+3. udev rules are not installed (native channels only).
+   / قوانین udev نصب نمی‌شود (فقط کانال‌های بومی).

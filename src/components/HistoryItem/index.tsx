@@ -57,7 +57,7 @@ export const HistoryItem = forwardRef<HTMLDivElement, HistoryItemProps>(function
           console.warn('Error in HistoryItem callback ref:', err)
         }
       } else {
-        ;(ref as React.MutableRefObject<HTMLDivElement | null>).current = el
+        ;(ref).current = el
       }
     },
     [ref]
@@ -198,7 +198,7 @@ export const HistoryItem = forwardRef<HTMLDivElement, HistoryItemProps>(function
             linkAction={linkAction}
             emailAction={emailAction}
             isDark={isDark}
-            onActionClick={handleSmartAction}
+            onActionClick={(e, action) => void handleSmartAction(e, action)}
           />
 
           {/* Pin button */}

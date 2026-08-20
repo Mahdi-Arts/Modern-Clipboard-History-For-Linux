@@ -19,7 +19,11 @@ const detectLanguage = (): LangCode => {
   return DEFAULT_LANG
 }
 
-i18n.use(initReactI18next).init({
+// Module-level init is intentionally fire-and-forget; React-i18next suspends
+// rendering until the resources are ready and errors are logged by i18next.
+// راه‌اندازی سطح ماژول آگاهانه fire-and-forget است؛ React-i18next رندر را تا
+// آماده‌شدن منابع معلق می‌کند و خطاها را خود i18next لاگ می‌کند.
+void i18n.use(initReactI18next).init({
   resources: { fa: { translation: fa }, en: { translation: en } },
   lng: detectLanguage(),
   fallbackLng: 'en',

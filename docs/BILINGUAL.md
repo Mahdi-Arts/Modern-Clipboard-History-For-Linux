@@ -131,3 +131,17 @@ src/
 - Use `dir="rtl"` and `[dir="rtl"]` CSS selectors for right-to-left adjustments
 - Use `useLanguage().isRTL` for conditional logic
 - Remember: animations and icon directions should be mirrored in RTL
+
+## 📝 Bilingual code comments / کامنت‌های دو زبانه کد
+
+Beyond the UI, every **documentation comment** in the Rust core and the
+TypeScript frontend is written in both English and Persian — English first
+(dominant for code reviewers), followed by the Persian equivalent. Module
+headers, ADRs, the threat model, CI contracts, and packaging guides follow
+the same rule. See for example `src-tauri/src/clipboard_events.rs`,
+`src/utils/urlSafety.ts`, and `.github/workflows/ci.yml`.
+فراتر از UI، تمام کامنت‌های مستندات در هستهٔ Rust و فرانت‌اند TypeScript
+دو زبانه نوشته می‌شوند — ابتدا انگلیسی (زبان غالب بازبینی کد) و سپس
+معادل فارسی. سرصفحهٔ ماژول‌ها، ADRها، مدل تهدید، قرارداد CI و راهنماهای
+بسته‌بندی هم از همین قاعده پیروی می‌کنند (نمونه: `clipboard_events.rs` و
+`urlSafety.ts`).

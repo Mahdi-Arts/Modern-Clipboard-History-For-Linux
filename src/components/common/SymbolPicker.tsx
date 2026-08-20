@@ -158,7 +158,7 @@ export function SymbolPicker({ isDark, opacity }: SymbolPickerProps) {
   const handleMainGridKeyDown = useKeyboardNavigation({
     items: filteredSymbols,
     columnCount,
-    onSelect: pasteSymbol,
+    onSelect: (symbol) => void pasteSymbol(symbol),
     setFocusedIndex: setMainFocusedIndex,
     gridRef,
   })
@@ -166,7 +166,7 @@ export function SymbolPicker({ isDark, opacity }: SymbolPickerProps) {
   const handleRecentKeyDown = useKeyboardNavigation({
     items: recentSymbols.slice(0, 16),
     columnCount: recentColumnCount,
-    onSelect: pasteSymbol,
+    onSelect: (symbol) => void pasteSymbol(symbol),
     setFocusedIndex: setRecentFocusedIndex,
     containerRef: recentGridRef,
     dataAttributeName: 'data-recent-index',
@@ -203,7 +203,7 @@ export function SymbolPicker({ isDark, opacity }: SymbolPickerProps) {
                   <div key={`recent-${symbol.char}-${index}`} className="w-10 h-10 p-0.5">
                     <SymbolCell
                       symbol={symbol}
-                      onSelect={pasteSymbol}
+                      onSelect={(s) => void pasteSymbol(s)}
                       onHover={setHoveredSymbol}
                       tabIndex={index === recentFocusedIndex ? 0 : -1}
                       data-main-index={index}
@@ -276,7 +276,7 @@ export function SymbolPicker({ isDark, opacity }: SymbolPickerProps) {
               style={{ overflowX: 'hidden', overflowY: 'scroll' }}
               cellProps={{
                 symbols: filteredSymbols,
-                onSelect: pasteSymbol,
+                onSelect: (symbol: SymbolItem) => void pasteSymbol(symbol),
                 onHover: setHoveredSymbol,
                 focusedIndex: mainFocusedIndex,
                 onKeyDown: handleMainGridKeyDown, // Hook

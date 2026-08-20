@@ -26,7 +26,7 @@ function ClipboardAppWithSetup() {
     const init = async () => {
       // Listen for setup completion event from the setup window
       // We set this up early to ensure we don't miss it
-      unlistenSetup = await listen('setup_complete', async () => {
+      unlistenSetup = await listen('setup_complete', () => {
         console.log('Setup complete event received')
         setWaitingForSetup(false)
       })
@@ -49,9 +49,13 @@ function ClipboardAppWithSetup() {
             console.error('Setup window not found in config')
             // Attempt to create it if it somehow doesn't exist (fallback)
             const newSetupWin = new WebviewWindow('setup')
-            newSetupWin.once('tauri://created', () => {
-              newSetupWin.show()
-              newSetupWin.setFocus()
+            // `once` returns a promise; the registration is fire-and-forget.
+            // `once` پرامیس برمی‌گرداند؛ ثبت رویداد fire-and-forget است.
+            void newSetupWin.once('tauri://created', () => {
+              // Fire-and-forget window management; failures surface in logs.
+              // مدیریت پنجره به‌صورت fire-and-forget؛ خطاها در لاگ دیده می‌شوند.
+              void newSetupWin.show()
+              void newSetupWin.setFocus()
             })
           }
         }
@@ -62,7 +66,7 @@ function ClipboardAppWithSetup() {
       }
     }
 
-    init()
+    void init()
 
     return () => {
       if (unlistenSetup) unlistenSetup()

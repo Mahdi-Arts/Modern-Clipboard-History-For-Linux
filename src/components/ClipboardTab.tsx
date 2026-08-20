@@ -262,7 +262,9 @@ export function ClipboardTab(props: {
     }
     const unlistenWindowShown = listen('window-shown', resetSearch)
     return () => {
-      unlistenWindowShown.then((u) => u())
+      void unlistenWindowShown.then((u) => {
+        u()
+      })
     }
   }, [])
 
@@ -345,7 +347,9 @@ export function ClipboardTab(props: {
     }
     const unlistenWindowShown = listen('window-shown', focusFirstItem)
     return () => {
-      unlistenWindowShown.then((u) => u())
+      void unlistenWindowShown.then((u) => {
+        u()
+      })
     }
   }, [listRef])
 

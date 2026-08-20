@@ -165,9 +165,9 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
 
   useEffect(() => {
     const initialChecksTimer = globalThis.setTimeout(() => {
-      checkPermissions()
-      checkShortcutTools()
-      checkConflicts()
+      void checkPermissions()
+      void checkShortcutTools()
+      void checkConflicts()
     }, 0)
 
     return () => globalThis.clearTimeout(initialChecksTimer)
@@ -233,7 +233,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
   }
 
   const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text)
+    void navigator.clipboard.writeText(text)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
@@ -358,7 +358,12 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
 
       <div className="flex gap-3 justify-center">
         {!permissions?.uinput_accessible && (
-          <WizardButton {...buttonProps} id="fix" onClick={handleFixPermissions} disabled={fixing}>
+          <WizardButton
+            {...buttonProps}
+            id="fix"
+            onClick={() => void handleFixPermissions()}
+            disabled={fixing}
+          >
             {fixing ? 'Fixing...' : 'Fix Now'}
           </WizardButton>
         )}
@@ -450,7 +455,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
                 <WizardButton
                   {...buttonProps}
                   id="resolve-conflicts"
-                  onClick={handleResolveConflicts}
+                  onClick={() => void handleResolveConflicts()}
                   disabled={resolvingConflicts}
                 >
                   <span className="flex items-center gap-2">
@@ -526,7 +531,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
             <WizardButton
               {...buttonProps}
               id="register"
-              onClick={handleRegisterShortcut}
+              onClick={() => void handleRegisterShortcut()}
               disabled={registeringShortcut}
               primary
             >
@@ -593,7 +598,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
         <WizardButton
           {...buttonProps}
           id="enable-autostart"
-          onClick={handleEnableAutostart}
+          onClick={() => void handleEnableAutostart()}
           primary
         >
           Yes, enable
@@ -650,7 +655,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
           Super + V
         </kbd>
       </div>
-      <WizardButton {...buttonProps} id="finish" onClick={handleComplete} primary>
+      <WizardButton {...buttonProps} id="finish" onClick={() => void handleComplete()} primary>
         Start Using
       </WizardButton>
     </div>,

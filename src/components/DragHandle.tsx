@@ -20,14 +20,14 @@ export function DragHandle({ isDark }: DragHandleProps) {
 
   const handleClose = (e: React.MouseEvent) => {
     e.stopPropagation()
-    appWindow.hide()
+    void appWindow.hide()
   }
 
   return (
     <div
       data-tauri-drag-region
       className="relative w-full flex justify-center pt-4 pb-1 cursor-grab active:cursor-grabbing select-none"
-      onMouseDown={handleMouseDown}
+      onMouseDown={(e) => void handleMouseDown(e)}
     >
       <div
         data-tauri-drag-region

@@ -162,7 +162,7 @@ function KeyStorageCard({ isDark }: { isDark: boolean }) {
           description={t('settings_page.privacy.key_backend_file_desc')}
           active={status?.active === 'file' || status === null}
           actionLabel={t('settings_page.privacy.key_migrate_to_file')}
-          onAction={() => migrate('file')}
+          onAction={() => void migrate('file')}
           busy={busy === 'file'}
         />
         <BackendOption
@@ -176,7 +176,7 @@ function KeyStorageCard({ isDark }: { isDark: boolean }) {
           active={status?.active === 'secret-service'}
           disabled={status != null && !status.secret_service_available}
           actionLabel={t('settings_page.privacy.key_migrate_to_secret')}
-          onAction={() => migrate('secret-service')}
+          onAction={() => void migrate('secret-service')}
           busy={busy === 'secret'}
         />
       </div>

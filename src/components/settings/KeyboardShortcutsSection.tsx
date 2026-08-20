@@ -100,7 +100,7 @@ export function KeyboardShortcutsSection({ isDark }: KeyboardShortcutsSectionPro
         {/* Action button */}
         <button
           id="register-shortkeys-btn"
-          onClick={handleRegister}
+          onClick={() => void handleRegister()}
           disabled={registering}
           className={clsx(
             'flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all',
