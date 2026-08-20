@@ -210,4 +210,4 @@ else
     echo -e "${GREEN}╚════════════════════════════════════════════════════════════════╝${NC}"
 fi
 echo ""
-echo "Track progress: https://github.com/gustavosett/Windows-11-Clipboard-History-For-Linux/actions"
+echo "Track progress: https://github.com/Mahdi-Arts/Modern-Clipboard-History-For-Linux/actions"

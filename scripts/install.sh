@@ -1,6 +1,6 @@
 #!/bin/bash
 # install.sh - Smart installer for Win11 Clipboard History
-# Usage: curl -fsSL https://raw.githubusercontent.com/gustavosett/Windows-11-Clipboard-History-For-Linux/master/scripts/install.sh | bash
+# Usage: curl -fsSL https://raw.githubusercontent.com/Mahdi-Arts/Modern-Clipboard-History-For-Linux/master/scripts/install.sh | bash
 
 set -e
 
@@ -17,8 +17,8 @@ warn()    { echo -e "${YELLOW}[!]${NC} $1"; }
 error()   { echo -e "${RED}[✗]${NC} $1"; exit 1; }
 
 # Configuration
-REPO_OWNER="gustavosett"
-REPO_NAME="Windows-11-Clipboard-History-For-Linux"
+REPO_OWNER="Mahdi-Arts"
+REPO_NAME="Modern-Clipboard-History-For-Linux"
 CLOUDSMITH_REPO="gustavosett/clipboard-manager"
 
 # Cleanup previous AppImage installation (prevents conflicts with package manager installs)

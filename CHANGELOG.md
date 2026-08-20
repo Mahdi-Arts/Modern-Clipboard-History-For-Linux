@@ -10,6 +10,18 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [1.0.0] - 2026-08-20
+
+### ✅ Production Release Readiness / آماده‌سازی انتشار پایدار
+
+- Promoted the project to the first stable production release line.
+- Synchronized application version across npm, Tauri, Cargo, Cargo.lock, and AUR packaging metadata.
+- Updated release/package references for the current repository.
+- Verified frontend production build, TypeScript, ESLint, Prettier formatting, lockfile reproducibility, and npm security audit.
+- Prepared release workflow and Linux packaging metadata for generating `.deb`, `.rpm`, and AppImage artifacts in a full Tauri build environment.
+
+---
+
 ## [0.8.0] - 2026-08-20
 
 ### 🌐 Bilingual Support / پشتیبانی دو زبانه (NEW)

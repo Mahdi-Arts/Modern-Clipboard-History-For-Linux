@@ -26,24 +26,32 @@ interface RowData {
   secondaryOpacity: number
   enableSmartActions: boolean
   enableUiPolish: boolean
-  itemRefs: React.MutableRefObject<(HTMLDivElement | null)[]>
+  setItemRef: (index: number, element: HTMLDivElement | null) => void
 }
 
-function HistoryRow({ index, style, data }: { index: number; style: React.CSSProperties; data: RowData }) {
-  const {
-    items, itemRefs,
-    onPaste, onDelete, onTogglePin, onFocus,
-    focusedIndex, isDark, isCompact, secondaryOpacity,
-    enableSmartActions, enableUiPolish
-  } = data
-
+function HistoryRow({
+  index,
+  style,
+  items,
+  setItemRef,
+  onPaste,
+  onDelete,
+  onTogglePin,
+  onFocus,
+  focusedIndex,
+  isDark,
+  isCompact,
+  secondaryOpacity,
+  enableSmartActions,
+  enableUiPolish,
+}: { index: number; style: React.CSSProperties } & RowData) {
   if (index >= items.length) return null
 
   const item = items[index]
   return (
     <div style={style}>
       <HistoryItem
-        ref={(el) => { itemRefs.current[index] = el }}
+        ref={(el) => setItemRef(index, el)}
         item={item}
         index={index}
         isFocused={index === focusedIndex}
@@ -110,22 +118,25 @@ export function ClipboardTab(props: {
   const searchInputRef = useRef<HTMLInputElement>(null)
   const [focusedIndex, setFocusedIndex] = useState(0)
   const historyItemRefs = useRef<(HTMLDivElement | null)[]>([])
-  const listRef = useRef<ListImperativeAPI | null>(null);
+  const setHistoryItemRef = useCallback((index: number, element: HTMLDivElement | null) => {
+    historyItemRefs.current[index] = element
+  }, [])
+  const listRef = useRef<ListImperativeAPI | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-const [containerHeight, setContainerHeight] = useState(300)
+  const [containerHeight, setContainerHeight] = useState(300)
 
-// Measure container height for virtualized list
-useEffect(() => {
-  const el = containerRef.current
-  if (!el) return
-  const observer = new ResizeObserver((entries) => {
-    for (const entry of entries) {
-      setContainerHeight(entry.contentRect.height)
-    }
-  })
-  observer.observe(el)
-  return () => observer.disconnect()
-}, [])
+  // Measure container height for virtualized list
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setContainerHeight(entry.contentRect.height)
+      }
+    })
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
 
   // Pinned section collapsible state (persisted)
   const [pinnedExpanded, setPinnedExpanded] = useState(() => {
@@ -146,47 +157,81 @@ useEffect(() => {
   const isPrintableKey = useCallback((e: KeyboardEvent): boolean => {
     if (e.ctrlKey || e.altKey || e.metaKey) return false
     const specialKeys = [
-      'Tab', 'Enter', 'Escape', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',
-      'Home', 'End', 'PageUp', 'PageDown', 'Delete', 'Backspace',
-      'F1','F2','F3','F4','F5','F6','F7','F8','F9','F10','F11','F12',
-      'CapsLock', 'NumLock', 'ScrollLock', 'Pause', 'Insert', 'PrintScreen',
-      'ContextMenu', 'Shift', 'Control', 'Alt', 'Meta'
+      'Tab',
+      'Enter',
+      'Escape',
+      'ArrowUp',
+      'ArrowDown',
+      'ArrowLeft',
+      'ArrowRight',
+      'Home',
+      'End',
+      'PageUp',
+      'PageDown',
+      'Delete',
+      'Backspace',
+      'F1',
+      'F2',
+      'F3',
+      'F4',
+      'F5',
+      'F6',
+      'F7',
+      'F8',
+      'F9',
+      'F10',
+      'F11',
+      'F12',
+      'CapsLock',
+      'NumLock',
+      'ScrollLock',
+      'Pause',
+      'Insert',
+      'PrintScreen',
+      'ContextMenu',
+      'Shift',
+      'Control',
+      'Alt',
+      'Meta',
     ]
     if (specialKeys.includes(e.key)) return false
     return e.key.length === 1
   }, [])
 
   // Toggle search visibility with Ctrl+F or start typing to filter
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    const activeElement = document.activeElement
-    if (e.ctrlKey && e.key.toLowerCase() === 'f') {
-      e.preventDefault()
-      setIsSearchVisible((prev) => {
-        if (!prev) return true
-        setSearchQuery('')
-        return false
-      })
-      return
-    }
-    if (e.key.toLowerCase() === 'escape' && isSearchVisible) {
-      e.preventDefault()
-      setIsSearchVisible(false)
-      setSearchQuery('')
-      return
-    }
-    if (activeElement?.tagName === 'INPUT' || activeElement?.tagName === 'TEXTAREA') return
-    if (activeElement?.getAttribute('role') === 'tab') return
-    if (isPrintableKey(e)) {
-      e.preventDefault()
-      if (!isSearchVisible) {
-        setIsSearchVisible(true)
-        setSearchQuery(e.key)
-      } else {
-        setSearchQuery((prev) => prev + e.key)
-        searchInputRef.current?.focus()
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      const activeElement = document.activeElement
+      if (e.ctrlKey && e.key.toLowerCase() === 'f') {
+        e.preventDefault()
+        setIsSearchVisible((prev) => {
+          if (!prev) return true
+          setSearchQuery('')
+          return false
+        })
+        return
       }
-    }
-  }, [isSearchVisible, isPrintableKey])
+      if (e.key.toLowerCase() === 'escape' && isSearchVisible) {
+        e.preventDefault()
+        setIsSearchVisible(false)
+        setSearchQuery('')
+        return
+      }
+      if (activeElement?.tagName === 'INPUT' || activeElement?.tagName === 'TEXTAREA') return
+      if (activeElement?.getAttribute('role') === 'tab') return
+      if (isPrintableKey(e)) {
+        e.preventDefault()
+        if (!isSearchVisible) {
+          setIsSearchVisible(true)
+          setSearchQuery(e.key)
+        } else {
+          setSearchQuery((prev) => prev + e.key)
+          searchInputRef.current?.focus()
+        }
+      }
+    },
+    [isSearchVisible, isPrintableKey]
+  )
 
   useEffect(() => {
     globalThis.addEventListener('keydown', handleKeyDown)
@@ -205,7 +250,9 @@ useEffect(() => {
       setSearchQuery('')
     }
     const unlistenWindowShown = listen('window-shown', resetSearch)
-    return () => { unlistenWindowShown.then((u) => u()) }
+    return () => {
+      unlistenWindowShown.then((u) => u())
+    }
   }, [])
 
   // Filter history by search query
@@ -213,8 +260,11 @@ useEffect(() => {
     if (!searchQuery) return history
     let regex: RegExp | null = null
     if (isRegexMode) {
-      try { regex = new RegExp(searchQuery, 'i') }
-      catch { return [] }
+      try {
+        regex = new RegExp(searchQuery, 'i')
+      } catch {
+        return []
+      }
     }
     return history.filter((item) => {
       let searchableText = ''
@@ -234,7 +284,7 @@ useEffect(() => {
   const visibleItems = useMemo(() => {
     if (showSections && !pinnedExpanded) return unpinnedItems
     return filteredHistory
-  }, [filteredHistory, showSections, pinnedExpanded, pinnedItems, unpinnedItems])
+  }, [filteredHistory, showSections, pinnedExpanded, unpinnedItems])
 
   const ITEM_HEIGHT = isCompact ? 44 : 64
   const GAP_HEIGHT = 8 // gap-2 between items
@@ -256,7 +306,7 @@ useEffect(() => {
     if (showSections && pinnedExpanded && focusedIndex < pinnedItems.length) {
       setPinnedExpanded(false)
       setFocusedIndex(0)
-listRef.current?.scrollToRow({ index: 0, align: 'smart' })
+      listRef.current?.scrollToRow({ index: 0, align: 'smart' })
       setTimeout(() => historyItemRefs.current[0]?.focus(), 50)
     }
   }, [showSections, pinnedExpanded, focusedIndex, pinnedItems.length, listRef])
@@ -274,12 +324,17 @@ listRef.current?.scrollToRow({ index: 0, align: 'smart' })
   })
 
   useEffect(() => {
-    setFocusedIndex(0)
-    listRef.current?.scrollToRow({ index: 0, align: 'smart' })
-  }, [filteredHistory, listRef])
+    const timer = globalThis.setTimeout(() => {
+      setFocusedIndex(0)
+      listRef.current?.scrollToRow({ index: 0, align: 'smart' })
+    }, 0)
+    return () => globalThis.clearTimeout(timer)
+  }, [filteredHistory])
 
   const filteredHistoryRef = useRef(filteredHistory)
-  useEffect(() => { filteredHistoryRef.current = filteredHistory }, [filteredHistory])
+  useEffect(() => {
+    filteredHistoryRef.current = filteredHistory
+  }, [filteredHistory])
 
   // Focus first item on window shown
   useEffect(() => {
@@ -287,13 +342,15 @@ listRef.current?.scrollToRow({ index: 0, align: 'smart' })
       setTimeout(() => {
         if (filteredHistoryRef.current.length > 0) {
           setFocusedIndex(0)
-listRef.current?.scrollToRow({ index: 0, align: 'smart' })
+          listRef.current?.scrollToRow({ index: 0, align: 'smart' })
           setTimeout(() => historyItemRefs.current[0]?.focus(), 100)
         }
       }, 100)
     }
     const unlistenWindowShown = listen('window-shown', focusFirstItem)
-    return () => { unlistenWindowShown.then((u) => u()) }
+    return () => {
+      unlistenWindowShown.then((u) => u())
+    }
   }, [listRef])
 
   // Track which ref slot is the actual focused item for the virtualizer
@@ -302,21 +359,35 @@ listRef.current?.scrollToRow({ index: 0, align: 'smart' })
   }, [])
 
   // Row data for react-window
-  const rowData: RowData = useMemo(() => ({
-    items: visibleItems,
-    onPaste,
-    onDelete: deleteItem,
-    onTogglePin: togglePin,
-    onFocus: handleItemFocus,
-    focusedIndex,
-    isDark,
-    isCompact,
-    secondaryOpacity,
-    enableSmartActions: settings.enable_smart_actions,
-    enableUiPolish: settings.enable_ui_polish,
-    itemRefs: historyItemRefs,
-  }), [visibleItems, onPaste, deleteItem, togglePin,
-      handleItemFocus, focusedIndex, isDark, isCompact, secondaryOpacity, settings])
+  const rowData: RowData = useMemo(
+    () => ({
+      items: visibleItems,
+      onPaste,
+      onDelete: deleteItem,
+      onTogglePin: togglePin,
+      onFocus: handleItemFocus,
+      focusedIndex,
+      isDark,
+      isCompact,
+      secondaryOpacity,
+      enableSmartActions: settings.enable_smart_actions,
+      enableUiPolish: settings.enable_ui_polish,
+      setItemRef: setHistoryItemRef,
+    }),
+    [
+      visibleItems,
+      onPaste,
+      deleteItem,
+      togglePin,
+      handleItemFocus,
+      focusedIndex,
+      isDark,
+      isCompact,
+      secondaryOpacity,
+      settings,
+      setHistoryItemRef,
+    ]
+  )
 
   // --- Render ---
   if (isLoading) {
@@ -362,7 +433,12 @@ listRef.current?.scrollToRow({ index: 0, align: 'smart' })
 
       {filteredHistory.length === 0 ? (
         <div className="flex flex-col items-center justify-center p-8 text-center opacity-60">
-          <p className={clsx('text-sm', isDark ? 'text-win11-text-secondary' : 'text-win11Light-text-secondary')}>
+          <p
+            className={clsx(
+              'text-sm',
+              isDark ? 'text-win11-text-secondary' : 'text-win11Light-text-secondary'
+            )}
+          >
             {searchQuery ? 'No items found' : 'No clipboard history yet'}
           </p>
         </div>
@@ -393,7 +469,10 @@ listRef.current?.scrollToRow({ index: 0, align: 'smart' })
                 <span className="ml-auto opacity-60">{pinnedItems.length}</span>
                 <ChevronDown
                   size={12}
-                  className={clsx('transition-transform duration-150', !pinnedExpanded && '-rotate-90')}
+                  className={clsx(
+                    'transition-transform duration-150',
+                    !pinnedExpanded && '-rotate-90'
+                  )}
                 />
               </button>
             </div>
@@ -405,7 +484,7 @@ listRef.current?.scrollToRow({ index: 0, align: 'smart' })
               {pinnedItems.map((item, offset) => (
                 <HistoryItem
                   key={item.id}
-                  ref={(el) => { historyItemRefs.current[offset] = el }}
+                  ref={(el) => setHistoryItemRef(offset, el)}
                   item={item}
                   index={offset}
                   isFocused={offset === focusedIndex}
@@ -435,19 +514,22 @@ listRef.current?.scrollToRow({ index: 0, align: 'smart' })
           {/* Virtualized list */}
           <div ref={containerRef} className="flex-1 min-h-0 px-3 pb-3">
             {visibleItems.length > 0 && (
-              <List
+              <List<RowData>
                 listRef={listRef}
-                height={containerHeight}
-                width="100%"
-                itemCount={visibleItems.length}
-                itemSize={ITEM_HEIGHT + GAP_HEIGHT}
-                itemData={rowData}
+                defaultHeight={containerHeight}
+                rowCount={visibleItems.length}
+                rowHeight={ITEM_HEIGHT + GAP_HEIGHT}
+                rowComponent={HistoryRow}
+                rowProps={rowData}
                 overscanCount={5}
                 className="scrollbar-win11"
-                style={{ overflowX: 'hidden', overflowY: 'auto' }}
-              >
-                {({ index, style, data }: { index: number; style: React.CSSProperties; data: RowData }) => HistoryRow({ index, style, data })}
-              </List>
+                style={{
+                  height: containerHeight,
+                  width: '100%',
+                  overflowX: 'hidden',
+                  overflowY: 'auto',
+                }}
+              />
             )}
           </div>
         </div>

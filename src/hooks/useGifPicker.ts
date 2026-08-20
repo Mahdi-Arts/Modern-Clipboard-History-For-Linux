@@ -54,9 +54,12 @@ export function useGifPicker() {
   // Load trending GIFs on mount
   useEffect(() => {
     isMountedRef.current = true
-    fetchGifs('')
+    const initialFetchTimer = globalThis.setTimeout(() => {
+      fetchGifs('')
+    }, 0)
 
     return () => {
+      globalThis.clearTimeout(initialFetchTimer)
       isMountedRef.current = false
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current)
