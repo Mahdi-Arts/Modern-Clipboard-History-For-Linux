@@ -44,6 +44,21 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="2.3.0" date="2026-08-20">
+      <description>
+        <p>Supply-chain and paste-path hardening:</p>
+        <ul>
+          <li>Fail-closed field encryption; paste tickets on every paste command</li>
+          <li>Blocking CI tests, coverage, cargo/npm audit</li>
+          <li>SHA256SUMS, SPDX SBOM, and SLSA provenance on GitHub Releases</li>
+        </ul>
+      </description>
+    </release>
+    <release version="2.2.0" date="2026-08-20">
+      <description>
+        <p>Paste tickets, IPC truncation, ChaCha20-Poly1305 history encryption.</p>
+      </description>
+    </release>
     <release version="2.1.0" date="2026-08-20">
       <description>
         <p>Enterprise hardening release:</p>

@@ -1,3 +1,12 @@
+win11-clipboard-history (2.3.0-1) unstable; urgency=medium
+
+  * Fail-closed history encryption; paste tickets on all paste paths.
+  * Blocking CI quality + audit gates; SHA256SUMS + SPDX + SLSA on release.
+  * Split shortcut conflict detectors; i18n Settings chrome.
+  * AppArmor allows xdg-open; autostart Exec= no longer uses a shell.
+
+ -- Mahdi Arts <mahdi-arts@users.noreply.github.com>  Thu, 20 Aug 2026 23:45:00 +0330
+
 win11-clipboard-history (2.2.0-1) unstable; urgency=medium
 
   * Field-level ChaCha20-Poly1305 encryption for SQLite history text.

@@ -90,7 +90,9 @@ pub fn start(app: AppHandle, clipboard_manager: Arc<Mutex<ClipboardManager>>) {
                             last_image_hash = None;
                             if let Some(item) = manager.add_text(captured.clone(), html.clone())
                             {
-                                let _ = app.emit("clipboard-changed", &item);
+                                // Never send full HTML / unbounded text over IPC.
+                                // HTML کامل و متن بی‌سقف هرگز از IPC عبور نمی‌کند.
+                                let _ = app.emit("clipboard-changed", &item.for_ipc());
                                 changed = true;
                             }
                         }

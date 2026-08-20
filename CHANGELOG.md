@@ -10,6 +10,32 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2.3.0] - 2026-08-20
+
+### Security / امنیت
+
+- Encryption is **fail-closed**: ChaCha20-Poly1305 errors never persist plaintext.
+- Secret filter no longer skips `password=` payloads longer than 4096 bytes.
+- `clipboard-changed` and `get_item` now send `for_ipc()` payloads (no HTML, 2048-char cap).
+- `paste_item` / `paste_text` go through the same paste ticket + `wrote_recently` gate as GIF paste; paste text is capped at 1 MiB.
+- Autostart `.desktop` `Exec=` no longer uses `sh -c`.
+- AppArmor profile allows `xdg-open` / `groups` (needed for Smart Actions and permission checks).
+- CI **blocks** on `npm run test:coverage`, `cargo test`, Clippy `-D warnings`, `cargo audit`, and `npm audit --audit-level=high`.
+- Releases attach `SHA256SUMS`, an SPDX SBOM, and SLSA provenance; notes and AUR `.SRCINFO` point at this repository only.
+
+### Quality / کیفیت
+
+- `shortcut_conflict_detector` split into per-DE modules (`gnome`, `kde`, `tiling`, `xfce`).
+- FNV hashing extracted to `content_hash.rs`.
+- Settings window strings are fully i18n; empty-state keyboard hint restyled.
+
+### Packaging / بسته‌بندی
+
+- Version 2.3.0 across npm / Cargo / Tauri / AUR / Debian / AppStream.
+- Flatpak remains the sandboxed channel (no `/dev/uinput` by default).
+
+---
+
 ## [2.2.0] - 2026-08-20
 
 ### Security / امنیت

@@ -34,6 +34,7 @@
     "empty_state": "تاریخچه کلیپ‌بورد خالی است",
     "empty_state_desc": "متن یا تصویری را کپی کنید تا اینجا ظاهر شود.",
     "empty_shortcut": "Super + V",
+    "empty_hint": "سپس هر زمان Super+V را بزنید تا از تاریخچه بچسبانید.",
     "search_placeholder": "جستجو در تاریخچه...",
     "no_items_found": "موردی یافت نشد",
     "pinned_section": "سنجاق شده",
@@ -90,6 +91,13 @@
   },
   "settings_page": {
     "title": "تنظیمات",
+    "personalization": "شخصی‌سازی",
+    "personalization_desc": "ظاهر، زبان و حریم خصوصی تاریخچه کلیپ‌بورد را تنظیم کنید",
+    "saved": "ذخیره شد",
+    "saving": "در حال ذخیره…",
+    "save_error": "خطا در ذخیره",
+    "done": "تمام",
+    "loading_prefs": "در حال بارگذاری تنظیمات…",
     "appearance": "ظاهر",
     "theme": {
       "label": "حالت رنگ",

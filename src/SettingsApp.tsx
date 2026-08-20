@@ -57,7 +57,7 @@ function SettingsApp() {
   // Rendering environment (NVIDIA / AppImage detection)
   const renderingEnv = useRenderingEnv()
 
-  const { i18n } = useTranslation()
+  const { t, i18n } = useTranslation()
   // i18n
   useLanguageEffect(i18n)
 
@@ -115,15 +115,15 @@ function SettingsApp() {
 
     try {
       await invoke('set_user_settings', { newSettings })
-      setSaveMessage('Saved')
+      setSaveMessage(t('settings_page.saved'))
       setTimeout(() => setSaveMessage(null), 2000)
     } catch (err) {
       console.error('Failed to save settings:', err)
-      setSaveMessage('Error saving')
+      setSaveMessage(t('settings_page.save_error'))
     } finally {
       setIsSaving(false)
     }
-  }, [])
+  }, [t])
 
   // Centralized settings update helper
   const updateSettings = useCallback(
@@ -247,7 +247,7 @@ function SettingsApp() {
       >
         <div className="flex flex-col items-center gap-3">
           <div className="w-6 h-6 border-2 border-win11-bg-accent border-t-transparent rounded-full animate-spin" />
-          <span className="text-xs opacity-60 font-medium">Loading preferences...</span>
+          <span className="text-xs opacity-60 font-medium">{t('settings_page.loading_prefs')}</span>
         </div>
       </div>
     )
@@ -270,9 +270,9 @@ function SettingsApp() {
         )}
       >
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Personalization</h1>
+          <h1 className="text-2xl font-bold tracking-tight">{t('settings_page.personalization')}</h1>
           <p className={clsx('text-sm mt-1', isDark ? 'text-gray-400' : 'text-gray-500')}>
-            Customize the look and feel of your clipboard history
+            {t('settings_page.personalization_desc')}
           </p>
         </div>
 
@@ -282,7 +282,7 @@ function SettingsApp() {
             <div
               className={clsx(
                 'flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium',
-                saveMessage?.includes('Error')
+                saveMessage === t('settings_page.save_error')
                   ? 'bg-red-500/10 text-red-500'
                   : isDark
                     ? 'bg-white/10 text-white'
@@ -292,7 +292,7 @@ function SettingsApp() {
               {isSaving && (
                 <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
               )}
-              {saveMessage || 'Saving...'}
+              {saveMessage || t('settings_page.saving')}
             </div>
           )}
         </div>
@@ -371,7 +371,7 @@ function SettingsApp() {
           onClick={handleClose}
           className="px-8 py-2.5 bg-win11-bg-accent hover:opacity-90 active:scale-95 text-white rounded-lg text-sm font-semibold shadow-sm transition-all"
         >
-          Done
+          {i18n.t('settings_page.done')}
         </button>
       </footer>
     </div>

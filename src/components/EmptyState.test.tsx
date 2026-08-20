@@ -8,7 +8,8 @@ describe('EmptyState', () => {
     render(<EmptyState isDark={false} />)
     expect(screen.getByRole('status')).toBeInTheDocument()
     expect(screen.getByText(/clipboard history is empty/i)).toBeInTheDocument()
-    expect(screen.getByText(/Super \+ V/)).toBeInTheDocument()
+    expect(screen.getByLabelText(/Super \+ V/i)).toBeInTheDocument()
+    expect(screen.getByText('Super')).toBeInTheDocument()
   })
 
   it('renders in dark mode without crashing', () => {

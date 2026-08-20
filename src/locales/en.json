@@ -34,6 +34,7 @@
     "empty_state": "Clipboard history is empty",
     "empty_state_desc": "Copy some text or an image to see it here.",
     "empty_shortcut": "Super + V",
+    "empty_hint": "Then press Super+V anytime to paste from history.",
     "search_placeholder": "Search history...",
     "no_items_found": "No items found",
     "pinned_section": "Pinned",
@@ -90,6 +91,13 @@
   },
   "settings_page": {
     "title": "Settings",
+    "personalization": "Personalization",
+    "personalization_desc": "Customize the look, language, and privacy of your clipboard history",
+    "saved": "Saved",
+    "saving": "Saving…",
+    "save_error": "Error saving",
+    "done": "Done",
+    "loading_prefs": "Loading preferences…",
     "appearance": "Appearance",
     "theme": {
       "label": "Theme Mode",

@@ -7,18 +7,25 @@ use std::fs;
 use std::io::Write;
 use std::path::PathBuf;
 
+/// Autostart desktop entry. Exec never goes through a shell.
+/// / ورودی autostart. Exec هرگز از شل عبور نمی‌کند.
+///
+/// Delay is expressed with `X-GNOME-Autostart-Delay` (GNOME) rather than
+/// `sh -c "sleep …"` so the command line cannot be injected into.
+/// تأخیر با کلید دسکتاپ بیان می‌شود، نه با `sh -c`.
 const DESKTOP_ENTRY_TEMPLATE: &str = r#"[Desktop Entry]
 Type=Application
 Version=1.1
 Name=Clipboard History
 GenericName=Clipboard Manager
 Comment=Windows 11-style Clipboard History Manager
-Exec=sh -c "sleep 5 && 'EXEC_PATH' --background"
+Exec="EXEC_PATH" --background
 Icon=win11-clipboard-history
 Terminal=false
 Categories=Utility;
 StartupNotify=false
 X-GNOME-Autostart-enabled=true
+X-GNOME-Autostart-Delay=5
 "#;
 
 /// Get the path to the autostart directory
@@ -69,10 +76,14 @@ pub fn autostart_enable() -> Result<(), String> {
     fs::create_dir_all(&autostart_dir)
         .map_err(|e| format!("Failed to create autostart directory: {}", e))?;
 
-    // Get the correct executable path (wrapper preferred)
+    // Get the correct executable path (wrapper preferred). Reject control
+    // characters so they cannot break out of the quoted Exec= line.
     let exec_path = get_exec_path();
+    if exec_path.chars().any(|c| c.is_control() || c == '"') {
+        return Err("Refusing to write autostart entry with an unsafe executable path".into());
+    }
 
-    // Generate desktop entry content
+    // Generate desktop entry content (path is quoted in the template).
     let content = DESKTOP_ENTRY_TEMPLATE.replace("EXEC_PATH", &exec_path);
 
     // Write the desktop file
@@ -143,12 +154,11 @@ pub fn autostart_migrate() -> Result<bool, String> {
         .find(|line| line.trim_start().starts_with("Exec="))
         .is_some_and(|line| line.contains("win11-clipboard-history-bin"));
 
-    // Check if the Exec= line is missing the sleep (for multi-distro compatibility)
-    // We use sleep in exec instead of X-GNOME-Autostart-Delay for better compatibility
-    let missing_sleep = content
+    // Legacy entries used `sh -c "sleep 5 && …"` — migrate them off the shell.
+    let uses_shell = content
         .lines()
         .find(|line| line.trim_start().starts_with("Exec="))
-        .is_some_and(|line| !line.contains("sleep"));
+        .is_some_and(|line| line.contains("sh -c") || line.contains("sleep"));
 
     // Check if the Exec= line is missing the --background flag
     let missing_background = content
@@ -156,28 +166,19 @@ pub fn autostart_migrate() -> Result<bool, String> {
         .find(|line| line.trim_start().starts_with("Exec="))
         .is_some_and(|line| !line.contains("--background"));
 
-    // Check if using deprecated X-GNOME-Autostart-Delay (should use sleep in exec instead)
-    let has_gnome_delay = content
-        .lines()
-        .any(|line| line.trim_start().starts_with("X-GNOME-Autostart-Delay="));
-
-    let needs_migration = uses_old_binary || missing_sleep || missing_background || has_gnome_delay;
+    let needs_migration = uses_old_binary || uses_shell || missing_background;
 
     if needs_migration {
         if uses_old_binary {
             tracing::info!("[Autostart] Migrating from old binary path to wrapper...");
         }
-        if missing_sleep {
-            tracing::info!("[Autostart] Adding sleep to exec for proper tray initialization...");
+        if uses_shell {
+            tracing::info!("[Autostart] Removing shell wrapper from Exec= line...");
         }
         if missing_background {
             tracing::info!("[Autostart] Adding --background flag for minimized startup...");
         }
-        if has_gnome_delay {
-            tracing::info!("[Autostart] Replacing X-GNOME-Autostart-Delay with sleep in exec (multi-distro compatibility)...");
-        }
-
-        // Re-enable with correct path, sleep and --background
+        // Re-enable with a quoted Exec= line (no shell) and --background
         autostart_enable()?;
 
         return Ok(true); // Migration performed

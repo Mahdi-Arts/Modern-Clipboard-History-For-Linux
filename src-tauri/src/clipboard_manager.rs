@@ -10,7 +10,6 @@ use crate::history_crypto::HistoryCrypto;
 use crate::history_store::{self, PersistRow};
 use std::collections::{HashMap, HashSet};
 use std::fs;
-use std::hash::{Hash, Hasher};
 use std::path::PathBuf;
 use std::thread;
 use std::time::{Duration, Instant};
@@ -27,33 +26,16 @@ const FILE_URI_PREFIX: &str = "file://";
 const CLIPBOARD_HELPER_READY_TIMEOUT: Duration = Duration::from_secs(2);
 const CLIPBOARD_HELPER_POLL_INTERVAL: Duration = Duration::from_millis(2);
 
-const FNV_OFFSET_BASIS: u64 = 0xcbf29ce484222325;
-const FNV_PRIME: u64 = 0x100000001b3;
+pub use crate::content_hash::calculate_hash;
 
-struct FnvHasher(u64);
-
-impl Default for FnvHasher {
-    fn default() -> Self {
-        FnvHasher(FNV_OFFSET_BASIS)
+fn truncate_chars(s: &str, max: usize) -> String {
+    let mut chars = s.chars();
+    let head: String = chars.by_ref().take(max).collect();
+    if chars.next().is_none() {
+        s.to_string()
+    } else {
+        head
     }
-}
-
-impl Hasher for FnvHasher {
-    fn finish(&self) -> u64 {
-        self.0
-    }
-    fn write(&mut self, bytes: &[u8]) {
-        for &byte in bytes {
-            self.0 ^= byte as u64;
-            self.0 = self.0.wrapping_mul(FNV_PRIME);
-        }
-    }
-}
-
-pub fn calculate_hash<T: Hash + ?Sized>(t: &T) -> u64 {
-    let mut s = FnvHasher::default();
-    t.hash(&mut s);
-    s.finish()
 }
 
 fn get_system_clipboard() -> Result<Clipboard, String> {
@@ -391,7 +373,7 @@ impl ClipboardManager {
     }
 
     fn persist_sqlite(&mut self) -> Result<(), String> {
-        let rows = self.collect_persist_rows();
+        let rows = self.collect_persist_rows()?;
         let tx = self.conn.transaction().map_err(|e| e.to_string())?;
         tx.execute("DELETE FROM items", []).map_err(|e| e.to_string())?;
         {
@@ -430,7 +412,7 @@ impl ClipboardManager {
                 .get(&item.id)
                 .map(|p| p.to_string_lossy().into_owned()),
             &self.crypto,
-        );
+        )?;
         history_store::execute_insert(&self.conn, &row)?;
         crate::fs_atomic::restrict_sqlite_files(&self.db_path);
         Ok(())
@@ -487,7 +469,7 @@ impl ClipboardManager {
         self.dirty = false;
     }
 
-    fn collect_persist_rows(&self) -> Vec<PersistRow> {
+    fn collect_persist_rows(&self) -> Result<Vec<PersistRow>, String> {
         self.history
             .iter()
             .enumerate()
@@ -851,7 +833,13 @@ impl ClipboardManager {
         self.last_added_text_hash = Some(calculate_hash(&text));
     }
 
-    pub fn paste_item(&mut self, item: &ClipboardItem) -> Result<(), String> {
+    /// Write `item` onto the OS clipboard without injecting Ctrl+V.
+    /// / نوشتن آیتم روی کلیپ‌بورد سیستم بدون تزریق Ctrl+V.
+    ///
+    /// Callers (`commands::paste_item`) then authorize keystroke injection
+    /// via the paste ticket + `wrote_recently` gate.
+    /// فراخواننده پس از آن تزریق را با بلیت paste و گیت `wrote_recently` مجاز می‌کند.
+    pub fn write_item_to_clipboard(&mut self, item: &ClipboardItem) -> Result<(), String> {
         self.mark_as_pasted(item);
         match &item.content {
             ClipboardContent::Text(text) => self.set_text_robust(text)?,
@@ -872,8 +860,16 @@ impl ClipboardManager {
                 }
             }
         }
-        self.simulate_paste_action()?;
+        // Stamp so inject_authorized_paste's wrote_recently gate can pass
+        // for image payloads that go through xclip/wl-copy without clipboard_io::write.
+        crate::clipboard_io::notify_write();
         self.move_item_to_top(&item.id);
+        Ok(())
+    }
+
+    pub fn paste_item(&mut self, item: &ClipboardItem) -> Result<(), String> {
+        self.write_item_to_clipboard(item)?;
+        self.simulate_paste_action()?;
         Ok(())
     }
 
@@ -979,6 +975,7 @@ impl ClipboardManager {
         if observed != text {
             return Err("Clipboard text verification returned different data".to_string());
         }
+        crate::clipboard_io::notify_write();
         Ok(())
     }
 
@@ -1083,7 +1080,7 @@ fn persist_row_from_item(
     item: &ClipboardItem,
     image_path: Option<String>,
     crypto: &HistoryCrypto,
-) -> PersistRow {
+) -> Result<PersistRow, String> {
     let (kind, text, html, image_hash, width, height, thumb) = match &item.content {
         ClipboardContent::Text(t) => ("text", Some(t.clone()), None, None, None, None, None),
         ClipboardContent::RichText { plain, html } => (
@@ -1109,21 +1106,21 @@ fn persist_row_from_item(
             Some(base64.clone()),
         ),
     };
-    PersistRow {
+    Ok(PersistRow {
         id: item.id.clone(),
         kind,
-        text: crypto.encrypt_optional(text.as_deref()),
-        html: crypto.encrypt_optional(html.as_deref()),
+        text: crypto.encrypt_optional(text.as_deref())?,
+        html: crypto.encrypt_optional(html.as_deref())?,
         image_path,
         image_hash,
         width,
         height,
-        preview: crypto.encrypt_str(&item.preview),
+        preview: crypto.encrypt_str(&item.preview)?,
         pinned: if item.pinned { 1 } else { 0 },
         created_at: item.timestamp.timestamp_millis(),
-        thumb: crypto.encrypt_optional(thumb.as_deref()),
+        thumb: crypto.encrypt_optional(thumb.as_deref())?,
         sort_index: idx as i64,
-    }
+    })
 }
 
 fn wait_for_clipboard_helper_ready(
@@ -1211,7 +1208,6 @@ mod tests {
         assert_eq!(mgr.get_history().len(), 1);
     }
 
-    #[test]
     #[test]
     fn secrets_and_disk_are_encrypted() {
         let dir = temp_dir().join(format!("clip-enc-{}", Uuid::new_v4()));
