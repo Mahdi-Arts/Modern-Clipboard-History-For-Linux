@@ -1,0 +1,312 @@
+//! Tauri Command Handlers
+//!
+//! All `#[tauri::command]` functions live here. They are thin wrappers that
+//! delegate to the domain modules (`ClipboardManager`, `EmojiManager`, etc.)
+//! and return [`AppError`] for structured, serialisable error reporting.
+
+use std::time::Duration;
+use tauri::{AppHandle, Emitter, Manager, State};
+
+use crate::clipboard_manager::{ClipboardItem, ClipboardManager};
+use crate::emoji_manager::{EmojiManager, EmojiUsage};
+use crate::error::AppError;
+use crate::input_simulator::simulate_paste_keystroke;
+use crate::theme_manager::{self, ThemeInfo};
+use crate::user_settings::{UserSettings, UserSettingsManager};
+use crate::AppState;
+
+// ---------------------------------------------------------------------------
+// History commands
+// ---------------------------------------------------------------------------
+
+#[tauri::command]
+pub fn get_history(state: State<AppState>) -> Vec<ClipboardItem> {
+    state.clipboard_manager.lock().get_history()
+}
+
+#[tauri::command]
+pub fn clear_history(state: State<AppState>) {
+    state.clipboard_manager.lock().clear();
+}
+
+#[tauri::command]
+pub fn delete_item(state: State<AppState>, id: String) {
+    state.clipboard_manager.lock().remove_item(&id);
+}
+
+#[tauri::command]
+pub fn toggle_pin(state: State<AppState>, id: String) -> Option<ClipboardItem> {
+    let result = state.clipboard_manager.lock().toggle_pin(&id);
+    if result.is_none() {
+        tracing::warn!("[toggle_pin] Item with id '{}' not found in history.", id);
+    }
+    result
+}
+
+// ---------------------------------------------------------------------------
+// Emoji commands
+// ---------------------------------------------------------------------------
+
+#[tauri::command]
+pub fn get_recent_emojis(state: State<AppState>) -> Vec<EmojiUsage> {
+    state.emoji_manager.lock().get_recent()
+}
+
+// ---------------------------------------------------------------------------
+// Mouse state
+// ---------------------------------------------------------------------------
+
+#[tauri::command]
+pub fn set_mouse_state(state: State<AppState>, inside: bool) {
+    state.is_mouse_inside.store(inside, Ordering::Relaxed);
+}
+
+// ---------------------------------------------------------------------------
+// User Settings commands
+// ---------------------------------------------------------------------------
+
+#[tauri::command]
+pub fn get_user_settings() -> Result<UserSettings, AppError> {
+    let manager = UserSettingsManager::new();
+    Ok(manager.load())
+}
+
+#[tauri::command]
+pub fn set_user_settings(
+    app: AppHandle,
+    state: State<AppState>,
+    new_settings: UserSettings,
+) -> Result<(), AppError> {
+    let manager = UserSettingsManager::new();
+    manager.save(&new_settings)?;
+
+    {
+        let mut clipboard_manager = state.clipboard_manager.lock();
+        if clipboard_manager.get_max_history_size() != new_settings.max_history_size {
+            clipboard_manager.set_max_history_size(new_settings.max_history_size);
+        }
+        clipboard_manager.set_privacy_policy(new_settings.privacy_policy());
+    }
+    crate::linux_shortcut_manager::set_allow_wm_config_rewrite(
+        new_settings.allow_wm_config_rewrite,
+    );
+
+    app.emit("app-settings-changed", &new_settings)
+        .map_err(|e| AppError::Other(format!("Failed to emit settings changed event: {e}")))?;
+
+    theme_manager::update_dynamic_tray_flag(new_settings.enable_dynamic_tray_icon);
+
+    let app_for_tray = app.clone();
+    let settings_for_tray = new_settings.clone();
+    tauri::async_runtime::spawn(async move {
+        theme_manager::refresh_tray_icon(&app_for_tray, &settings_for_tray).await;
+    });
+
+    Ok(())
+}
+
+#[tauri::command]
+pub fn is_settings_window_visible(app: AppHandle) -> bool {
+    app.get_webview_window("settings")
+        .map(|w| w.is_visible().unwrap_or(false))
+        .unwrap_or(false)
+}
+
+#[tauri::command]
+pub fn get_default_settings() -> UserSettings {
+    UserSettings::default()
+}
+
+#[tauri::command]
+pub async fn set_app_language(
+    app: AppHandle,
+    lang: String,
+    _state: State<'_, AppState>,
+) -> Result<(), AppError> {
+    if lang != "en" && lang != "fa" {
+        return Err(AppError::Other(
+            "Invalid language. Supported: en, fa".into(),
+        ));
+    }
+
+    let manager = UserSettingsManager::new();
+    let mut settings = manager.load();
+    settings.set_language(&lang);
+    manager.save(&settings)?;
+
+    app.emit("app-language-changed", &lang)
+        .map_err(|e| AppError::Other(format!("Failed to emit language change event: {e}")))?;
+
+    Ok(())
+}
+
+// ---------------------------------------------------------------------------
+// Theme detection commands
+// ---------------------------------------------------------------------------
+
+/// Get system color scheme from XDG Desktop Portal
+#[tauri::command]
+pub async fn get_system_theme() -> ThemeInfo {
+    theme_manager::get_system_color_scheme().await
+}
+
+/// Clear the cached theme value
+#[tauri::command]
+pub async fn refresh_system_theme() -> ThemeInfo {
+    theme_manager::clear_theme_cache().await;
+    theme_manager::get_system_color_scheme().await
+}
+
+/// Check if the D-Bus event listener is running
+#[tauri::command]
+pub fn is_theme_listener_active() -> bool {
+    theme_manager::is_event_listener_running()
+}
+
+// ---------------------------------------------------------------------------
+// Paste commands
+// ---------------------------------------------------------------------------
+
+#[tauri::command]
+pub async fn paste_item(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    id: String,
+) -> Result<(), AppError> {
+    let _paste_guard = state.paste_gate.lock().await;
+
+    let item = {
+        let manager = state.clipboard_manager.lock();
+        manager.get_item(&id).cloned()
+    };
+
+    match item {
+        Some(item) => {
+            crate::window_controller::WindowController::hide(&app);
+            crate::window_controller::PasteHelper::prepare_target_window(&app).await?;
+
+            let mut manager = state.clipboard_manager.lock();
+            manager.paste_item(&item)?;
+
+            let history = manager.get_history();
+            drop(manager);
+            let _ = app.emit("history-sync", &history);
+        }
+        None => {
+            tracing::warn!(
+                "[paste_item] Item with id '{}' not found in history. Syncing frontend...",
+                id
+            );
+            let history = state.clipboard_manager.lock().get_history();
+            let _ = app.emit("history-sync", &history);
+            return Err(AppError::NotFound { id });
+        }
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn paste_text(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    text: String,
+    item_type: Option<String>,
+) -> Result<(), AppError> {
+    let _paste_guard = state.paste_gate.lock().await;
+
+    if let Some(t) = item_type.as_deref() {
+        if t == "emoji" {
+            state.emoji_manager.lock().record_usage(&text);
+        }
+    }
+
+    crate::window_controller::WindowController::hide(&app);
+    crate::window_controller::PasteHelper::prepare_target_window(&app).await?;
+
+    {
+        let mut manager = state.clipboard_manager.lock();
+        manager.mark_text_as_pasted(&text);
+        manager.set_text_robust(&text)?;
+    }
+
+    simulate_paste_keystroke()?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn paste_gif_from_url(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    url: String,
+) -> Result<(), AppError> {
+    let _paste_guard = state.paste_gate.lock().await;
+
+    let url_clone = url.clone();
+    let file_uri = tokio::task::spawn_blocking(move || {
+        crate::gif_manager::paste_gif_to_clipboard_with_uri(&url_clone)
+    })
+    .await
+    .map_err(|e| AppError::Other(e.to_string()))?
+    .map_err(|e| AppError::Other(e.to_string()))?;
+
+    if let Some(uri) = file_uri {
+        let mut manager = state.clipboard_manager.lock();
+        manager.mark_text_as_pasted(&uri);
+        if let Some(trimmed) = uri.strip_suffix('\n') {
+            manager.mark_text_as_pasted(trimmed);
+        }
+    }
+
+    crate::window_controller::WindowController::hide(&app);
+    crate::window_controller::PasteHelper::prepare_target_window(&app).await?;
+
+    simulate_paste_keystroke()?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn finish_paste(
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<(), AppError> {
+    let _paste_guard = state.paste_gate.lock().await;
+    if !crate::clipboard_io::wrote_recently(Duration::from_secs(5)) {
+        return Err(AppError::Other(
+            "Refusing to inject Ctrl+V: no clipboard write was recorded in the last 5 seconds"
+                .into(),
+        ));
+    }
+    crate::window_controller::WindowController::hide(&app);
+    crate::window_controller::PasteHelper::prepare_target_window(&app).await?;
+    simulate_paste_keystroke()?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn copy_text_to_clipboard(
+    _state: State<'_, AppState>,
+    text: String,
+) -> Result<(), AppError> {
+    crate::clipboard_io::write(&crate::clipboard_io::Payload::Text(&text))?;
+    Ok(())
+}
+
+// ---------------------------------------------------------------------------
+// Setup commands
+// ---------------------------------------------------------------------------
+
+#[tauri::command]
+pub async fn finish_setup(app: AppHandle) -> Result<(), AppError> {
+    crate::permission_checker::mark_first_run_complete()?;
+
+    if let Some(setup_window) = app.get_webview_window("setup") {
+        let _ = setup_window.close();
+    }
+
+    if let Some(main_window) = app.get_webview_window("main") {
+        crate::window_controller::WindowController::position_and_show(&main_window, &app);
+    }
+
+    let _ = app.emit("setup_complete", ());
+    Ok(())
+}

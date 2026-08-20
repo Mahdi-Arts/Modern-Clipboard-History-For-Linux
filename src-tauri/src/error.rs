@@ -1,4 +1,7 @@
 //! Unified error types for the application.
+//!
+//! All Tauri commands return `Result<T, AppError>` for structured,
+//! serialisable error reporting to the frontend.
 
 use thiserror::Error;
 
@@ -40,11 +43,18 @@ pub enum AppError {
     #[error("Privacy policy blocked this clipboard item")]
     PrivacyBlocked,
 
+    #[error("Permission denied: {0}")]
+    PermissionDenied(String),
+
     #[error("{0}")]
     Other(String),
 }
 
 pub type AppResult<T> = Result<T, AppError>;
+
+// ---------------------------------------------------------------------------
+// From implementations for seamless ? operator usage
+// ---------------------------------------------------------------------------
 
 impl From<String> for AppError {
     fn from(msg: String) -> Self {
@@ -63,6 +73,22 @@ impl From<arboard::Error> for AppError {
         AppError::Clipboard(err.to_string())
     }
 }
+
+impl From<crate::clipboard_io::ClipError> for AppError {
+    fn from(err: crate::clipboard_io::ClipError) -> Self {
+        match err {
+            crate::clipboard_io::ClipError::Arboard(e) => AppError::Clipboard(e.to_string()),
+            crate::clipboard_io::ClipError::External(msg) => AppError::Clipboard(msg),
+            crate::clipboard_io::ClipError::VerificationFailed(msg) => {
+                AppError::Clipboard(format!("Verification failed: {msg}"))
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Tauri serialization (commands return AppError as a string to the frontend)
+// ---------------------------------------------------------------------------
 
 impl serde::Serialize for AppError {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>

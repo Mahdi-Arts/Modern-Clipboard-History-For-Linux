@@ -1,0 +1,21 @@
+#!/bin/sh
+set -e
+
+case "$1" in
+    remove|purge)
+        # Update desktop database
+        update-desktop-database /usr/share/applications 2>/dev/null || true
+
+        # Update icon cache
+        gtk-update-icon-cache -f -t /usr/share/icons/hicolor 2>/dev/null || true
+
+        # Remove autostart entries for all users
+        for user_home in /home/*; do
+            if [ -d "$user_home" ]; then
+                rm -f "$user_home/.config/autostart/win11-clipboard-history.desktop" 2>/dev/null || true
+            fi
+        done
+        ;;
+esac
+
+#DEBHELPER#

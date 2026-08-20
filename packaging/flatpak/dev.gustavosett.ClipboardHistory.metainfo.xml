@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>dev.gustavosett.ClipboardHistory</id>
+  <metadata_license>MIT</metadata_license>
+  <project_license>MIT</project_license>
+
+  <name>Clipboard History</name>
+  <summary>Windows 11-style clipboard manager for Linux</summary>
+  <summary xml:lang="fa">مدیر کلیپ‌بورد مدرن برای لینوکس با الهام از ویندوز ۱۱</summary>
+
+  <description>
+    <p>
+      A fast, bilingual clipboard manager for Linux (Wayland &amp; X11),
+      inspired by the Windows 11 Win+V clipboard experience. Built with
+      Tauri v2, React 19, and Rust for maximum performance and security.
+    </p>
+    <p xml:lang="fa">
+      مدیر کلیپ‌بورد سریع و دوزبانه برای لینوکس (Wayland و X11) با الهام
+      از تجربه Win+V ویندوز ۱۱. ساخته شده با Tauri v2، React 19 و Rust.
+    </p>
+    <p>Features include:</p>
+    <ul>
+      <li>Super+V / Ctrl+Alt+V shortcut to open clipboard history</li>
+      <li>Persian (فارسی) + English bilingual UI with instant RTL</li>
+      <li>Pin important items, emoji picker, kaomoji, and symbols</li>
+      <li>Local SQLite history with secret filter and privacy controls</li>
+      <li>Acrylic/glass UI with light, dark, and system theme support</li>
+      <li>Search with optional regex</li>
+      <li>Image clipboard support with thumbnail previews</li>
+    </ul>
+  </description>
+
+  <launchable type="desktop-id">dev.gustavosett.ClipboardHistory.desktop</launchable>
+
+  <url type="homepage">https://github.com/Mahdi-Arts/Modern-Clipboard-History-For-Linux</url>
+  <url type="bugtracker">https://github.com/Mahdi-Arts/Modern-Clipboard-History-For-Linux/issues</url>
+  <url type="vcs-browser">https://github.com/Mahdi-Arts/Modern-Clipboard-History-For-Linux</url>
+
+  <developer id="dev.gustavosett">
+    <name>Mahdi Arts</name>
+  </developer>
+
+  <content_rating type="oars-1.1" />
+
+  <releases>
+    <release version="1.1.0" date="2026-08-20">
+      <description>
+        <p>Production release with SQLite persistence, privacy filters, SSRF protection, and bilingual UI.</p>
+      </description>
+    </release>
+  </releases>
+
+  <categories>
+    <category>Utility</category>
+    <category>Office</category>
+  </categories>
+
+  <keywords>
+    <keyword>clipboard</keyword>
+    <keyword>history</keyword>
+    <keyword>paste</keyword>
+    <keyword>manager</keyword>
+    <keyword>linux</keyword>
+    <keyword xml:lang="fa">کلیپ‌بورد</keyword>
+    <keyword xml:lang="fa">تاریخچه</keyword>
+  </keywords>
+
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+    <control>touch</control>
+  </supports>
+
+  <requires>
+    <display_length compare="ge">360</display_length>
+  </requires>
+</component>
