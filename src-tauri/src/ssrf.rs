@@ -1,10 +1,13 @@
 //! SSRF protection for outbound downloads (GIF paste).
 //! HTTPS-only, host allowlist, DNS resolution checks, no redirects.
 
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, ToSocketAddrs};
+use std::net::SocketAddr;
+use std::net::ToSocketAddrs;
 #[cfg(feature = "gif-search")]
 use std::time::Duration;
 use url::Url;
+
+use crate::net_policy::{is_disallowed_ip, looks_like_dotted_ipv4};
 
 /// A URL that has been allowlisted and whose DNS records were all public.
 #[derive(Debug, Clone)]
@@ -31,7 +34,7 @@ pub fn validate_public_https_url(url: &str) -> Result<Url, String> {
         .ok_or_else(|| "URL is missing a host".to_string())?
         .to_ascii_lowercase();
 
-    if host.parse::<IpAddr>().is_ok() {
+    if host.parse::<std::net::IpAddr>().is_ok() || looks_like_dotted_ipv4(&host) {
         return Err("Direct IP downloads are not allowed".into());
     }
     if !is_allowed_host(&host) {
@@ -126,46 +129,10 @@ fn is_allowed_host(host: &str) -> bool {
     })
 }
 
-pub fn is_disallowed_ip(ip: IpAddr) -> bool {
-    match ip {
-        IpAddr::V4(v4) => is_disallowed_v4(v4),
-        IpAddr::V6(v6) => {
-            if let Some(v4) = v6.to_ipv4_mapped() {
-                return is_disallowed_v4(v4);
-            }
-            is_disallowed_v6(v6)
-        }
-    }
-}
-
-fn is_disallowed_v4(ip: Ipv4Addr) -> bool {
-    let o = ip.octets();
-    ip.is_loopback()
-        || ip.is_private()
-        || ip.is_link_local()
-        || ip.is_unspecified()
-        || ip.is_broadcast()
-        || ip.is_multicast()
-        || o[0] == 0
-        || (o[0] == 100 && o[1] & 0b1100_0000 == 0b0100_0000) // 100.64.0.0/10 CGNAT
-        || (o[0] == 192 && o[1] == 0 && o[2] == 0) // 192.0.0.0/24 IETF
-        || (o[0] == 192 && o[1] == 0 && o[2] == 2) // TEST-NET-1
-        || (o[0] == 198 && (o[1] == 18 || o[1] == 19)) // benchmark
-        || (o[0] == 198 && o[1] == 51 && o[2] == 100)
-        || (o[0] == 203 && o[1] == 0 && o[2] == 113)
-}
-
-fn is_disallowed_v6(ip: Ipv6Addr) -> bool {
-    let s = ip.segments();
-    ip.is_loopback()
-        || ip.is_unspecified()
-        || ip.is_multicast()
-        || (s[0] & 0xffc0) == 0xfe80 // link-local fe80::/10
-        || (s[0] & 0xfe00) == 0xfc00 // unique local fc00::/7
-        || s[0] == 0x2001 && s[1] == 0x0db8 // documentation
-}
-
 /// reqwest redirect policy: never follow. Callers must re-validate any new URL.
+/// Compiled only with `--features gif-search` (reqwest is optional).
+/// سیاست redirect: هرگز دنبال نکن. فقط با `--features gif-search`.
+#[cfg(feature = "gif-search")]
 pub fn no_redirects() -> reqwest::redirect::Policy {
     reqwest::redirect::Policy::none()
 }
@@ -194,6 +161,7 @@ mod tests {
 
     #[test]
     fn private_ips_are_blocked() {
+        use crate::net_policy::is_disallowed_ip;
         assert!(is_disallowed_ip("10.0.0.1".parse().unwrap()));
         assert!(is_disallowed_ip("192.168.1.1".parse().unwrap()));
         assert!(is_disallowed_ip("127.0.0.1".parse().unwrap()));

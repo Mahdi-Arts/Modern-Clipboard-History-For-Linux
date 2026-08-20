@@ -1,3 +1,13 @@
+win11-clipboard-history (2.5.0-1) unstable; urgency=medium
+
+  * Activate live blocking CI/release (audit, deny, coverage, cargo test, SHA256SUMS, SPDX, SLSA).
+  * Default build compiles without gif-search/reqwest; GIF commands stubbed.
+  * Paste injection gated to the main window; paste ticket no longer a no-op.
+  * Encrypted image files at rest; shared net_policy; expanded secret filter.
+  * Per-window Tauri capabilities; tighter AppArmor /tmp rules.
+
+ -- Mahdi Arts <mahdi-arts@users.noreply.github.com>  Fri, 21 Aug 2026 18:00:00 +0330
+
 win11-clipboard-history (2.4.0-1) unstable; urgency=medium
 
   * Fail-closed key load (no ephemeral re-key) and AEAD decrypt errors.

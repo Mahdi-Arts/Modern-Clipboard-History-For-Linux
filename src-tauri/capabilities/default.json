@@ -1,7 +1,7 @@
 {
   "identifier": "default",
-  "description": "Capability for the main, setup and settings windows",
-  "windows": ["main", "setup", "settings"],
+  "description": "Capability for the main clipboard window (paste / shortcuts live here).\nقابلیت پنجرهٔ اصلی کلیپ‌بورد (paste و میانبرها اینجا هستند).",
+  "windows": ["main"],
   "permissions": [
     "core:default",
     "core:window:default",

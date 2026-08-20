@@ -3,10 +3,11 @@ name: CI
 # Hardened quality gate — every check in this file is BLOCKING.
 # گیت کیفیت سخت‌گیرانه — تمام بررسی‌های این فایل «مسدودکننده» هستند.
 #
-# Contract (mirrored in README.md — keep both in sync):
+# Contract (mirrored in docs/CI.md and README.md — keep all three in sync):
 #   - ESLint + tsc, zero warnings
 #   - Frontend unit tests WITH coverage thresholds
-#   - cargo fmt + clippy -D warnings + cargo test
+#   - cargo fmt + clippy -D warnings
+#   - cargo test (default features, no HTTP) AND cargo test --all-features
 #   - cargo audit / npm audit --audit-level=high / cargo-deny (no continue-on-error)
 #   - Release build + CLI smoke (--version / --help) under Xvfb
 
@@ -28,10 +29,6 @@ env:
   RUSTFLAGS: -D warnings
 
 jobs:
-  # ---------------------------------------------------------------------
-  # Frontend + Rust quality gates (lint, format, unit tests, coverage)
-  # گیت‌های کیفیت فرانت‌اند و Rust (لینت، فرمت، تست واحد، پوشش)
-  # ---------------------------------------------------------------------
   quality:
     name: Lint, Test & Coverage
     runs-on: ubuntu-latest
@@ -83,13 +80,12 @@ jobs:
       - name: Clippy (deny warnings)
         run: cd src-tauri && cargo clippy --all-targets -- -D warnings
 
-      - name: Rust unit tests
+      - name: Rust unit tests (default features — no HTTP client)
+        run: cd src-tauri && cargo test
+
+      - name: Rust unit tests (all features)
         run: cd src-tauri && cargo test --all-features
 
-  # ---------------------------------------------------------------------
-  # Blocking supply-chain audits (no continue-on-error)
-  # ممیزی‌های مسدودکنندهٔ زنجیرهٔ تأمین (بدون continue-on-error)
-  # ---------------------------------------------------------------------
   security:
     name: Security Audit
     runs-on: ubuntu-latest
@@ -125,10 +121,6 @@ jobs:
       - name: npm audit (blocking, high+)
         run: npm audit --audit-level=high
 
-  # ---------------------------------------------------------------------
-  # Production Linux build + CLI smoke test
-  # بیلد لینوکس + تست دودی CLI
-  # ---------------------------------------------------------------------
   build-linux:
     name: Build Linux
     runs-on: ubuntu-latest

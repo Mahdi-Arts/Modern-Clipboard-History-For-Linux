@@ -72,7 +72,7 @@ flowchart LR
 | UI | React 19, TypeScript strict, Tailwind 4 | Three windows; lazy pickers; virtualized list |
 | Backend | Rust, Tauri v2 | Domain modules, typed `AppError` |
 | Clipboard I/O | arboard + `wl-copy` / `xclip` | Read/write with fallback |
-| Persistence | SQLite WAL, field encryption, PNG thumbs | Cap 2000 items; bounded paged reads |
+| Persistence | SQLite WAL, field + image encryption, PNG thumbs | Cap 2000 items; bounded paged reads |
 | Key storage | `history.key` (0600) or Secret Service keyring | Marker-verified, fail-closed |
 | Input | Persistent uinput / XTest | Ctrl+V after an authorized write |
 | Packaging | deb / rpm / AppImage / AUR / Flatpak | Multi-distro |
@@ -101,3 +101,4 @@ retention), `clipboard_write` (OS clipboard I/O). Cross-module internals use
 - [0005 CI & supply chain](adr/0005-ci-supply-chain.md)
 - [0006 Secret Service key storage](adr/0006-secret-service-key-storage.md)
 - [0007 IPC pagination](adr/0007-ipc-pagination.md)
+- [0008 Window ACL + image encryption](adr/0008-window-acl-and-image-encryption.md)

@@ -44,6 +44,11 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="2.5.0" date="2026-08-21">
+      <description>
+        <p>Enterprise 2.5: live blocking CI/release, main-window paste ACL, encrypted images, gif-search compile-time isolation, shared IP policy.</p>
+      </description>
+    </release>
     <release version="2.4.0" date="2026-08-21">
       <description>
         <p>Enterprise hardening: fail-closed history crypto, paged IPC by default, GIF HTTP behind a compile feature, blocking CI/release supply-chain gates.</p>

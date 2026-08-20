@@ -10,6 +10,42 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2.5.0] - 2026-08-21
+
+### Security / امنیت
+
+- **Hardened CI/release contract** in `docs/github-workflows/` (blocking
+  lint, coverage, `cargo test` default + all-features, clippy, `cargo audit`,
+  `cargo deny`, `npm audit`; releases publish `SHA256SUMS`, per-artifact SPDX
+  SBOM, and SLSA provenance). Copy onto `.github/workflows/` with a
+  `workflows`-scoped token ([docs/github-workflows/README.md](docs/github-workflows/README.md)).
+  قرارداد CI/انتشار سخت‌شده در `docs/github-workflows/`؛ فعال‌سازی زنده با مجوز `workflows`.
+- **GIF HTTP is compile-clean.** Default build no longer references `reqwest`
+  or `gif_manager`; `paste_gif_from_url` / `search_tenor` stub without the
+  feature. `ssrf::no_redirects` is cfg-gated.
+  بیلد پیش‌فرض بدون کلاینت HTTP کامپایل می‌شود.
+- **Paste ACL.** Keystroke injection is refused unless the caller is the
+  `main` window. `inject_authorized_paste` no longer issues-and-consumes its
+  own ticket (that check was a no-op). Tickets remain for the GIF path.
+  تزریق کلید فقط از پنجرهٔ اصلی.
+- **Encrypted images.** PNG files use the `W11E1` ChaCha20-Poly1305 envelope;
+  legacy plaintext PNGs still load. Deletes overwrite with zeros.
+  تصاویر روی دیسک رمز می‌شوند.
+- **Shared `net_policy`.** SSRF and Smart-Action URL opening share one IP
+  blocklist. Secret filter now matches Bearer, GitLab, npm, HuggingFace,
+  Anthropic, AWS secret keys, and Azure AccountKey.
+  سیاست IP مشترک و فیلتر اسرار گسترده‌تر.
+
+### Changed / تغییرات
+
+- Tauri capabilities split per window (`main` / `settings` / `setup`).
+  قابلیت‌های Tauri به ازای پنجره جدا شدند.
+- AppArmor `/tmp` is owner-only. / دسترسی `/tmp` در AppArmor فقط مالک است.
+- Load-more control and empty-state icon polish.
+  دکمهٔ «بارگذاری بیشتر» و حالت خالی زیباتر شد.
+
+---
+
 ## [2.4.0] - 2026-08-21
 
 ### Security / امنیت

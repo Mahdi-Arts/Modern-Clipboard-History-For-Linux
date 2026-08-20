@@ -46,7 +46,7 @@
 Clipboard history is stored **only on this machine**:
 
 - Database: `~/.local/share/win11-clipboard-history/history.db` (mode `0600`, text columns encrypted at rest)
-- Images: `~/.local/share/win11-clipboard-history/images/` (full PNG; UI gets a thumbnail)
+- Images: `~/.local/share/win11-clipboard-history/images/` (ChaCha20-Poly1305 at rest; UI gets a thumbnail)
 - Settings: `~/.config/win11-clipboard-history/user_settings.json`
 - Encryption key: `history.key` (mode `0600`) next to the database — **or** the
   freedesktop Secret Service keyring (Settings → Privacy, see
@@ -87,7 +87,7 @@ Download the `.deb` from [GitHub Releases](https://github.com/Mahdi-Arts/Modern-
 ### Fedora
 
 ```bash
-sudo dnf install ./win11-clipboard-history-2.4.0-1.x86_64.rpm
+sudo dnf install ./win11-clipboard-history-2.5.0-1.x86_64.rpm
 sudo setfacl -m u:$USER:rw /dev/uinput
 ```
 
@@ -139,7 +139,7 @@ Full diagram: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 | UI | React 19, TypeScript, Tailwind CSS 4, lazy-loaded pickers |
 | Backend | Rust, Tauri v2 (shortcut backends split per-DE) |
 | Clipboard I/O | arboard + `wl-copy` / `xclip` |
-| Persistence | SQLite (WAL) + ChaCha20-Poly1305 field encryption, PNG files, atomic JSON |
+| Persistence | SQLite (WAL) + ChaCha20-Poly1305 field **and image** encryption, atomic JSON |
 | Key storage | `history.key` (0600) or Secret Service keyring — marker-verified, fail-closed ([ADR-0006](docs/adr/0006-secret-service-key-storage.md)) |
 | IPC | Default paged reads (`get_history_page`, [ADR-0007](docs/adr/0007-ipc-pagination.md)); `get_history` is a clamped first page |
 | Input | Persistent uinput device (Wayland) / XTest (X11), paste tickets |
@@ -180,7 +180,9 @@ npm run test:coverage   # coverage thresholds enforced
 node scripts/check-rust-syntax.mjs  # fast syntax gate (tree-sitter)
 ```
 
-CI (see `.github/workflows/ci.yml`) **blocks** on:
+CI contract: [`docs/CI.md`](docs/CI.md). Hardened workflows live in
+[`docs/github-workflows/`](docs/github-workflows/) (apply onto
+`.github/workflows/` with a `workflows`-scoped token). The gate **blocks** on:
 
 - `npm run lint` (tsc + ESLint, zero warnings)
 - `npm run test:coverage` (Vitest + coverage thresholds)
@@ -208,6 +210,7 @@ Packaging notes (`.deb` → GitHub Release → Flatpak deployment guide):
 - Architecture: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 - Full threat model: [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md)
 - Architecture decision records: [`docs/adr/`](docs/adr/)
+- Live CI contract: [`docs/CI.md`](docs/CI.md)
 - Reporting vulnerabilities: [`SECURITY.md`](.github/SECURITY.md) (GitHub private advisory — do not open public issues)
 
 ---

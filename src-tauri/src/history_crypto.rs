@@ -454,6 +454,41 @@ impl HistoryCrypto {
         }
     }
 
+    /// Encrypt raw bytes (image files). Fail-closed: never returns plaintext.
+    /// رمزنگاری بایت خام (فایل تصویر). در خطا شکست می‌خورد؛ هرگز plaintext برنمی‌گرداند.
+    pub fn encrypt_bytes(&self, plain: &[u8]) -> Result<Vec<u8>, String> {
+        let mut nonce_bytes = [0u8; NONCE_LEN];
+        OsRng.fill_bytes(&mut nonce_bytes);
+        let nonce = Nonce::from_slice(&nonce_bytes);
+        let ct = self
+            .cipher
+            .encrypt(nonce, plain)
+            .map_err(|e| format!("ChaCha20-Poly1305 encrypt failed: {e}"))?;
+        let mut out = Vec::with_capacity(MAGIC.len() + NONCE_LEN + ct.len());
+        out.extend_from_slice(MAGIC);
+        out.extend_from_slice(&nonce_bytes);
+        out.extend_from_slice(&ct);
+        Ok(out)
+    }
+
+    /// Decrypt raw bytes. Legacy plaintext PNG (`\\x89PNG`) is returned as-is.
+    /// رمزگشایی بایت. PNG قدیمی بدون پاکت همان‌طور برمی‌گردد.
+    pub fn decrypt_bytes(&self, stored: &[u8]) -> Result<Vec<u8>, String> {
+        if stored.starts_with(b"\x89PNG") {
+            return Ok(stored.to_vec());
+        }
+        let magic_len = MAGIC.len();
+        if stored.len() < magic_len + NONCE_LEN + 16 || !stored.starts_with(MAGIC) {
+            return Err("encrypted blob has an invalid envelope".into());
+        }
+        let payload = &stored[magic_len..];
+        let (nonce_bytes, ct) = payload.split_at(NONCE_LEN);
+        let nonce = Nonce::from_slice(nonce_bytes);
+        self.cipher
+            .decrypt(nonce, ct)
+            .map_err(|_| "ChaCha20-Poly1305 decrypt failed (wrong key or tampered data)".to_string())
+    }
+
     /// Decrypt `stored`. Legacy plaintext (no `W11E1` envelope) is returned
     /// as-is. Tampered or foreign-key ciphertext **errors** instead of
     /// leaking the blob into the UI (fail-closed).
@@ -548,8 +583,16 @@ mod tests {
         let crypto = HistoryCrypto::load_or_create(&dir).unwrap();
         let enc = crypto.encrypt_str("secret clipboard").unwrap();
         assert_ne!(enc, "secret clipboard");
-        assert_eq!(crypto.decrypt_str(&enc), "secret clipboard");
-        assert_eq!(crypto.decrypt_str("legacy plaintext"), "legacy plaintext");
+        assert_eq!(crypto.decrypt_str(&enc).unwrap(), "secret clipboard");
+        assert_eq!(
+            crypto.decrypt_str("legacy plaintext").unwrap(),
+            "legacy plaintext"
+        );
+        let png = b"\x89PNG\r\n\x1a\nhello-image";
+        let enc_img = crypto.encrypt_bytes(png).unwrap();
+        assert_ne!(enc_img.as_slice(), png.as_slice());
+        assert_eq!(crypto.decrypt_bytes(&enc_img).unwrap(), png);
+        assert_eq!(crypto.decrypt_bytes(png).unwrap(), png);
     }
 
     #[test]

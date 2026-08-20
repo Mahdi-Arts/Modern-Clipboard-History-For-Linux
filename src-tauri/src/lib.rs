@@ -144,6 +144,7 @@ pub mod history_store;
 pub mod image_store;
 pub mod input_simulator;
 pub mod linux_shortcut_manager;
+pub mod net_policy;
 pub mod open_url;
 pub mod paste_sync;
 pub mod permission_checker;
