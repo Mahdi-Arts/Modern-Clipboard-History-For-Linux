@@ -1,8 +1,10 @@
 win11-clipboard-history (2.2.0-1) unstable; urgency=medium
 
+  * Field-level ChaCha20-Poly1305 encryption for SQLite history text.
+  * Split history_store / history_crypto from clipboard_manager.
+  * Blocking cargo/npm audit in CI; SHA256SUMS on GitHub Releases.
   * Production hardening: paste tickets, Rust URL opener (no shell plugin),
-    IPC payload truncation, SQLite WAL 0600 + secure_delete, blocking CI
-    tests/audits, SHA256SUMS + SPDX SBOM + provenance on release.
+    IPC payload truncation, SQLite WAL 0600 + secure_delete.
   * Installer verifies GitHub artifacts by default (no curl|sudo bash).
 
  -- Mahdi Arts <mahdi-arts@users.noreply.github.com>  Thu, 20 Aug 2026 23:00:00 +0330

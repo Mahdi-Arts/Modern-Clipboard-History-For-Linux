@@ -203,24 +203,26 @@ body {
 @layer components {
   .glass-effect {
     background: linear-gradient(
-      135deg,
-      rgba(40, 40, 40, var(--win11-dark-bg-alpha-start, 0.7)) 0%,
-      rgba(40, 40, 40, var(--win11-dark-bg-alpha-end, 0.67)) 100%
+      160deg,
+      rgba(36, 36, 36, var(--win11-dark-bg-alpha-start, 0.7)) 0%,
+      rgba(28, 28, 28, var(--win11-dark-bg-alpha-end, 0.67)) 100%
     );
     box-shadow:
-      0 8px 32px rgba(0, 0, 0, 0.25),
-      inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+      0 12px 40px rgba(0, 0, 0, 0.32),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(24px) saturate(1.2);
   }
 
   .glass-effect-light {
     background: linear-gradient(
-      135deg,
+      160deg,
       rgba(255, 255, 255, var(--win11-light-bg-alpha-start, 0.7)) 0%,
-      rgba(255, 255, 255, var(--win11-light-bg-alpha-end, 0.65)) 100%
+      rgba(248, 249, 252, var(--win11-light-bg-alpha-end, 0.65)) 100%
     );
     box-shadow:
-      0 8px 32px rgba(0, 0, 0, 0.15),
-      inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+      0 12px 36px rgba(15, 23, 42, 0.12),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.65);
+    backdrop-filter: blur(24px) saturate(1.15);
   }
 
   /*

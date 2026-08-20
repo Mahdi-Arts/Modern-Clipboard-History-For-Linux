@@ -81,6 +81,10 @@ url = "2"
 # Local history database (bundled SQLite — no system lib required)
 rusqlite = { version = "0.32", features = ["bundled"] }
 
+# Field-level at-rest encryption for history text columns
+chacha20poly1305 = "0.10"
+rand = "0.8"
+
 # Async stream for reqwest
 futures-util = "0.3"
 

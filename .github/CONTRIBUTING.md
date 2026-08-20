@@ -126,6 +126,7 @@ make dev
 
 - [ ] کد مطابق با راهنمای سبک پروژه است
 - [ ] همه لینترها پاس می‌شوند (`make lint`)
+- [ ] `cargo test --lib` برای تست‌های persistence، رمزنگاری و paste ticket
 - [ ] تغییرات محلی تست شده‌اند: `npm test` و `npm run test:coverage` (گیت پوشش) و `node scripts/check-rust-syntax.mjs`
 - [ ] برای تغییرات Rust: `cargo fmt --check` و `cargo clippy -- -D warnings`
 - [ ] مستندات به‌روز شده است (در صورت نیاز)

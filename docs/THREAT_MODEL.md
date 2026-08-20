@@ -61,6 +61,7 @@ Key boundaries:
 
 ### 4.2 Local exposure (T2)
 - SQLite DB, images, settings, logs: `0600` files / `0700` dirs via `fs_atomic::restrict_permissions`.
+- History text columns are encrypted at rest (ChaCha20-Poly1305; see ADR 0004).
 - AppArmor profile (complain by default) restricts file/socket access to the app's own XDG dirs + `/dev/uinput`.
 - Atomic writes (`write_atomic`) prevent partial/corrupt state and .tmp disclosure.
 
@@ -86,7 +87,7 @@ Key boundaries:
 | Limitation | Risk | Mitigation / status |
 | --- | --- | --- |
 | Wayland: no focused-app detection | Secrets from password managers can land in history on Wayland | Secret filter still applies; UI warns; documented in README |
-| History is stored **unencrypted** | A local attacker who already has user-level access can read A1 | `0600` + OS encryption-at-rest; optional SQLCipher encryption is a roadmap item |
+| History text is field-encrypted; key is a local `history.key` | A local attacker with the same UID can still read the key | `0600` + ChaCha20-Poly1305; libsecret wrapping is a roadmap item |
 | `style-src 'unsafe-inline'` in CSP | XSS would still be constrained (no `script-src` relaxation), but inline styles are allowed | Required by Tailwind/React inline styles; revisit with hashing if feasible |
 | pkexec prompt surface | Social-engineering of the "Fix permissions" flow | Only triggered by explicit user action; command is argv-fixed (`setfacl -m u:<user>:rw /dev/uinput`) |
 | AppImage/Flatpak cannot install udev rules | Paste unavailable until user grants `/dev/uinput` | Documented; deb/rpm are the recommended channels |

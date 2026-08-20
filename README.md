@@ -36,7 +36,7 @@
 
 Clipboard history is stored **only on this machine**:
 
-- Database: `~/.local/share/win11-clipboard-history/history.db` (mode `0600`)
+- Database: `~/.local/share/win11-clipboard-history/history.db` (mode `0600`, text columns encrypted at rest)
 - Images: `~/.local/share/win11-clipboard-history/images/` (full PNG; UI gets a thumbnail)
 - Settings: `~/.config/win11-clipboard-history/user_settings.json`
 
@@ -120,7 +120,7 @@ The installer **requires** matching the downloaded artifact against the release'
 | UI | React 19, TypeScript, Tailwind CSS 4, lazy-loaded pickers |
 | Backend | Rust, Tauri v2 (shortcut backends split per-DE in `linux_shortcut_manager/`) |
 | Clipboard I/O | arboard + `wl-copy` / `xclip` |
-| Persistence | SQLite (WAL) incremental upsert, PNG files, atomic JSON for settings |
+| Persistence | SQLite (WAL) + ChaCha20-Poly1305 field encryption, PNG files, atomic JSON |
 | Input | Persistent uinput device (Wayland) / XTest (X11) |
 | Fonts | Bundled Vazirmatn (SIL OFL 1.1) — zero runtime network calls |
 | Security | CSP (`font-src 'self'`), `withGlobalTauri: false`, SSRF allowlist + DNS pin, Rust `open_safe_url`, paste tickets, mandatory checksum verification |
