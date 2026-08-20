@@ -137,6 +137,7 @@ pub mod emoji_manager;
 pub mod error;
 pub mod focus_manager;
 pub mod fs_atomic;
+#[cfg(feature = "gif-search")]
 pub mod gif_manager;
 pub mod history_crypto;
 pub mod history_store;
@@ -152,6 +153,7 @@ pub mod session;
 pub mod shortcut_conflict_detector;
 pub mod shortcut_setup;
 pub mod ssrf;
+#[cfg(feature = "gif-search")]
 pub mod tenor_api;
 pub mod theme_manager;
 pub mod user_settings;

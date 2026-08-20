@@ -148,7 +148,7 @@ fn looks_like_password_assignment(text: &str) -> bool {
         "client_secret=",
         "api_secret=",
     ];
-    KEYS.iter().any(|k| lower.contains(k)) && text.len() < 4096
+    KEYS.iter().any(|k| lower.contains(k))
 }
 
 /// True when the focused window should not contribute clipboard history.

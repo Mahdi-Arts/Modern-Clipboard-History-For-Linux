@@ -84,6 +84,11 @@ pub struct ClipboardManager {
     images_dir: PathBuf,
     conn: Connection,
     crypto: HistoryCrypto,
+    /// When false, disk I/O is skipped so a missing/wrong key cannot
+    /// re-encrypt history under a fresh key (fail-closed, ADR-0004/0006).
+    /// وقتی نادرست باشد I/O دیسک انجام نمی‌شود تا کلید تازه تاریخچه را
+    /// دوباره رمز نکند (fail-closed).
+    persist_enabled: bool,
     image_paths: HashMap<String, PathBuf>,
     max_history_size: usize,
     dirty: bool,
@@ -137,16 +142,27 @@ impl ClipboardManager {
             error!("[ClipboardManager] Failed to open SQLite ({e}); using in-memory fallback");
             Connection::open_in_memory().expect("in-memory sqlite")
         });
-        let crypto = HistoryCrypto::load_or_create_with_backend(&base_dir, key_backend).unwrap_or_else(
-            |e| {
-                error!(
-                    "[ClipboardManager] No usable history key ({e}); generating ephemeral key. \
-                     Existing history cannot be decrypted until the key issue is resolved."
-                );
-                HistoryCrypto::load_or_create(&std::env::temp_dir().join("win11-clipboard-ephemeral"))
-                    .expect("ephemeral history crypto")
-            },
-        );
+        let (crypto, persist_enabled) =
+            match HistoryCrypto::load_or_create_with_backend(&base_dir, key_backend) {
+                Ok(c) => (c, true),
+                Err(e) => {
+                    error!(
+                        "[ClipboardManager] No usable history key ({e}); refusing to adopt a \
+                         fresh key that would corrupt existing history. Persistence is disabled \
+                         for this session (fail-closed)."
+                    );
+                    // Process-local key that is NEVER written next to the real DB.
+                    // کلید موقت جلسه که هرگز کنار دیتابیس واقعی نوشته نمی‌شود.
+                    let ephemeral_dir = std::env::temp_dir()
+                        .join(format!("win11-clip-unusable-{}", Uuid::new_v4()));
+                    let _ = fs::create_dir_all(&ephemeral_dir);
+                    (
+                        HistoryCrypto::load_or_create(&ephemeral_dir)
+                            .expect("session-local crypto"),
+                        false,
+                    )
+                }
+            };
 
         let mut manager = Self {
             history: Vec::with_capacity(max_size),
@@ -159,15 +175,22 @@ impl ClipboardManager {
             images_dir,
             conn,
             crypto,
+            persist_enabled,
             image_paths: HashMap::new(),
             max_history_size: max_size,
             dirty: false,
             privacy: PrivacyPolicy::default(),
             auto_delete_interval_minutes: 0,
         };
-        manager.migrate_legacy_json();
-        manager.load_from_db();
-        manager.rebuild_hash_index();
+        if persist_enabled {
+            manager.migrate_legacy_json();
+            manager.load_from_db();
+            manager.rebuild_hash_index();
+        } else {
+            warn!(
+                "[ClipboardManager] Starting with an empty in-memory history (key unavailable)"
+            );
+        }
         manager
     }
 

@@ -2,49 +2,56 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { invoke } from '@tauri-apps/api/core'
 import { listen, UnlistenFn } from '@tauri-apps/api/event'
 import type { ClipboardItem, HistoryPage } from '../types/clipboard'
-import { clampOffset, clampPageSize, hasNextPage, mergePageById } from '../utils/pagination'
+import {
+  clampOffset,
+  clampPageSize,
+  DEFAULT_PAGE_SIZE,
+  mergePageById,
+} from '../utils/pagination'
 
 /** Options for windowed history loading (ADR-0007).
  *  گزینه‌های بارگذاری پنجره‌ای تاریخچه (ADR-0007). */
 export interface UseClipboardHistoryOptions {
   /**
-   * When set, the initial load and `loadMore` fetch bounded pages via
-   * `get_history_page` instead of one full `get_history` payload.
-   * وقتی تنظیم شود، بارگذاری اولیه و `loadMore` به‌جای یک بار کامل،
-   * پنجره‌های محدود از `get_history_page` می‌گیرند.
+   * Page size for `get_history_page`. Defaults to DEFAULT_PAGE_SIZE (100).
+   * اندازهٔ صفحه برای `get_history_page`. پیش‌فرض ۱۰۰.
    */
   pageSize?: number
 }
 
+function isHistoryPage(payload: unknown): payload is HistoryPage {
+  return (
+    typeof payload === 'object' &&
+    payload !== null &&
+    Array.isArray((payload as HistoryPage).items) &&
+    typeof (payload as HistoryPage).total === 'number'
+  )
+}
+
 /**
- * Hook for managing clipboard history.
- * هوک مدیریت تاریخچهٔ کلیپ‌بورد.
+ * Hook for managing clipboard history with bounded IPC pages.
+ * هوک مدیریت تاریخچهٔ کلیپ‌بورد با صفحات محدود IPC.
  */
 export function useClipboardHistory(options: UseClipboardHistoryOptions = {}) {
   const [history, setHistory] = useState<ClipboardItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [total, setTotal] = useState<number | null>(null)
 
-  const pageSize = options.pageSize
+  const pageSize = clampPageSize(options.pageSize ?? DEFAULT_PAGE_SIZE)
   const nextOffsetRef = useRef(0)
 
-  // Fetch initial history
   const fetchHistory = useCallback(async () => {
     try {
       setIsLoading(true)
-      if (pageSize != null) {
-        const page = await invoke<HistoryPage>('get_history_page', {
-          limit: clampPageSize(pageSize),
-          offset: 0,
-        })
-        nextOffsetRef.current = page.items.length
-        setTotal(page.total)
-        setHistory(page.items)
-      } else {
-        const items = await invoke<ClipboardItem[]>('get_history')
-        setHistory(items)
-      }
+      const page = await invoke<HistoryPage>('get_history_page', {
+        limit: pageSize,
+        offset: 0,
+      })
+      nextOffsetRef.current = page.items.length
+      setTotal(page.total)
+      setHistory(page.items)
       setError(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch history')
@@ -56,67 +63,67 @@ export function useClipboardHistory(options: UseClipboardHistoryOptions = {}) {
   /** Fetch the next bounded window and merge it into the list.
    *  دریافت پنجرهٔ بعدی و ادغام آن در فهرست. */
   const loadMore = useCallback(async () => {
-    if (pageSize == null) return
-    const limit = clampPageSize(pageSize)
+    const limit = pageSize
     const offset = clampOffset(nextOffsetRef.current)
     const currentTotal = total
-    if (currentTotal != null && !hasNextPage(currentTotal, offset, limit)) return
+    if (currentTotal != null && offset >= currentTotal) return
     try {
+      setIsLoadingMore(true)
       const page = await invoke<HistoryPage>('get_history_page', { limit, offset })
       nextOffsetRef.current = offset + page.items.length
       setTotal(page.total)
       setHistory((prev) => mergePageById(prev, page.items))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load more history')
+    } finally {
+      setIsLoadingMore(false)
     }
   }, [pageSize, total])
 
-  // Clear all history
   const clearHistory = useCallback(async () => {
     try {
       await invoke('clear_history')
-      setHistory((prev) => prev.filter((item) => item.pinned))
+      setHistory((prev) => {
+        const pinned = prev.filter((item) => item.pinned)
+        setTotal(pinned.length)
+        nextOffsetRef.current = pinned.length
+        return pinned
+      })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to clear history')
     }
   }, [])
 
-  // Delete a specific item
   const deleteItem = useCallback(async (id: string) => {
     try {
       await invoke('delete_item', { id })
       setHistory((prev) => prev.filter((item) => item.id !== id))
+      setTotal((prev) => (prev == null ? prev : Math.max(0, prev - 1)))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete item')
     }
   }, [])
 
-  // Toggle pin status
   const togglePin = useCallback(
     async (id: string) => {
       try {
         const updatedItem = await invoke<ClipboardItem>('toggle_pin', { id })
         if (updatedItem) {
           setHistory((prev) => {
-            // Remove the item from its current position
             const otherItems = prev.filter((item) => item.id !== id)
             const pinnedItems = otherItems.filter((item) => item.pinned)
             const unpinnedItems = otherItems.filter((item) => !item.pinned)
 
             if (updatedItem.pinned) {
-              // Item was pinned - add to the end of pinned items (top of list)
               return [...pinnedItems, updatedItem, ...unpinnedItems]
-            } else {
-              // Item was unpinned - insert in correct position by timestamp
-              const allUnpinned = [updatedItem, ...unpinnedItems]
-              allUnpinned.sort(
-                (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-              )
-              return [...pinnedItems, ...allUnpinned]
             }
+            const allUnpinned = [updatedItem, ...unpinnedItems]
+            allUnpinned.sort(
+              (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+            )
+            return [...pinnedItems, ...allUnpinned]
           })
         } else {
-          // Item not found - refresh history
           console.warn('[useClipboardHistory] Toggle pin returned null, refreshing history')
           await fetchHistory()
         }
@@ -129,7 +136,6 @@ export function useClipboardHistory(options: UseClipboardHistoryOptions = {}) {
     [fetchHistory]
   )
 
-  // Paste an item
   const pasteItem = useCallback(
     async (id: string) => {
       try {
@@ -137,8 +143,6 @@ export function useClipboardHistory(options: UseClipboardHistoryOptions = {}) {
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : String(err)
         console.warn('[useClipboardHistory] Paste failed, refreshing history:', errorMessage)
-        // If paste failed due to item not found, refresh history
-        // The backend already emits history-sync event, but we fetch as backup
         await fetchHistory()
         setError(errorMessage)
       }
@@ -146,7 +150,6 @@ export function useClipboardHistory(options: UseClipboardHistoryOptions = {}) {
     [fetchHistory]
   )
 
-  // Listen for clipboard changes
   useEffect(() => {
     const initialFetchTimer = globalThis.setTimeout(() => {
       fetchHistory()
@@ -169,6 +172,7 @@ export function useClipboardHistory(options: UseClipboardHistoryOptions = {}) {
           }
           return [...pinned, incoming, ...unpinned]
         })
+        setTotal((prev) => (prev == null ? prev : prev + 1))
       })
       if (!isMounted) {
         uChanged()
@@ -177,7 +181,6 @@ export function useClipboardHistory(options: UseClipboardHistoryOptions = {}) {
       }
 
       const uCleared = await listen('history-cleared', async () => {
-        console.log('[useClipboardHistory] history-cleared event received')
         try {
           await fetchHistory()
         } catch (e) {
@@ -190,9 +193,19 @@ export function useClipboardHistory(options: UseClipboardHistoryOptions = {}) {
         unlistenCleared = uCleared
       }
 
-      const uSync = await listen<ClipboardItem[]>('history-sync', async (event) => {
-        console.log('[useClipboardHistory] history-sync event received')
-        setHistory(event.payload)
+      const uSync = await listen<HistoryPage | ClipboardItem[]>('history-sync', (event) => {
+        const payload = event.payload
+        if (isHistoryPage(payload)) {
+          nextOffsetRef.current = payload.items.length
+          setTotal(payload.total)
+          setHistory(payload.items)
+          return
+        }
+        if (Array.isArray(payload)) {
+          setHistory(payload)
+          setTotal(payload.length)
+          nextOffsetRef.current = payload.length
+        }
       })
       if (!isMounted) {
         uSync()
@@ -212,12 +225,15 @@ export function useClipboardHistory(options: UseClipboardHistoryOptions = {}) {
     }
   }, [fetchHistory])
 
+  const hasMore = total != null && history.length < total
+
   return {
     history,
     isLoading,
+    isLoadingMore,
     error,
     total,
-    /** Windowed loading; only meaningful with `pageSize`. / فقط با `pageSize` معنا دارد. */
+    hasMore,
     loadMore,
     fetchHistory,
     clearHistory,

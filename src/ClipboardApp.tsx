@@ -16,6 +16,7 @@ import { changeLanguage } from './i18n/config'
 import type { ActiveTab, UserSettings } from './types/clipboard'
 import { ClipboardTab } from './components/ClipboardTab'
 import { DEFAULT_SETTINGS } from './utils/defaultSettings'
+import { DEFAULT_PAGE_SIZE } from './utils/pagination'
 
 // Lazy-loaded tabs for code splitting
 const EmojiPicker = lazy(() =>
@@ -110,8 +111,18 @@ function ClipboardApp() {
   const secondaryOpacity = calculateSecondaryOpacity(opacity)
   const tertiaryOpacity = calculateTertiaryOpacity(opacity)
 
-  const { history, isLoading, clearHistory, deleteItem, togglePin, pasteItem } =
-    useClipboardHistory()
+  const {
+    history,
+    isLoading,
+    isLoadingMore,
+    total,
+    hasMore,
+    loadMore,
+    clearHistory,
+    deleteItem,
+    togglePin,
+    pasteItem,
+  } = useClipboardHistory({ pageSize: DEFAULT_PAGE_SIZE })
 
   // Refs for focus management
   const tabBarRef = useRef<TabBarRef>(null)
@@ -265,6 +276,10 @@ function ClipboardApp() {
           <ClipboardTab
             history={history}
             isLoading={isLoading}
+            isLoadingMore={isLoadingMore}
+            total={total}
+            hasMore={hasMore}
+            onLoadMore={loadMore}
             isDark={isDark}
             tertiaryOpacity={tertiaryOpacity}
             secondaryOpacity={secondaryOpacity}

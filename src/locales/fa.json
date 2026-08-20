@@ -51,7 +51,9 @@
     "history_cleared": "تاریخچه پاک شد",
     "item_deleted": "آیتم حذف شد",
     "item_pinned": "آیتم سنجاق شد",
-    "item_unpinned": "سنجاق آیتم برداشته شد"
+    "item_unpinned": "سنجاق آیتم برداشته شد",
+    "load_more": "بارگذاری بیشتر",
+    "loaded_count": "{{loaded}} از {{total}}"
   },
   "emoji": {
     "title": "ایموجی",

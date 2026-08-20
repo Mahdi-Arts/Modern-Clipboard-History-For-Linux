@@ -51,7 +51,9 @@
     "history_cleared": "History cleared",
     "item_deleted": "Item deleted",
     "item_pinned": "Item pinned",
-    "item_unpinned": "Item unpinned"
+    "item_unpinned": "Item unpinned",
+    "load_more": "Load more",
+    "loaded_count": "{{loaded}} of {{total}}"
   },
   "emoji": {
     "title": "Emoji",

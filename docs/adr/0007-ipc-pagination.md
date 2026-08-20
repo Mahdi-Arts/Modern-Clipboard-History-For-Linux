@@ -1,4 +1,8 @@
-# ADR-0007: Bounded history reads over IPC (`get_history_page`)
+# ADR-0007: Bounded history reads over IPC
+
+> **Status:** Implemented in v2.4.0 — the UI default path is `get_history_page`.
+> `get_history` remains as a clamped first-page fallback.
+> **وضعیت:** در نسخهٔ ۲.۴.۰ مسیر پیش‌فرض UI برابر `get_history_page` است. (`get_history_page`)
 
 - **Status:** Accepted (v2.3.0)
 - **Date:** 2026-08-21
@@ -23,13 +27,12 @@ with the 2000-item cap the single payload can still reach several megabytes
    بک‌اند مقدار `limit` را به `1..=200` و `offset` را به طول مجموعه
    محدود می‌کند؛ وب‌ویو نمی‌تواند بار نامحدود بخواهد.
 3. Items are `for_ipc()` projections, identical to the full read.
-4. `useClipboardHistory({ pageSize })` opts into windowed loading
-   (`loadMore()` merges pages by id); the default stays a full read, and
-   push events (`clipboard-changed`, `history-sync`) keep their exact
-   semantics. `src/utils/pagination.ts` mirrors the clamps on the UI side
-   and is unit-tested.
-5. Full `get_history` remains for small histories and tests — it is cheap
-   under ~500 items and keeps old frontends working.
+4. `useClipboardHistory({ pageSize })` is the **default UI path**
+   (`loadMore()` merges pages by id). Push events: `clipboard-changed`
+   prepends one item; `history-sync` carries a `HistoryPage`.
+   مسیر پیش‌فرض UI صفحه‌بندی‌شده است.
+5. `get_history` remains as a **clamped first-page** fallback (max 200)
+   so older callers cannot pull an unbounded payload.
 
 ## Consequences / پیامدها
 

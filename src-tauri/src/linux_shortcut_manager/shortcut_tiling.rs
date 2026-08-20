@@ -7,7 +7,8 @@
 use super::shortcut_config::ShortcutConfig;
 use super::shortcut_error::{Result, ShortcutError};
 use super::shortcut_utils::Utils;
-use super::{allow_wm_config_rewrite, ShortcutHandler};
+use super::allow_wm_config_rewrite;
+use super::shortcut_handler::ShortcutHandler;
 use std::env;
 use std::path::PathBuf;
 use tracing::info;
