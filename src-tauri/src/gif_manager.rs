@@ -8,11 +8,11 @@
 use crate::clipboard_io::{self, ClipError, Payload};
 use crate::session;
 use std::fs;
-use std::io::Write;
+use std::io::{Write, Read};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::Duration;
-use tracing::{debug, error, warn};
+use tracing::{debug, error, info, warn};
 
 // --- Constants ---
 
@@ -66,7 +66,7 @@ impl Downloader {
         // Block private IPs
         if let Some(host) = parsed.host_str() {
             if let Ok(ip) = host.parse::<std::net::IpAddr>() {
-                if ip.is_loopback() || ip.is_private() || ip.is_unspecified() {
+                if ip.is_loopback() || (if let std::net::IpAddr::V4(ipv4) = ip { ipv4.is_private() } else { false }) || ip.is_unspecified() {
                     return Err(format!("Blocked download from private IP: {ip}"));
                 }
             }

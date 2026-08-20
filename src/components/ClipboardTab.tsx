@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { listen } from '@tauri-apps/api/event'
 import { clsx } from 'clsx'
 import { Pin, History, ChevronDown } from 'lucide-react'
-import { List, useListRef } from 'react-window'
+import { List, ListImperativeAPI } from 'react-window'
 
 import type { ClipboardItem, UserSettings } from '../types/clipboard'
 import type { TabBarRef } from './TabBar'
@@ -110,7 +110,7 @@ export function ClipboardTab(props: {
   const searchInputRef = useRef<HTMLInputElement>(null)
   const [focusedIndex, setFocusedIndex] = useState(0)
   const historyItemRefs = useRef<(HTMLDivElement | null)[]>([])
-  const listRef = useListRef()
+  const listRef = useRef<ListImperativeAPI | null>(null);
   const containerRef = useRef<HTMLDivElement>(null)
 const [containerHeight, setContainerHeight] = useState(300)
 
@@ -245,7 +245,7 @@ useEffect(() => {
       setPinnedExpanded(true)
       const lastIdx = pinnedItems.length - 1
       setFocusedIndex(lastIdx)
-      listRef.current?.scrollToItem(lastIdx, 'smart')
+      listRef.current?.scrollToRow({ index: lastIdx, align: 'smart' })
       setTimeout(() => historyItemRefs.current[lastIdx]?.focus(), 50)
       return true
     }
@@ -256,7 +256,7 @@ useEffect(() => {
     if (showSections && pinnedExpanded && focusedIndex < pinnedItems.length) {
       setPinnedExpanded(false)
       setFocusedIndex(0)
-      listRef.current?.scrollToItem(0, 'smart')
+listRef.current?.scrollToRow({ index: 0, align: 'smart' })
       setTimeout(() => historyItemRefs.current[0]?.focus(), 50)
     }
   }, [showSections, pinnedExpanded, focusedIndex, pinnedItems.length, listRef])
@@ -275,7 +275,7 @@ useEffect(() => {
 
   useEffect(() => {
     setFocusedIndex(0)
-    listRef.current?.scrollToItem(0, 'smart')
+    listRef.current?.scrollToRow({ index: 0, align: 'smart' })
   }, [filteredHistory, listRef])
 
   const filteredHistoryRef = useRef(filteredHistory)
@@ -287,7 +287,7 @@ useEffect(() => {
       setTimeout(() => {
         if (filteredHistoryRef.current.length > 0) {
           setFocusedIndex(0)
-          listRef.current?.scrollToItem(0, 'smart')
+listRef.current?.scrollToRow({ index: 0, align: 'smart' })
           setTimeout(() => historyItemRefs.current[0]?.focus(), 100)
         }
       }, 100)
@@ -446,7 +446,7 @@ useEffect(() => {
                 className="scrollbar-win11"
                 style={{ overflowX: 'hidden', overflowY: 'auto' }}
               >
-                {HistoryRow}
+                {({ index, style, data }: { index: number; style: React.CSSProperties; data: RowData }) => HistoryRow({ index, style, data })}
               </List>
             )}
           </div>

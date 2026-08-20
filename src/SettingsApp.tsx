@@ -11,7 +11,6 @@ import { FeaturesSection } from './components/FeaturesSection'
 import { Switch } from './components/Switch'
 import { useSystemThemePreference } from './utils/systemTheme'
 import { useLanguageEffect } from './i18n/useLanguage'
-import { changeLanguage } from './i18n/config'
 import { useRenderingEnv } from './hooks/useRenderingEnv'
 
 const MIN_HISTORY_SIZE = 1
@@ -299,9 +298,9 @@ function SettingsApp() {
   // Rendering environment (NVIDIA / AppImage detection)
   const renderingEnv = useRenderingEnv()
 
-  // i18n
-  useLanguageEffect()
   const { t, i18n } = useTranslation()
+  // i18n
+  useLanguageEffect(i18n)
 
   // Apply theme to settings window itself
   const isDark = useThemeMode(settings.theme_mode)

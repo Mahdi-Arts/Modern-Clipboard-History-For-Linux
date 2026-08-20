@@ -96,6 +96,7 @@ impl Default for UserSettings {
     fn default() -> Self {
         Self {
             theme_mode: "system".to_string(),
+            language: default_language(),
             dark_background_opacity: 0.70,
             light_background_opacity: 0.70,
             enable_dynamic_tray_icon: true,

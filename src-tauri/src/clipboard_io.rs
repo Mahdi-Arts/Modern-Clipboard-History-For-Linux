@@ -86,7 +86,7 @@ pub fn read_text() -> Result<String, ClipError> {
 
 /// Read HTML content
 pub fn read_html() -> Option<String> {
-    with_clipboard(|c| c.get().html().map(|s| s.to_string())).ok()?
+    with_clipboard(|c| c.get().html()).ok()
 }
 
 /// Read image with caching
@@ -126,7 +126,7 @@ fn write_external(payload: &Payload<'_>) -> Result<(), ClipError> {
 
     debug!("{cmd} args: {args:?}");
     let mut child = Command::new(cmd)
-        .args(&args)
+        .args(args.into_iter())
         .stdin(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
@@ -151,7 +151,7 @@ fn write_external(payload: &Payload<'_>) -> Result<(), ClipError> {
     }
 }
 
-fn external_args(payload: &Payload<'_>, wayland: bool) -> (&'static str, Vec<&'static str>) {
+fn external_args<'a>(payload: &Payload<'a>, wayland: bool) -> (&'a str, Vec<&'a str>) {
     match (wayland, payload) {
         (true, Payload::Text(_)) => ("wl-copy", vec!["--type", "text/plain;charset=utf-8"]),
         (true, Payload::Html { .. }) => ("wl-copy", vec!["--type", "text/html"]),
@@ -198,9 +198,9 @@ fn wait_for_child(mut child: std::process::Child, cmd: &str) -> Result<(), ClipE
 fn write_arboard(payload: &Payload<'_>) -> Result<(), ClipError> {
     with_clipboard(|c| {
         match payload {
-            Payload::Text(t) => c.set_text(t),
-            Payload::Html { html, plain } => c.set_html(html, Some(plain)),
-            Payload::FileUri(s) => c.set_text(s),
+            Payload::Text(t) => c.set_text(*t),
+            Payload::Html { html, plain } => c.set_html(*html, Some(*plain)),
+            Payload::FileUri(s) => c.set_text(*s),
             Payload::Bytes { data, .. } => {
                 let s = std::str::from_utf8(data).unwrap_or_default();
                 c.set_text(s)

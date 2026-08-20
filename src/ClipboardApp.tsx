@@ -95,8 +95,8 @@ async function applyUIScale(scale: number) {
  */
 function ClipboardApp() {
   // i18n: language change listener updates all translations reactively
-  useLanguageEffect()
-  const { t } = useTranslation()
+  const { i18n } = useTranslation()
+  useLanguageEffect(i18n)
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('clipboard')
   const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS)

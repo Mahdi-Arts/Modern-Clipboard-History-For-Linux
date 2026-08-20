@@ -52,7 +52,7 @@ impl Hasher for FnvHasher {
 }
 
 /// Calculates a stable hash for any hashable data.
-pub fn calculate_hash<T: Hash>(t: &T) -> u64 {
+pub fn calculate_hash<T: Hash + ?Sized>(t: &T) -> u64 {
     let mut s = FnvHasher::default();
     t.hash(&mut s);
     s.finish()
