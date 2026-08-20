@@ -151,8 +151,20 @@
       "exclude_apps_desc": "On X11, skip capture from KeePass, 1Password, Bitwarden, and private browsing windows.",
       "wm_rewrite": "Allow rewriting tiling WM configs",
       "wm_rewrite_desc": "Off by default. When enabled, setup may comment out existing Super+V bindings in i3/Sway/Hyprland.",
-      "storage_note": "History is stored locally at ~/.local/share/win11-clipboard-history/ (mode 0600). Text fields are encrypted at rest (ChaCha20-Poly1305, key in history.key). Nothing is uploaded unless you search GIFs with TENOR_API_KEY set.",
-      "wayland_note": "Wayland does not expose the focused window. Password-manager skipping works on X11 only; keep Skip secrets enabled."
+      "storage_note": "History is stored locally at ~/.local/share/win11-clipboard-history/ (mode 0600). Text fields are encrypted at rest (ChaCha20-Poly1305); the key lives in history.key or the Secret Service keyring. Nothing is uploaded unless you search GIFs with TENOR_API_KEY set.",
+      "wayland_note": "Wayland does not expose the focused window. Password-manager skipping works on X11 only; keep Skip secrets enabled.",
+      "key_storage": "Encryption key storage",
+      "key_storage_desc": "History is encrypted at rest. Choose where the key lives.",
+      "key_backend_file": "Local file (history.key)",
+      "key_backend_file_desc": "Key file next to the database, mode 0600. Works everywhere, no extra dependencies.",
+      "key_backend_secret": "Secret Service keyring",
+      "key_backend_secret_desc": "GNOME Keyring / KWallet via Secret Service. The key never touches the disk.",
+      "key_unavailable": "secret-tool not found — install libsecret-tools to use the keyring.",
+      "key_migrate_to_secret": "Move key to keyring",
+      "key_migrate_to_file": "Restore key to file",
+      "key_migrate_done": "Key moved successfully.",
+      "key_migrate_failed": "Migration failed",
+      "key_restart_note": "The new backend takes effect on the next launch."
     }
   },
   "tray": {

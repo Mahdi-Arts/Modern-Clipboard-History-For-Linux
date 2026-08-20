@@ -18,4 +18,5 @@ export const DEFAULT_SETTINGS: UserSettings = {
   exclude_sensitive_apps: true,
   extra_excluded_apps: [],
   allow_wm_config_rewrite: false,
+  history_key_backend: 'file',
 }

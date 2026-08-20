@@ -10,6 +10,57 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [Unreleased] / منتشرنشده
+
+### Security / امنیت
+
+- **Encryption-key backends (ADR-0006):** the history key can now live in the
+  freedesktop **Secret Service** keyring (GNOME Keyring / KWallet) instead of
+  `history.key`. Adoption is anchored by a `history.key.check` marker and is
+  **fail-closed** — a wrong key can never silently re-encrypt history.
+  Settings → Privacy exposes status, availability, and verified migrations
+  (`secret-tool` read-back + backup/restore of the file key).
+  کلید رمزنگاری تاریخچه اکنون می‌تواند در کلید-ring دسکتاپ (Secret Service)
+  نگه‌داری شود؛ پذیرش کلید با نشانگر `history.key.check` و به‌صورت
+  fail-closed انجام می‌شود و مهاجرت از تنظیمات قابل واگردانی است.
+- **Supply chain now enforces its promises (ADR-0005 → Implemented):** CI
+  audits are blocking (`cargo audit`, `cargo deny`, `npm audit
+  --audit-level=high`), run tests + coverage + release-binary smoke, and the
+  release workflow publishes `SHA256SUMS`, per-artifact SPDX SBOMs (syft), and
+  SLSA build-provenance attestations. All release-pipeline URLs now point at
+  this repository; the `curl | bash` line and Cloudsmith/AUR references to the
+  upstream fork were removed.
+  وعده‌های زنجیرهٔ تأمین اکنون واقعاً اعمال می‌شوند: auditها مسدودکننده
+  هستند، هر ریلیز SHA256SUMS و SBOM و گواهی provenance دارد و تمام URLها
+  به همین مخزن اشاره می‌کنند.
+- `src-tauri/deny.toml`: cargo-deny policy (advisories, license allow-list,
+  bans, sources) enforced in CI.
+
+### Added / افزوده‌ها
+
+- **Bounded history reads (ADR-0007):** new `get_history_page(limit, offset)`
+  command clamps `limit` to 1..=200 server-side; `useClipboardHistory({
+  pageSize })` supports windowed loading with `loadMore()`. Pure helpers in
+  `src/utils/pagination.ts` (100% branch coverage).
+  خواندن محدود تاریخچه: فرمان جدید `get_history_page` با سقف سمت سرور و
+  بارگذاری پنجره‌ای در فرانت‌اند.
+
+### Changed / تغییرات
+
+- **`clipboard_manager.rs` split by concern:** the 1250-line module became a
+  `clipboard_manager/` package — `types`, `persistence`, `deduplication`,
+  `history_access` (paging, retention), and `clipboard_write` — with explicit
+  `pub(super)` boundaries. No behavior change.
+  ماژول ۱۲۵۰ خطی بر اساس نگرانی به پنج زیرماژول تفکیک شد (بدون تغییر رفتار).
+- Shared app data dir via `clipboard_manager::data_dir()` (single source of truth).
+- `.kilo/` (editor config) removed from the repo and ignored; hardened CI
+  workflows live only in `.github/workflows/` (staging copies under
+  `docs/github-workflows/` removed).
+- Zero-dependency git hooks (`make hooks`): pre-commit lint gates and
+  Conventional-Commits commit-msg check.
+
+---
+
 ## [2.3.0] - 2026-08-20
 
 ### Security / امنیت

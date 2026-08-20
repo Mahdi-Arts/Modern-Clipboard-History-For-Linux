@@ -62,8 +62,18 @@ Key boundaries:
 ### 4.2 Local exposure (T2)
 - SQLite DB, images, settings, logs: `0600` files / `0700` dirs via `fs_atomic::restrict_permissions`.
 - History text columns are encrypted at rest (ChaCha20-Poly1305; see ADR 0004).
+- **Key backends (ADR-0006):** the encryption key lives in `history.key`
+  (`0600`) or, on request, in the freedesktop **Secret Service** keyring
+  (`secret-tool`; key never touches disk). Adoption of any backend requires
+  decrypting the `history.key.check` marker — **fail-closed**; a wrong or
+  missing key can never silently re-encrypt history.
+  بک‌اندهای کلید (ADR-0006): کلید در فایل یا Secret Service نگه‌داری
+  می‌شود؛ پذیرش هر بک‌اند مستلزم رمزگشایی نشانگر `history.key.check` است
+  (fail-closed) تا کلید اشتباه هرگز بی‌سروصدا تاریخچه را کلیدعوض نکند.
 - AppArmor profile (complain by default) restricts file/socket access to the app's own XDG dirs + `/dev/uinput`.
 - Atomic writes (`write_atomic`) prevent partial/corrupt state and .tmp disclosure.
+- **Bounded IPC reads (ADR-0007):** `get_history_page` clamps `limit` to
+  `1..=200` server-side; the webview cannot request unbounded payloads.
 
 ### 4.3 Outbound network (T4)
 - **SSRF validator** (`ssrf.rs`): HTTPS-only; host allowlist (`tenor.com`, `giphy.com`, `media.tenor.co`); direct-IP URLs rejected; DNS resolved and **every** address checked against a private/loopback/CGNAT/metadata blocklist; the HTTP client **pins** the connection to the validated addresses (`resolve_to_addrs`) closing the DNS-rebinding window; redirects are refused; 10 MB streamed download cap; Content-Type sanity check.
@@ -78,8 +88,14 @@ Key boundaries:
 
 ### 4.5 Supply chain (T5)
 - Installer verifies artifacts against release `SHA256SUMS` (**mandatory**; `ALLOW_UNVERIFIED=1` required to skip) and optionally verifies a detached GPG signature.
-- CI runs `cargo audit` + `npm audit` as **blocking** gates; `cargo clippy -D warnings`; frontend coverage thresholds.
-- Releases publish: SHA256SUMS, SPDX SBOM, SLSA build provenance attestation.
+- CI runs `cargo audit` + `cargo deny` (advisories/bans/licenses/sources) +
+  `npm audit` as **blocking** gates; `cargo clippy -D warnings`; frontend
+  coverage thresholds; release-binary smoke (`--version`/`--help`).
+- Releases publish: SHA256SUMS, **per-artifact** SPDX SBOM (syft),
+  SLSA build-provenance attestations (`actions/attest-build-provenance`).
+- Every URL in the release pipeline points at
+  `Mahdi-Arts/Modern-Clipboard-History-For-Linux`; optional channels
+  (Cloudsmith/AUR) activate only when repository secrets exist.
 - AUR PKGBUILD checksums are populated by the release workflow.
 
 ## 5. Known limitations (accepted risk)
@@ -87,17 +103,18 @@ Key boundaries:
 | Limitation | Risk | Mitigation / status |
 | --- | --- | --- |
 | Wayland: no focused-app detection | Secrets from password managers can land in history on Wayland | Secret filter still applies; UI warns; documented in README |
-| History text is field-encrypted; key is a local `history.key` | A local attacker with the same UID can still read the key | `0600` + ChaCha20-Poly1305 (fail-closed); libsecret wrapping is a roadmap item |
+| History text is field-encrypted; key is a local `history.key` (default) | A local attacker with the same UID can still read the key | `0600` + ChaCha20-Poly1305 (fail-closed); **Secret Service keyring backend available** (ADR-0006) via Settings → Privacy; same-UID compromise stays out of scope |
 | `style-src 'unsafe-inline'` in CSP | XSS would still be constrained (no `script-src` relaxation), but inline styles are allowed | Required by Tailwind/React inline styles; revisit with hashing if feasible |
 | pkexec prompt surface | Social-engineering of the "Fix permissions" flow | Only triggered by explicit user action; command is argv-fixed (`setfacl -m u:<user>:rw /dev/uinput`) |
 | AppImage/Flatpak cannot install udev rules | Paste unavailable until user grants `/dev/uinput` | Documented; deb/rpm are the recommended channels |
 
 ## 6. Security checklist for a release
 
-- [ ] `cargo audit` and `npm audit` pass (blocking in CI)
+- [ ] `cargo audit`, `cargo deny`, and `npm audit` pass (blocking in CI)
 - [ ] `npm run lint`, `npm test`, coverage thresholds pass
 - [ ] `cargo test`, `cargo clippy -D warnings`, `cargo fmt --check` pass
+- [ ] Release-binary smoke (`--version` / `--help`) passes
 - [ ] SHA256SUMS generated and attached
-- [ ] SBOM + provenance attestation attached
+- [ ] Per-artifact SBOM + provenance attestations attached
 - [ ] AUR checksums updated by workflow
 - [ ] CHANGELOG entry added

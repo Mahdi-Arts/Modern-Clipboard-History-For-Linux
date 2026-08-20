@@ -70,9 +70,7 @@ fn main() {
     win11_clipboard_history_lib::session::init();
 
     let is_mouse_inside = Arc::new(AtomicBool::new(false));
-    let base_dir = dirs::data_local_dir()
-        .unwrap_or_else(|| std::path::PathBuf::from("."))
-        .join("win11-clipboard-history");
+    let base_dir = win11_clipboard_history_lib::clipboard_manager::data_dir();
 
     if let Err(e) = std::fs::create_dir_all(&base_dir) {
         tracing::error!("Failed to create base directory: {e}");
@@ -81,9 +79,20 @@ fn main() {
     let history_path = base_dir.join("history.json");
     let user_settings = UserSettingsManager::new().load();
 
-    let clipboard_manager = Arc::new(Mutex::new(ClipboardManager::new(
+    // Construct the manager with the user's preferred encryption-key
+    // backend (file | Secret Service). See ADR-0006.
+    // ساخت مدیر با بک‌اند کلید ترجیحی کاربر (فایل | Secret Service). ADR-0006.
+    let key_backend = win11_clipboard_history_lib::history_crypto::KeyBackend::from_setting(
+        &user_settings.history_key_backend,
+    );
+    tracing::info!(
+        "[Startup] History key backend: requested '{}'",
+        key_backend.as_str()
+    );
+    let clipboard_manager = Arc::new(Mutex::new(ClipboardManager::new_with_key_backend(
         history_path,
         user_settings.max_history_size,
+        key_backend,
     )));
     {
         let mut manager = clipboard_manager.lock();
@@ -213,6 +222,7 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             // History
             commands::get_history,
+            commands::get_history_page,
             commands::get_item,
             commands::clear_history,
             commands::delete_item,
@@ -238,6 +248,10 @@ fn main() {
             commands::finish_paste,
             commands::copy_text_to_clipboard,
             commands::open_safe_url,
+            // Encryption key backend
+            commands::get_history_key_backend_status,
+            commands::migrate_history_key_to_secret_service,
+            commands::migrate_history_key_to_file,
             // Setup
             commands::finish_setup,
             // Tenor

@@ -11,6 +11,7 @@ use tauri::{AppHandle, Emitter, Manager, State};
 use crate::clipboard_manager::ClipboardItem;
 use crate::emoji_manager::EmojiUsage;
 use crate::error::AppError;
+use crate::history_crypto::HistoryCrypto;
 use crate::input_simulator::simulate_paste_keystroke;
 use crate::theme_manager::{self, ThemeInfo};
 use crate::user_settings::{UserSettings, UserSettingsManager};
@@ -24,6 +25,26 @@ use crate::AppState;
 pub fn get_history(state: State<AppState>) -> Result<Vec<ClipboardItem>, AppError> {
     Ok(state.clipboard_manager.lock().get_history_for_ui())
 }
+
+/// Bounded history window for large histories (see ADR-0007).
+/// پنجرهٔ محدود تاریخچه برای تاریخچه‌های بزرگ (ADR-0007).
+///
+/// `limit` is clamped server-side to 1..=200, so the webview can never
+/// request an unbounded payload. Missing arguments default to a full read.
+/// مقدار `limit` سمت سرور به 1..=200 محدود می‌شود؛ وب‌ویو هرگز نمی‌تواند
+/// بار نامحدود بخواهد. نبود آرگومان‌ها به خواندن کامل پیش‌فرض است.
+#[tauri::command]
+pub fn get_history_page(
+    state: State<AppState>,
+    limit: Option<usize>,
+    offset: Option<usize>,
+) -> Result<crate::clipboard_manager::HistoryPage, AppError> {
+    Ok(state.clipboard_manager.lock().get_history_page(
+        limit.unwrap_or(crate::clipboard_manager::MAX_PAGE_SIZE),
+        offset.unwrap_or(0),
+    ))
+}
+
 
 #[tauri::command]
 pub fn get_item(state: State<AppState>, id: String) -> Result<ClipboardItem, AppError> {
@@ -332,6 +353,86 @@ pub async fn finish_paste(
 pub fn open_safe_url(url: String) -> Result<(), AppError> {
     crate::open_url::open_safe_url(&url).map(|_| ())?;
     Ok(())
+}
+
+// ---------------------------------------------------------------------------
+// Encryption key backend commands (see ADR-0006)
+// فرمان‌های بک‌اند کلید رمزنگاری (ADR-0006)
+// ---------------------------------------------------------------------------
+
+/// Snapshot of the key-backend state for the Settings UI.
+/// وضعیت لحظه‌ای بک‌اند کلید برای رابط تنظیمات.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct KeyBackendStatus {
+    /// Backend requested by the persisted user setting.
+    /// بک‌اند درخواستی طبق تنظیم ذخیره‌شده.
+    pub setting: String,
+    /// Backend actually in use by this process.
+    /// بک‌اند واقعاً استفاده‌شده در این فرآیند.
+    pub active: String,
+    /// True when `secret-tool` (Secret Service) is usable on this machine.
+    /// وقتی `secret-tool` (Secret Service) روی این ماشین قابل استفاده است.
+    pub secret_service_available: bool,
+    /// True when the active backend differs from the setting (restart needed).
+    /// وقتی بک‌اند فعال با تنظیم تفاوت دارد (نیاز به راه‌اندازی مجدد).
+    pub restart_required: bool,
+}
+
+#[tauri::command]
+pub fn get_history_key_backend_status(
+    state: State<AppState>,
+) -> Result<KeyBackendStatus, AppError> {
+    let setting = UserSettingsManager::new().load().history_key_backend;
+    let active = state.clipboard_manager.lock().key_backend().to_string();
+    Ok(KeyBackendStatus {
+        restart_required: setting != active,
+        secret_service_available: HistoryCrypto::secret_service_available(),
+        setting,
+        active,
+    })
+}
+
+/// Move the encryption key into the freedesktop Secret Service.
+/// The key material is verified by read-back before the file key is renamed;
+/// the new backend takes effect on the next launch.
+/// انتقال کلید رمزنگاری به Secret Service. پیش از تغییر نام کلید فایل،
+/// کلید با read-back راستی‌آزمایی می‌شود؛ بک‌اند جدید از اجرای بعدی فعال است.
+#[tauri::command]
+pub fn migrate_history_key_to_secret_service() -> Result<KeyBackendStatus, AppError> {
+    let data_dir = crate::clipboard_manager::data_dir();
+    HistoryCrypto::migrate_to_secret_service(&data_dir)?;
+
+    let manager = UserSettingsManager::new();
+    let mut settings = manager.load();
+    settings.history_key_backend = "secret-service".to_string();
+    manager.save(&settings)?;
+
+    Ok(KeyBackendStatus {
+        setting: "secret-service".to_string(),
+        active: "file".to_string(),
+        secret_service_available: true,
+        restart_required: true,
+    })
+}
+
+/// Move the encryption key back to the file backend (undo migration).
+/// بازگرداندن کلید رمزنگاری به بک‌اند فایل (واگرد مهاجرت).
+#[tauri::command]
+pub fn migrate_history_key_to_file() -> Result<KeyBackendStatus, AppError> {
+    let data_dir = crate::clipboard_manager::data_dir();
+    HistoryCrypto::migrate_to_file(&data_dir)?;
+
+    let manager = UserSettingsManager::new();
+    let mut settings = manager.load();
+    settings.history_key_backend = "file".to_string();
+    manager.save(&settings)?;
+
+    Ok(KeyBackendStatus {
+        setting: "file".to_string(),
+        active: "file".to_string(),
+        secret_service_available: HistoryCrypto::secret_service_available(),
+        restart_required: false,
+    })
 }
 
 #[tauri::command]

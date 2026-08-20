@@ -18,6 +18,7 @@ export default defineConfig({
       include: [
         'src/utils/historySearch.ts',
         'src/utils/urlSafety.ts',
+        'src/utils/pagination.ts',
         'src/services/smartActionService.ts',
         'src/hooks/useClipboardHistory.ts',
         'src/components/EmptyState.tsx',

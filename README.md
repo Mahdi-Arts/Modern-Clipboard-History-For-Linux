@@ -30,6 +30,7 @@
 | 📌 | Pin important items | سنجاق آیتم‌های مهم |
 | 🤩 | Emoji, kaomoji, symbols | ایموجی، کائوموجی، نماد |
 | 🛡️ | Local SQLite history, secret filter | تاریخچه محلی، فیلتر اسرار |
+| 🔑 | Key file **or** Secret Service keyring | کلید در فایل **یا** کلید-ring دسکتاپ |
 | 🎨 | Acrylic UI, light/dark/system | ظاهر شیشه‌ای، تم سیستم |
 | 🔍 | Search with optional regex | جستجو با regex اختیاری |
 | 🔒 | Fully offline — bundled fonts, zero runtime network | کاملاً آفلاین — فونت محلی، بدون اتصال شبکه |
@@ -47,6 +48,10 @@ Clipboard history is stored **only on this machine**:
 - Database: `~/.local/share/win11-clipboard-history/history.db` (mode `0600`, text columns encrypted at rest)
 - Images: `~/.local/share/win11-clipboard-history/images/` (full PNG; UI gets a thumbnail)
 - Settings: `~/.config/win11-clipboard-history/user_settings.json`
+- Encryption key: `history.key` (mode `0600`) next to the database — **or** the
+  freedesktop Secret Service keyring (Settings → Privacy, see
+  [ADR-0006](docs/adr/0006-secret-service-key-storage.md)); the active key is
+  anchored by the `history.key.check` marker and never swapped silently
 
 **Defaults (on):**
 
@@ -62,7 +67,7 @@ This project needs `/dev/uinput` (or XTest) to simulate Ctrl+V. That is a powerf
 
 Tiling window managers (i3 / Sway / Hyprland) are **not** rewritten unless you enable *Allow rewriting tiling WM configs* in Settings.
 
-**Supply chain:** the installer **mandatorily verifies** every download against the release's `SHA256SUMS` (set `ALLOW_UNVERIFIED=1` to skip — not recommended). CI **blocks** on `cargo audit` + `npm audit --audit-level=high`, frontend coverage, and `cargo test`. Each release publishes an SPDX SBOM and SLSA build provenance. See [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md) and [docs/adr/](docs/adr/).
+**Supply chain:** the installer **mandatorily verifies** every download against the release's `SHA256SUMS` (set `ALLOW_UNVERIFIED=1` to skip — not recommended). CI **blocks** on `cargo audit`, `cargo deny` (advisories/bans/licenses/sources), `npm audit --audit-level=high`, frontend coverage, `cargo test`, and a release-binary smoke test. Each release publishes `SHA256SUMS`, a **per-artifact** SPDX SBOM (syft), and SLSA build-provenance attestations. See [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md) and [docs/adr/](docs/adr/).
 
 ---
 
@@ -135,6 +140,8 @@ Full diagram: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 | Backend | Rust, Tauri v2 (shortcut backends split per-DE) |
 | Clipboard I/O | arboard + `wl-copy` / `xclip` |
 | Persistence | SQLite (WAL) + ChaCha20-Poly1305 field encryption, PNG files, atomic JSON |
+| Key storage | `history.key` (0600) or Secret Service keyring — marker-verified, fail-closed ([ADR-0006](docs/adr/0006-secret-service-key-storage.md)) |
+| IPC | Virtualized list + bounded windows (`get_history_page`, [ADR-0007](docs/adr/0007-ipc-pagination.md)) |
 | Input | Persistent uinput device (Wayland) / XTest (X11), paste tickets |
 | Fonts | Bundled Vazirmatn (SIL OFL 1.1) — zero runtime network calls |
 | Security | CSP (`font-src 'self'`), `withGlobalTauri: false`, SSRF allowlist + DNS pin, Rust `open_safe_url`, paste tickets, mandatory checksum verification |
@@ -177,11 +184,11 @@ CI (see `.github/workflows/ci.yml`) **blocks** on:
 
 - `npm run lint` (tsc + ESLint, zero warnings)
 - `npm run test:coverage` (Vitest + coverage thresholds)
-- `cargo test`, `cargo clippy -- -D warnings`, `cargo fmt --check`
-- `cargo audit` and `npm audit --audit-level=high` (no `continue-on-error`)
-- CLI smoke: `--version` / `--help` on the release binary
+- `cargo test`, `cargo clippy --all-targets -- -D warnings`, `cargo fmt --check`
+- `cargo audit`, `cargo deny check` (advisories/bans/licenses/sources — see `src-tauri/deny.toml`), and `npm audit --audit-level=high` (no `continue-on-error`)
+- CLI smoke: `--version` / `--help` on the release binary (bare and under `xvfb-run`)
 
-Tagged releases publish `.deb` / `.rpm` / AppImage plus `SHA256SUMS`, an SPDX SBOM, and SLSA build provenance. All URLs point at this repository (`Mahdi-Arts/Modern-Clipboard-History-For-Linux`).
+Tagged releases publish `.deb` / `.rpm` / AppImage plus `SHA256SUMS`, a per-artifact SPDX SBOM, and SLSA build-provenance attestations. All URLs point at this repository (`Mahdi-Arts/Modern-Clipboard-History-For-Linux`).
 
 ### Environment
 
@@ -192,7 +199,8 @@ Tagged releases publish `.deb` / `.rpm` / AppImage plus `SHA256SUMS`, an SPDX SB
 | `TENOR_API_KEY` | Optional GIF search (not bundled) |
 | `RUST_LOG=info` | Tracing level |
 
-Packaging notes: [`packaging/README.md`](packaging/README.md).
+Packaging notes (`.deb` → GitHub Release → Flatpak deployment guide):
+[`packaging/README.md`](packaging/README.md).
 
 ## Security / امنیت
 

@@ -61,8 +61,17 @@ pub struct UserSettings {
 
     /// Allow the setup wizard to rewrite i3/Sway/Hyprland config files.
     /// Off by default — tiling WM configs are user-owned.
+    /// اجازهٔ بازنویسی کانفیگ i3/Sway/Hyprland توسط جادوگر نصب.
+    /// پیش‌فرض خاموش — کانفیگ مدیر پنجره متعلق به کاربر است.
     #[serde(default = "default_false")]
     pub allow_wm_config_rewrite: bool,
+
+    /// Where the history encryption key is stored: "file" | "secret-service".
+    /// Applied at startup; migrations happen via dedicated commands.
+    /// محل ذخیرهٔ کلید رمزنگاری تاریخچه: "file" | "secret-service".
+    /// در زمان راه‌اندازی اعمال می‌شود؛ مهاجرت با فرمان‌های اختصاصی است.
+    #[serde(default = "default_key_backend")]
+    pub history_key_backend: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -101,6 +110,10 @@ fn default_language() -> String {
     "en".to_string()
 }
 
+fn default_key_backend() -> String {
+    "file".to_string()
+}
+
 impl Default for UserSettings {
     fn default() -> Self {
         Self {
@@ -121,6 +134,7 @@ impl Default for UserSettings {
             exclude_sensitive_apps: true,
             extra_excluded_apps: Vec::new(),
             allow_wm_config_rewrite: false,
+            history_key_backend: default_key_backend(),
         }
     }
 }
@@ -177,6 +191,10 @@ impl UserSettings {
 
         if !["en", "fa"].contains(&self.language.as_str()) {
             self.language = "en".to_string();
+        }
+
+        if !["file", "secret-service"].contains(&self.history_key_backend.as_str()) {
+            self.history_key_backend = "file".to_string();
         }
 
         self.extra_excluded_apps
@@ -268,6 +286,21 @@ mod tests {
         assert!(settings.save_images);
         assert!(settings.exclude_sensitive_apps);
         assert!(!settings.allow_wm_config_rewrite);
+        assert_eq!(settings.history_key_backend, "file");
+    }
+
+    #[test]
+    fn key_backend_is_validated() {
+        let mut settings = UserSettings {
+            history_key_backend: "keyring-of-doom".to_string(),
+            ..Default::default()
+        };
+        settings.validate();
+        assert_eq!(settings.history_key_backend, "file");
+
+        settings.history_key_backend = "secret-service".to_string();
+        settings.validate();
+        assert_eq!(settings.history_key_backend, "secret-service");
     }
 
     #[test]

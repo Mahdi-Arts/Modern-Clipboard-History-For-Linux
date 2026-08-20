@@ -28,6 +28,14 @@
 3. **Rust → سیستم:** `/dev/uinput` و `pkexec`؛ بلیت paste و گیت `wrote_recently`.
 4. **Rust → شبکه:** فقط دانلود GIF با allowlist + DNS pinning.
 
+## نقشهٔ ماژول‌های هسته
+
+ماژول `clipboard_manager/` به زیرماژول‌های متمرکز تفکیک شده است:
+`types` (مدل دامنه)، `deduplication` (خط لولهٔ ثبت)، `persistence`
+(SQLite رمزنگاری‌شده)، `history_access` (خواندن، صفحه‌بندی، سنجاق،
+نگهداشت) و `clipboard_write` (I/O کلیپ‌بورد سیستم). ارجاعات داخلی بین
+زیرماژول‌ها `pub(super)` هستند و فراخوان‌های بیرونی فقط `pub` می‌بینند.
+
 جزئیات تهدید در [`THREAT_MODEL.md`](THREAT_MODEL.md).
 
 </div>
@@ -64,9 +72,18 @@ flowchart LR
 | UI | React 19, TypeScript strict, Tailwind 4 | Three windows; lazy pickers; virtualized list |
 | Backend | Rust, Tauri v2 | Domain modules, typed `AppError` |
 | Clipboard I/O | arboard + `wl-copy` / `xclip` | Read/write with fallback |
-| Persistence | SQLite WAL, field encryption, PNG thumbs | Cap 2000 items |
+| Persistence | SQLite WAL, field encryption, PNG thumbs | Cap 2000 items; bounded paged reads |
+| Key storage | `history.key` (0600) or Secret Service keyring | Marker-verified, fail-closed |
 | Input | Persistent uinput / XTest | Ctrl+V after an authorized write |
 | Packaging | deb / rpm / AppImage / AUR / Flatpak | Multi-distro |
+
+## Core module map / نقشهٔ ماژول‌های هسته
+
+`clipboard_manager/` is a package of focused submodules (split from a single
+1250-line file): `types` (domain model), `deduplication` (capture pipeline),
+`persistence` (encrypted SQLite), `history_access` (reads, paging, pin,
+retention), `clipboard_write` (OS clipboard I/O). Cross-module internals use
+`pub(super)`; external callers see only `pub` items.
 
 ## Paste authorization
 
@@ -82,3 +99,5 @@ flowchart LR
 - [0003 SSRF DNS pinning](adr/0003-ssrf-dns-pinning.md)
 - [0004 Field encryption](adr/0004-field-encryption.md)
 - [0005 CI & supply chain](adr/0005-ci-supply-chain.md)
+- [0006 Secret Service key storage](adr/0006-secret-service-key-storage.md)
+- [0007 IPC pagination](adr/0007-ipc-pagination.md)
