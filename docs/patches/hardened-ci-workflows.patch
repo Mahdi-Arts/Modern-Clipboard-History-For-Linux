@@ -1,0 +1,667 @@
+From: Mahdi Arts <mahdi-arts@users.noreply.github.com>
+Date: 2026-08-20
+Subject: [PATCH] ci: activate hardened CI & release workflows (supply-chain gates)
+
+Applies the hardened .github/workflows/ci.yml and release.yml
+(blocking audits, tests, smoke; SHA256SUMS + per-artifact SBOM + provenance).
+Apply with:  git am docs/patches/hardened-ci-workflows.patch
+Pushing workflow files needs a token with the 'workflows' scope.
+
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index 42a9fd4..2ea0af4 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -1,22 +1,45 @@
+ name: CI
+ 
++# Hardened quality gate — every check in this file is BLOCKING.
++# گیت کیفیت سخت‌گیرانه — تمام بررسی‌های این فایل «مسدودکننده» هستند.
++#
++# Contract (mirrored in README.md — keep both in sync):
++#   - ESLint + tsc + Prettier-clean TS, zero warnings
++#   - Frontend unit tests WITH coverage thresholds
++#   - cargo fmt + clippy -D warnings + cargo test
++#   - cargo audit / npm audit --audit-level=high / cargo-deny (no continue-on-error)
++#   - Release build + CLI smoke (--version / --help) under Xvfb
++
+ on:
+   push:
+     branches: [master, main, develop]
+   pull_request:
+     branches: [master, main]
+ 
++permissions:
++  contents: read
++
++concurrency:
++  group: ci-${{ github.ref }}
++  cancel-in-progress: true
++
+ env:
+   CARGO_TERM_COLOR: always
++  RUSTFLAGS: -D warnings
+ 
+ jobs:
+-  # Lint and format check
+-  lint:
+-    name: Lint & Format
++  # ---------------------------------------------------------------------
++  # Frontend + Rust quality gates (lint, format, unit tests, coverage)
++  # گیت‌های کیفیت فرانت‌اند و Rust (لینت، فرمت، تست واحد، پوشش)
++  # ---------------------------------------------------------------------
++  quality:
++    name: Lint, Test & Coverage
+     runs-on: ubuntu-latest
+     steps:
+       - name: Checkout repository
+         uses: actions/checkout@v7
++        with:
++          persist-credentials: false
+ 
+       - name: Setup Node.js
+         uses: actions/setup-node@v6
+@@ -24,10 +47,8 @@ jobs:
+           node-version: '20'
+           cache: 'npm'
+ 
+-      - name: Install Rust
+-        uses: dtolnay/rust-toolchain@stable
+-        with:
+-          components: rustfmt, clippy
++      - name: Install Rust (from rust-toolchain.toml)
++        uses: dtolnay/rust-toolchain@master
+ 
+       - name: Cache Cargo
+         uses: actions/cache@v6
+@@ -40,7 +61,7 @@ jobs:
+             src-tauri/target/
+           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+ 
+-      - name: Install dependencies
++      - name: Install system dependencies
+         run: |
+           sudo apt-get update
+           sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file \
+@@ -50,26 +71,73 @@ jobs:
+       - name: Install npm dependencies
+         run: npm ci
+ 
+-      - name: Run ESLint
++      - name: ESLint + TypeScript
+         run: npm run lint
+ 
+-      - name: Check TypeScript
+-        run: npm run build
++      - name: Frontend tests with coverage gate
++        run: npm run test:coverage
+ 
+-      - name: Check Rust formatting
++      - name: Rust format
+         run: cd src-tauri && cargo fmt --all -- --check
+ 
+-      - name: Run Clippy
+-        run: cd src-tauri && cargo clippy -- -D warnings
++      - name: Clippy (deny warnings)
++        run: cd src-tauri && cargo clippy --all-targets -- -D warnings
++
++      - name: Rust unit tests
++        run: cd src-tauri && cargo test --all-features
++
++  # ---------------------------------------------------------------------
++  # Blocking supply-chain audits (no continue-on-error)
++  # ممیزی‌های مسدودکنندهٔ زنجیرهٔ تأمین (بدون continue-on-error)
++  # ---------------------------------------------------------------------
++  security:
++    name: Security Audit
++    runs-on: ubuntu-latest
++    steps:
++      - name: Checkout repository
++        uses: actions/checkout@v7
++        with:
++          persist-credentials: false
++
++      - name: Install Rust
++        uses: dtolnay/rust-toolchain@master
++
++      - name: Install cargo-audit + cargo-deny
++        uses: taiki-e/install-action@v2
++        with:
++          tool: cargo-audit,cargo-deny
++
++      - name: cargo audit (RustSec advisories — blocking)
++        run: cd src-tauri && cargo audit
++
++      - name: cargo deny (licenses, bans, sources — blocking)
++        run: cd src-tauri && cargo deny check advisories bans licenses sources
++
++      - name: Setup Node.js
++        uses: actions/setup-node@v6
++        with:
++          node-version: '20'
++          cache: 'npm'
++
++      - name: Install npm dependencies
++        run: npm ci
++
++      - name: npm audit (blocking, high+)
++        run: npm audit --audit-level=high
+ 
+-  # Build for Linux
++  # ---------------------------------------------------------------------
++  # Production Linux build + CLI smoke test
++  # بیلد لینوکس + تست دودی CLI
++  # ---------------------------------------------------------------------
+   build-linux:
+     name: Build Linux
+     runs-on: ubuntu-latest
+-    needs: lint
++    needs: [quality, security]
+     steps:
+       - name: Checkout repository
+         uses: actions/checkout@v7
++        with:
++          persist-credentials: false
+ 
+       - name: Setup Node.js
+         uses: actions/setup-node@v6
+@@ -77,8 +145,8 @@ jobs:
+           node-version: '20'
+           cache: 'npm'
+ 
+-      - name: Install Rust
+-        uses: dtolnay/rust-toolchain@stable
++      - name: Install Rust (from rust-toolchain.toml)
++        uses: dtolnay/rust-toolchain@master
+ 
+       - name: Cache Cargo
+         uses: actions/cache@v6
+@@ -96,7 +164,7 @@ jobs:
+           sudo apt-get update
+           sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file \
+             libssl-dev libayatana-appindicator3-dev librsvg2-dev libxdo-dev \
+-            libgtk-3-dev libglib2.0-dev
++            libgtk-3-dev libglib2.0-dev xvfb
+ 
+       - name: Install npm dependencies
+         run: npm ci
+@@ -104,6 +172,14 @@ jobs:
+       - name: Build Tauri app
+         run: npm run tauri:build
+ 
++      - name: CLI smoke (--version / --help)
++        run: |
++          BIN=src-tauri/target/release/win11-clipboard-history-bin
++          test -x "$BIN"
++          "$BIN" --version
++          "$BIN" --help
++          xvfb-run --auto-servernum "$BIN" --version
++
+       - name: Upload artifacts
+         uses: actions/upload-artifact@v7
+         with:
+@@ -113,34 +189,3 @@ jobs:
+             src-tauri/target/release/bundle/appimage/*.AppImage
+             src-tauri/target/release/bundle/rpm/*.rpm
+           if-no-files-found: warn
+-
+-  # Security audit
+-  security:
+-    name: Security Audit
+-    runs-on: ubuntu-latest
+-    steps:
+-      - name: Checkout repository
+-        uses: actions/checkout@v7
+-
+-      - name: Install Rust
+-        uses: dtolnay/rust-toolchain@stable
+-
+-      - name: Install cargo-audit
+-        run: cargo install cargo-audit
+-
+-      - name: Run security audit
+-        run: cd src-tauri && cargo audit
+-        continue-on-error: true
+-
+-      - name: Setup Node.js
+-        uses: actions/setup-node@v6
+-        with:
+-          node-version: '20'
+-          cache: 'npm'
+-
+-      - name: Install npm dependencies
+-        run: npm ci
+-
+-      - name: Run npm audit
+-        run: npm audit --audit-level=high
+-        continue-on-error: true
+diff --git a/.github/workflows/release.yml b/.github/workflows/release.yml
+index 6dd5d89..fc38f98 100644
+--- a/.github/workflows/release.yml
++++ b/.github/workflows/release.yml
+@@ -1,5 +1,15 @@
+ name: Release
+ 
++# Trusted release pipeline.
++# خط لولهٔ انتشار مورد اعتماد.
++#
++# Contract (mirrored in README.md — keep both in sync):
++#   - Multi-arch builds (x86_64 + aarch64)
++#   - Publishes .deb / .rpm / AppImage + SHA256SUMS + per-artifact SPDX SBOM
++#   - SLSA build-provenance attestations via GitHub artifact attestations
++#   - Every URL points at this repository (Mahdi-Arts/Modern-Clipboard-History-For-Linux)
++#   - Optional channels (Cloudsmith / AUR) are opt-in via repository secrets
++
+ on:
+   push:
+     tags:
+@@ -7,11 +17,22 @@ on:
+ 
+ permissions:
+   contents: write
++  id-token: write
++  attestations: write
++
++concurrency:
++  group: release-${{ github.ref }}
++  cancel-in-progress: false
+ 
+ env:
+   CARGO_TERM_COLOR: always
++  REPO: Mahdi-Arts/Modern-Clipboard-History-For-Linux
+ 
+ jobs:
++  # ---------------------------------------------------------------------
++  # Build both architectures from the tagged commit
++  # ساخت هر دو معماری از کامیت تگ‌شده
++  # ---------------------------------------------------------------------
+   build:
+     name: Build (${{ matrix.arch }})
+     runs-on: ${{ matrix.runner }}
+@@ -32,19 +53,20 @@ jobs:
+         uses: actions/checkout@v7
+         with:
+           fetch-depth: 0
++          persist-credentials: false
+ 
+       - name: Get version from tag
+         id: get_version
+-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
++        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
+ 
+       - name: Setup Node.js
+         uses: actions/setup-node@v6
+         with:
+-          node-version: "20"
+-          cache: "npm"
++          node-version: '20'
++          cache: 'npm'
+ 
+-      - name: Install Rust
+-        uses: dtolnay/rust-toolchain@stable
++      - name: Install Rust (from rust-toolchain.toml)
++        uses: dtolnay/rust-toolchain@master
+ 
+       - name: Cache Cargo
+         uses: actions/cache@v6
+@@ -68,7 +90,7 @@ jobs:
+         run: |
+           VERSION=${{ steps.get_version.outputs.VERSION }}
+           echo "Syncing version to $VERSION"
+-          npm version $VERSION --no-git-tag-version --allow-same-version
++          npm version "$VERSION" --no-git-tag-version --allow-same-version
+           sed -i 's/"version": "[^"]*"/"version": "'"$VERSION"'"/' src-tauri/tauri.conf.json
+           sed -i '0,/^version = "[^"]*"/s//version = "'"$VERSION"'"/' src-tauri/Cargo.toml
+           echo "=== Versions after sync ==="
+@@ -92,6 +114,10 @@ jobs:
+             src-tauri/target/release/bundle/rpm/*.rpm
+           retention-days: 1
+ 
++  # ---------------------------------------------------------------------
++  # Publish the GitHub Release with checksums, SBOM and provenance
++  # انتشار GitHub Release همراه checksumها، SBOM و provenance
++  # ---------------------------------------------------------------------
+   release:
+     name: Create Release
+     needs: build
+@@ -99,10 +125,12 @@ jobs:
+     steps:
+       - name: Checkout repository
+         uses: actions/checkout@v7
++        with:
++          persist-credentials: false
+ 
+       - name: Get version from tag
+         id: get_version
+-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
++        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
+ 
+       - name: Download all artifacts
+         uses: actions/download-artifact@v8
+@@ -110,8 +138,39 @@ jobs:
+           path: artifacts
+           merge-multiple: true
+ 
+-      - name: List artifacts
+-        run: find artifacts -type f | head -50
++      - name: Flatten artifacts and generate SHA256SUMS
++        run: |
++          mkdir -p dist
++          find artifacts -type f \( -name '*.deb' -o -name '*.rpm' -o -name '*.AppImage' \) -exec cp -v {} dist/ \;
++          cd dist
++          sha256sum -- * > SHA256SUMS
++          cat SHA256SUMS
++
++      - name: Install syft (SBOM generator)
++        uses: anchore/sbom-action/download-syft@v0
++
++      - name: Generate per-artifact SPDX SBOM
++        run: |
++          # One SPDX JSON per distributable artifact, named after the file.
++          # یک SBOM جدا برای هر آرتیفکت توزیع‌شدنی.
++          set -euo pipefail
++          shopt -s nullglob
++          for f in dist/*.deb dist/*.rpm dist/*.AppImage; do
++            base="$(basename "$f")"
++            echo "Scanning $base ..."
++            syft scan "file:$f" -o spdx-json > "dist/${base}.spdx.json"
++          done
++          ls -la dist/
++
++      - name: Attest build provenance (SLSA)
++        uses: actions/attest-build-provenance@v2
++        with:
++          subject-path: |
++            dist/*.deb
++            dist/*.rpm
++            dist/*.AppImage
++            dist/SHA256SUMS
++            dist/*.spdx.json
+ 
+       - name: Create Release and Upload Assets
+         uses: softprops/action-gh-release@v3
+@@ -123,96 +182,73 @@ jobs:
+           draft: false
+           prerelease: ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') || contains(github.ref_name, 'dev') }}
+           files: |
+-            artifacts/**/*.deb
+-            artifacts/**/*.AppImage
+-            artifacts/**/*.rpm
++            dist/**
+           body: |
+-            <div align="center">
++            # 📋 Clipboard History for Linux ${{ github.ref_name }}
+ 
+-            <img width="128" height="128" alt="logo" src="https://github.com/user-attachments/assets/4534e915-5d83-45f3-9f09-48a0f94b1d9a" />
++            A fast, bilingual clipboard manager for Linux (Wayland & X11).
++            مدیر کلیپ‌بورد سریع و دوزبانه برای لینوکس (Wayland و X11).
+ 
+-            # W11 Clipboard For Linux ${{ github.ref_name }}
++            ## 🔐 Verify downloads / تأیید دانلود
+ 
+-            ## 🚀 Quick Installation (Recommended)
++            Every artifact is listed in `SHA256SUMS`. An SPDX SBOM and a SLSA
++            build-provenance attestation are attached to this release.
++            هر آرتیفکت در `SHA256SUMS` فهرست شده؛ SBOM و گواهی provenance نیز پیوست است.
+ 
+             ```bash
+-            curl -fsSL https://raw.githubusercontent.com/gustavosett/Windows-11-Clipboard-History-For-Linux/master/scripts/install.sh | bash
++            sha256sum -c SHA256SUMS --ignore-missing
+             ```
+ 
+-            This script auto-detects your distro and architecture, then sets up everything including paste permissions.
++            Prefer your package manager over piping scripts to bash. Review
++            `scripts/install.sh` before running it.
++            ترجیحاً از مدیر بستهٔ خود استفاده کنید؛ پیش از اجرای اسکریپت، آن را بازبینی کنید.
+ 
+-            </div>
++            ## 📦 Install / نصب
+ 
+-            ---
+-
+-            ### 📦 Manual Installation
+-
+-            <details>
+-            <summary>Ubuntu/Debian (APT Repository - enables auto-updates)</summary>
++            ### Debian / Ubuntu
+ 
+-            ```bash
+-            curl -1sLf 'https://dl.cloudsmith.io/public/gustavosett/clipboard-manager/setup.deb.sh' | sudo -E bash
+-            sudo apt update && sudo apt install win11-clipboard-history
+-            sudo setfacl -m u:$USER:rw /dev/uinput  # For immediate paste access
+-            ```
+-
+-            Or download the `.deb` directly (amd64 for x86_64, arm64 for ARM64):
+             ```bash
+             sudo apt install ./win11-clipboard-history_${{ steps.get_version.outputs.VERSION }}_amd64.deb
+             sudo setfacl -m u:$USER:rw /dev/uinput
+             ```
+-            </details>
+-
+-            <details>
+-            <summary>Fedora/RHEL (DNF Repository - enables auto-updates)</summary
+ 
+-            ```bash
+-            curl -1sLf 'https://dl.cloudsmith.io/public/gustavosett/clipboard-manager/setup.rpm.sh' | sudo -E bash
+-            sudo dnf install win11-clipboard-history
+-            sudo setfacl -m u:$USER:rw /dev/uinput  # For immediate paste access
+-            ```
++            ### Fedora
+ 
+-            Or download the `.rpm` directly (x86_64 for Intel/AMD, aarch64 for ARM64):
+             ```bash
+             sudo dnf install ./win11-clipboard-history-${{ steps.get_version.outputs.VERSION }}-1.x86_64.rpm
+             sudo setfacl -m u:$USER:rw /dev/uinput
+             ```
+-            </details>
+ 
+-            <details>
+-            <summary>Arch Linux (AUR)</summary>
++            ### Arch Linux (AUR)
+ 
+             ```bash
+             yay -S win11-clipboard-history-bin
+             ```
+-            </details>
+ 
+-            <details>
+-            <summary>AppImage (Universal - any distro)</summary>
++            ### Convenience installer (review first / اول بازبینی کنید)
+ 
+-            > ## Some features are disabled; we strongly recommend the complete installation.
+             ```bash
+-            # Download the correct AppImage for your architecture
+-            chmod +x win11-clipboard-history_${{ steps.get_version.outputs.VERSION }}_amd64.AppImage
+-            sudo setfacl -m u:$USER:rw /dev/uinput  # Required for paste simulation
+-            ./win11-clipboard-history_${{ steps.get_version.outputs.VERSION }}_amd64.AppImage
+-            ```
+-            then register the command that you want in your system to open the AppImage
++            curl -fsSL https://raw.githubusercontent.com/Mahdi-Arts/Modern-Clipboard-History-For-Linux/master/scripts/install.sh -o install-clipboard.sh
++            less install-clipboard.sh
++            bash install-clipboard.sh
+             ```
+-            KEYBOARD SETTINGS -> SHORTCUTS -> NEW SHORTCUT -> Super+V -> ./my_awesome_folder/win11-clipboard-history_${{ steps.get_version.outputs.VERSION }}_amd64.AppImage
+-            ```
+-
+-            > **Note:** The `setfacl` command is temporary (resets on reboot). For permanent setup, see the [README](https://github.com/gustavosett/Windows-11-Clipboard-History-For-Linux#appimage-universal).
+-            </details>
+ 
+-            ---
++            The installer **requires** a matching `SHA256SUMS` entry
++            (`ALLOW_UNVERIFIED=1` to skip — not recommended).
++            نصاب **الزاماً** checksum را با `SHA256SUMS` تطبیق می‌دهد.
+ 
+-            ### ⌨️ Usage
++            ### Flatpak
+ 
+-            Press **Super+V** to open the clipboard history. The app will show a Setup Wizard on first run to configure shortcuts and permissions.
++            See [`packaging/README.md`](https://github.com/Mahdi-Arts/Modern-Clipboard-History-For-Linux/blob/master/packaging/README.md).
++            The sandbox does not grant `/dev/uinput`; use `.deb`/`.rpm` for paste
++            simulation, or `flatpak override --user --device=all io.github.mahdi-arts.clipboard-history`.
+         env:
+           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+ 
++      # -----------------------------------------------------------------
++      # Optional distribution channels — enabled only when secrets exist.
++      # کانال‌های توزیع اختیاری — فقط وقتی secret تنظیم شده باشد.
++      # -----------------------------------------------------------------
+       - name: Upload to Cloudsmith (stable releases only)
+         if: ${{ !contains(github.ref_name, 'alpha') && !contains(github.ref_name, 'beta') && !contains(github.ref_name, 'rc') && !contains(github.ref_name, 'dev') }}
+         continue-on-error: true
+@@ -220,37 +256,22 @@ jobs:
+           CLOUDSMITH_API_KEY: ${{ secrets.CLOUDSMITH_API_KEY }}
+         run: |
+           if [ -z "$CLOUDSMITH_API_KEY" ]; then
+-            echo "⚠️ CLOUDSMITH_API_KEY not set, skipping Cloudsmith upload"
++            echo "::notice::CLOUDSMITH_API_KEY not set, skipping Cloudsmith upload"
+             exit 0
+           fi
+           pip install cloudsmith-cli
+           VERSION=${{ steps.get_version.outputs.VERSION }}
+-
+           echo "Uploading STABLE release v$VERSION to Cloudsmith..."
+-
+-          # Upload all .deb files (x86_64 and arm64)
+-          deb_files=$(find artifacts -name '*.deb' 2>/dev/null)
+-          if [ -n "$deb_files" ]; then
+-            echo "$deb_files" | while read -r deb; do
+-              echo "Uploading $deb..."
+-              cloudsmith push deb gustavosett/clipboard-manager/any-distro/any-version \
+-                "$deb" --api-key $CLOUDSMITH_API_KEY || echo "Cloudsmith .deb upload failed for $deb (may already exist)"
+-            done
+-          else
+-            echo "No .deb files found to upload"
+-          fi
+-
+-          # Upload all .rpm files (x86_64 and aarch64)
+-          rpm_files=$(find artifacts -name '*.rpm' 2>/dev/null)
+-          if [ -n "$rpm_files" ]; then
+-            echo "$rpm_files" | while read -r rpm; do
+-              echo "Uploading $rpm..."
+-              cloudsmith push rpm gustavosett/clipboard-manager/any-distro/any-version \
+-                "$rpm" --api-key $CLOUDSMITH_API_KEY || echo "Cloudsmith .rpm upload failed for $rpm (may already exist)"
+-            done
+-          else
+-            echo "No .rpm files found to upload"
+-          fi
++          for deb in dist/*.deb; do
++            [ -f "$deb" ] || continue
++            cloudsmith push deb mahdi-arts/clipboard-manager/any-distro/any-version \
++              "$deb" --api-key "$CLOUDSMITH_API_KEY" || echo "::warning::Cloudsmith .deb upload failed for $deb"
++          done
++          for rpm in dist/*.rpm; do
++            [ -f "$rpm" ] || continue
++            cloudsmith push rpm mahdi-arts/clipboard-manager/any-distro/any-version \
++              "$rpm" --api-key "$CLOUDSMITH_API_KEY" || echo "::warning::Cloudsmith .rpm upload failed for $rpm"
++          done
+ 
+       - name: Update AUR Package
+         if: ${{ !contains(github.ref_name, 'alpha') && !contains(github.ref_name, 'beta') && !contains(github.ref_name, 'rc') && !contains(github.ref_name, 'dev') }}
+@@ -259,18 +280,16 @@ jobs:
+           AUR_SSH_KEY: ${{ secrets.AUR_SSH_KEY }}
+         run: |
+           if [ -z "$AUR_SSH_KEY" ]; then
+-            echo "AUR_SSH_KEY not set, skipping AUR update"
++            echo "::notice::AUR_SSH_KEY not set, skipping AUR update"
+             exit 0
+           fi
+ 
+           VERSION=${{ steps.get_version.outputs.VERSION }}
+-
+-          # Compute checksums for each architecture
+-          DEB_X86_64=$(find artifacts -name "*_amd64.deb" | head -1)
+-          DEB_ARM64=$(find artifacts -name "*_arm64.deb" | head -1)
++          DEB_X86_64=$(find dist -name "*_amd64.deb" | head -1)
++          DEB_ARM64=$(find dist -name "*_arm64.deb" | head -1)
+ 
+           if [ -z "$DEB_X86_64" ]; then
+-            echo "x86_64 .deb not found, skipping AUR update"
++            echo "::error::x86_64 .deb not found, skipping AUR update"
+             exit 0
+           fi
+ 
+@@ -280,28 +299,20 @@ jobs:
+             SHA256_ARM64=$(sha256sum "$DEB_ARM64" | cut -d' ' -f1)
+           fi
+ 
+-          echo "Updating AUR package to version $VERSION"
+-          echo "x86_64 checksum: $SHA256_X86_64"
+-          echo "arm64 checksum: ${SHA256_ARM64:-SKIP}"
+-
+-          # Setup SSH for AUR
+           mkdir -p ~/.ssh
+           echo "$AUR_SSH_KEY" > ~/.ssh/aur
+           chmod 600 ~/.ssh/aur
+           echo "Host aur.archlinux.org
+             User aur
+             IdentityFile ~/.ssh/aur
+-            StrictHostKeyChecking no" > ~/.ssh/config
++            StrictHostKeyChecking accept-new" > ~/.ssh/config
+ 
+-          # Clone AUR repo
+           git clone ssh://aur@aur.archlinux.org/win11-clipboard-history-bin.git /tmp/aur-pkg
+           cd /tmp/aur-pkg
+ 
+-          # Use aur/PKGBUILD from the repo as the single source of truth
+           cp "$GITHUB_WORKSPACE/aur/PKGBUILD" PKGBUILD
+           cp "$GITHUB_WORKSPACE/aur/win11-clipboard-history-bin.install" . 2>/dev/null || true
+ 
+-          # Update version and checksums via sed
+           sed -i "s/^pkgver=.*/pkgver=$VERSION/" PKGBUILD
+           sed -i "s/^pkgrel=.*/pkgrel=1/" PKGBUILD
+           sed -i "s/sha256sums_x86_64=.*/sha256sums_x86_64=('$SHA256_X86_64')/" PKGBUILD
+@@ -311,20 +322,23 @@ jobs:
+             sed -i "s/sha256sums_aarch64=.*/sha256sums_aarch64=('SKIP')/" PKGBUILD
+           fi
+ 
+-          # Generate .SRCINFO
+-          docker run --rm -v "$PWD:/pkg" archlinux bash -c "
+-            pacman -Sy --noconfirm pacman-contrib
+-            cd /pkg
+-            makepkg --printsrcinfo > .SRCINFO
+-          " || {
+-            echo "Docker failed, generating .SRCINFO manually"
++          # Generate .SRCINFO inside a real Arch container when Docker exists,
++          # otherwise fall back to a hand-written file (URLs: this repository).
++          if command -v docker >/dev/null 2>&1; then
++            docker run --rm -v "$PWD:/pkg" archlinux bash -c "
++              pacman -Sy --noconfirm pacman-contrib
++              cd /pkg
++              makepkg --printsrcinfo > .SRCINFO
++            "
++          else
++            echo "::warning::Docker unavailable; writing .SRCINFO manually"
+             TAB=$'\t'
+             cat > .SRCINFO << SRCINFO_EOF
+           pkgbase = win11-clipboard-history-bin
+           ${TAB}pkgdesc = Windows 11-style Clipboard History Manager for Linux
+           ${TAB}pkgver = $VERSION
+           ${TAB}pkgrel = 1
+-          ${TAB}url = https://github.com/gustavosett/Windows-11-Clipboard-History-For-Linux
++          ${TAB}url = https://github.com/Mahdi-Arts/Modern-Clipboard-History-For-Linux
+           ${TAB}install = win11-clipboard-history-bin.install
+           ${TAB}arch = x86_64
+           ${TAB}arch = aarch64
+@@ -342,19 +356,18 @@ jobs:
+           ${TAB}conflicts = win11-clipboard-history
+           ${TAB}options = !strip
+           ${TAB}options = !debug
+-          ${TAB}source_x86_64 = https://github.com/gustavosett/Windows-11-Clipboard-History-For-Linux/releases/download/v$VERSION/win11-clipboard-history_${VERSION}_amd64.deb
++          ${TAB}source_x86_64 = https://github.com/Mahdi-Arts/Modern-Clipboard-History-For-Linux/releases/download/v$VERSION/win11-clipboard-history_${VERSION}_amd64.deb
+           ${TAB}sha256sums_x86_64 = $SHA256_X86_64
+-          ${TAB}source_aarch64 = https://github.com/gustavosett/Windows-11-Clipboard-History-For-Linux/releases/download/v$VERSION/win11-clipboard-history_${VERSION}_arm64.deb
++          ${TAB}source_aarch64 = https://github.com/Mahdi-Arts/Modern-Clipboard-History-For-Linux/releases/download/v$VERSION/win11-clipboard-history_${VERSION}_arm64.deb
+           ${TAB}sha256sums_aarch64 = ${SHA256_ARM64:-SKIP}
+ 
+           pkgname = win11-clipboard-history-bin
+           SRCINFO_EOF
+             sed -i 's/^          //' .SRCINFO
+-          }
++          fi
+ 
+-          # Commit and push
+           git config user.name "GitHub Actions"
+           git config user.email "actions@github.com"
+           git add PKGBUILD .SRCINFO
+           git commit -m "Update to version $VERSION" || echo "No changes to commit"
+-          git push || echo "Push failed - may need manual intervention"
++          git push || echo "::warning::AUR push failed - may need manual intervention"

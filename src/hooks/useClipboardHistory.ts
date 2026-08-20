@@ -1,29 +1,75 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { invoke } from '@tauri-apps/api/core'
 import { listen, UnlistenFn } from '@tauri-apps/api/event'
-import type { ClipboardItem } from '../types/clipboard'
+import type { ClipboardItem, HistoryPage } from '../types/clipboard'
+import { clampOffset, clampPageSize, hasNextPage, mergePageById } from '../utils/pagination'
+
+/** Options for windowed history loading (ADR-0007).
+ *  گزینه‌های بارگذاری پنجره‌ای تاریخچه (ADR-0007). */
+export interface UseClipboardHistoryOptions {
+  /**
+   * When set, the initial load and `loadMore` fetch bounded pages via
+   * `get_history_page` instead of one full `get_history` payload.
+   * وقتی تنظیم شود، بارگذاری اولیه و `loadMore` به‌جای یک بار کامل،
+   * پنجره‌های محدود از `get_history_page` می‌گیرند.
+   */
+  pageSize?: number
+}
 
 /**
- * Hook for managing clipboard history
+ * Hook for managing clipboard history.
+ * هوک مدیریت تاریخچهٔ کلیپ‌بورد.
  */
-export function useClipboardHistory() {
+export function useClipboardHistory(options: UseClipboardHistoryOptions = {}) {
   const [history, setHistory] = useState<ClipboardItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [total, setTotal] = useState<number | null>(null)
+
+  const pageSize = options.pageSize
+  const nextOffsetRef = useRef(0)
 
   // Fetch initial history
   const fetchHistory = useCallback(async () => {
     try {
       setIsLoading(true)
-      const items = await invoke<ClipboardItem[]>('get_history')
-      setHistory(items)
+      if (pageSize != null) {
+        const page = await invoke<HistoryPage>('get_history_page', {
+          limit: clampPageSize(pageSize),
+          offset: 0,
+        })
+        nextOffsetRef.current = page.items.length
+        setTotal(page.total)
+        setHistory(page.items)
+      } else {
+        const items = await invoke<ClipboardItem[]>('get_history')
+        setHistory(items)
+      }
       setError(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch history')
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [pageSize])
+
+  /** Fetch the next bounded window and merge it into the list.
+   *  دریافت پنجرهٔ بعدی و ادغام آن در فهرست. */
+  const loadMore = useCallback(async () => {
+    if (pageSize == null) return
+    const limit = clampPageSize(pageSize)
+    const offset = clampOffset(nextOffsetRef.current)
+    const currentTotal = total
+    if (currentTotal != null && !hasNextPage(currentTotal, offset, limit)) return
+    try {
+      const page = await invoke<HistoryPage>('get_history_page', { limit, offset })
+      nextOffsetRef.current = offset + page.items.length
+      setTotal(page.total)
+      setHistory((prev) => mergePageById(prev, page.items))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load more history')
+    }
+  }, [pageSize, total])
 
   // Clear all history
   const clearHistory = useCallback(async () => {
@@ -170,6 +216,9 @@ export function useClipboardHistory() {
     history,
     isLoading,
     error,
+    total,
+    /** Windowed loading; only meaningful with `pageSize`. / فقط با `pageSize` معنا دارد. */
+    loadMore,
     fetchHistory,
     clearHistory,
     deleteItem,

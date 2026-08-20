@@ -151,8 +151,20 @@
       "exclude_apps_desc": "در X11، کپی از KeePass، 1Password، Bitwarden و پنجره‌های مرور خصوصی ذخیره نمی‌شود.",
       "wm_rewrite": "اجازه بازنویسی کانفیگ مدیر پنجره",
       "wm_rewrite_desc": "به‌صورت پیش‌فرض خاموش است. در صورت فعال بودن، نصب ممکن است Super+V موجود در i3/Sway/Hyprland را کامنت کند.",
-      "storage_note": "تاریخچه محلی است: ~/.local/share/win11-clipboard-history/ با مجوز 0600. متن‌ها در دیسک با ChaCha20-Poly1305 رمز می‌شوند (کلید در history.key). هیچ داده‌ای آپلود نمی‌شود مگر جستجوی GIF با TENOR_API_KEY.",
-      "wayland_note": "در Wayland پنجرهٔ فعال در دسترس نیست. نادیده‌گرفتن مدیر رمز عبور فقط روی X11 کار می‌کند؛ فیلتر اسرار را روشن نگه دارید."
+      "storage_note": "تاریخچه محلی است: ~/.local/share/win11-clipboard-history/ با مجوز 0600. متن‌ها روی دیسک با ChaCha20-Poly1305 رمز می‌شوند؛ کلید در history.key یا کلید-ring دسکتاپ (Secret Service) نگه‌داری می‌شود. هیچ داده‌ای آپلود نمی‌شود مگر جستجوی GIF با TENOR_API_KEY.",
+      "wayland_note": "در Wayland پنجرهٔ فعال در دسترس نیست. نادیده‌گرفتن مدیر رمز عبور فقط روی X11 کار می‌کند؛ فیلتر اسرار را روشن نگه دارید.",
+      "key_storage": "محل ذخیرهٔ کلید رمزنگاری",
+      "key_storage_desc": "تاریخچه روی دیسک رمز می‌شود. انتخاب کنید کلید کجا بماند.",
+      "key_backend_file": "فایل محلی (history.key)",
+      "key_backend_file_desc": "فایل کلید کنار دیتابیس با مجوز 0600. همه‌جا کار می‌کند و وابستگی اضافه ندارد.",
+      "key_backend_secret": "کلید-ring دسکتاپ (Secret Service)",
+      "key_backend_secret_desc": "GNOME Keyring یا KWallet از طریق Secret Service. کلید هرگز روی دیسک نوشته نمی‌شود.",
+      "key_unavailable": "secret-tool پیدا نشد — برای استفاده از کلید-ring بستهٔ libsecret-tools را نصب کنید.",
+      "key_migrate_to_secret": "انتقال کلید به کلید-ring",
+      "key_migrate_to_file": "بازگرداندن کلید به فایل",
+      "key_migrate_done": "کلید با موفقیت منتقل شد.",
+      "key_migrate_failed": "مهاجرت ناموفق بود",
+      "key_restart_note": "بک‌اند جدید از اجرای بعدی برنامه اعمال می‌شود."
     }
   },
   "tray": {

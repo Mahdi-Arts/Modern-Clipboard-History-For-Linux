@@ -36,7 +36,7 @@ RESET := \033[0m
 
 .PHONY: all help deps deps-ubuntu deps-debian deps-fedora deps-arch \
         rust node check-deps dev build install uninstall clean clean-first-run run \
-        lint format test test-coverage rust-syntax audit release
+        lint format test test-coverage rust-syntax audit hooks release
 
 all: build
 
@@ -64,6 +64,7 @@ help:
 	@echo -e "$(GREEN)Development:$(RESET)"
 	@echo "  make dev         - Run in development mode (hot reload)"
 	@echo "  make run         - Run the development version (clean env)"
+	@echo "  make hooks       - Install git hooks (pre-commit + commit-msg)"
 	@echo "  make build       - Build production release"
 	@echo "  make lint        - Run linters"
 	@echo "  make format      - Format code"
@@ -347,9 +348,14 @@ rust-syntax:
 	node scripts/check-rust-syntax.mjs
 
 audit:
-	@echo -e "$(CYAN)Auditing dependencies...$(RESET)"
+	@echo -e "$(CYAN)Auditing dependencies (cargo audit + cargo deny + npm audit)...$(RESET)"
 	cd src-tauri && cargo audit
+	cd src-tauri && cargo deny check advisories bans licenses sources
 	npm audit --audit-level=high
+
+hooks:
+	@echo -e "$(CYAN)Installing git hooks (pre-commit, commit-msg)...$(RESET)"
+	./scripts/install-git-hooks.sh
 
 lint:
 	@echo -e "$(CYAN)Running linters...$(RESET)"

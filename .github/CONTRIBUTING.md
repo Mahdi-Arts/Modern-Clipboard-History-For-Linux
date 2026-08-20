@@ -154,6 +154,29 @@ make dev
 - از `crate::fs_atomic::write_atomic` برای نوشتن فایل استفاده کنید
 - از `crate::clipboard_io` برای عملیات کلیپ‌بورد استفاده کنید
 
+### کامنت‌های دوزبانه (سیاست پروژه)
+
+- کامنت‌های **سربرگ و مستندات (`///`) آیتم‌های عمومی** باید دوزبانه
+  (انگلیسی + فارسی) باشند — الگوی موجود در `history_crypto.rs` را ببینید.
+- کامنت‌های «چرا» ترجیح داده می‌شوند؛ کامنت‌های «چه» فقط وقتی کد
+  خوداظهار نباشد.
+- پیام‌های commit مطابق Conventional Commits باشند (hook `commit-msg`
+  این را الزامی می‌کند).
+
+### Git Hookها
+
+```bash
+make hooks   # نصب pre-commit و commit-msg
+```
+
+- `pre-commit`: روی فایل‌های stage شده ESLint + tsc و `cargo fmt --check` اجرا می‌کند.
+- `commit-msg`: قالب Conventional Commits را الزامی می‌کند.
+
+### وابستگی‌های جدید
+
+- وابستگی Rust جدید باید مجوز آن در allow-list فایل `src-tauri/deny.toml`
+  باشد وگرنه `cargo deny check` (گیت CI) شکست می‌خورد.
+
 ### CSS/Tailwind
 
 - از Tailwind utility classes استفاده کنید
@@ -315,6 +338,28 @@ make dev
 - Use `tracing` instead of `eprintln!`
 - Use `crate::fs_atomic::write_atomic` for file writes
 - Use `crate::clipboard_io` for clipboard operations
+
+### Bilingual comments (project policy)
+- Doc comments (`///`) on public items must be **bilingual (English +
+  Persian)** — see `history_crypto.rs` for the pattern.
+- Prefer "why" comments; add "what" comments only when code is not
+  self-explanatory.
+- Commit messages follow Conventional Commits (enforced by the
+  `commit-msg` hook).
+
+### Git hooks
+
+```bash
+make hooks   # install pre-commit and commit-msg
+```
+
+- `pre-commit`: ESLint + tsc on staged TS and `cargo fmt --check` on staged Rust.
+- `commit-msg`: enforces the Conventional Commits format.
+
+### New dependencies
+- New Rust dependencies must have a license present in the
+  `src-tauri/deny.toml` allow-list, or `cargo deny check` (a CI gate)
+  will fail.
 
 ### CSS/Tailwind
 - Use Tailwind utility classes
