@@ -1,9 +1,11 @@
 //! Windows 11 Clipboard History For Linux Library
+//! / کتابخانهٔ مدیر تاریخچه کلیپ‌بورد ویندوز ۱۱ برای لینوکس
 //!
 //! This module re-exports the core functionality for use as a library.
 //! Each public module handles a single concern (clipboard I/O, privacy,
 //! input simulation, etc.) so that `main.rs` stays focused on application
 //! bootstrap and Tauri plugin registration.
+//! هر ماژول عمومی یک نگرانی واحد را پوشش می‌دهد تا `main.rs` فقط bootstrap باشد.
 
 use parking_lot::Mutex;
 use std::sync::atomic::AtomicBool;
@@ -30,7 +32,8 @@ pub struct AppState {
     pub is_mouse_inside: Arc<AtomicBool>,
     /// Serializes the complete clipboard/focus/input transaction.
     pub paste_gate: tokio::sync::Mutex<()>,
-    /// Required by `finish_paste` so the webview cannot inject Ctrl+V at will.
+    /// Required by paste commands so the webview cannot inject Ctrl+V at will.
+    /// / بلیت یک‌بارمصرف برای جلوگیری از تزریق آزاد Ctrl+V از webview.
     pub paste_ticket: Mutex<Option<PasteTicket>>,
 }
 
@@ -126,6 +129,7 @@ pub fn init_tracing() {
 pub mod autostart_manager;
 pub mod clipboard_io;
 pub mod clipboard_manager;
+pub mod content_hash;
 pub mod clipboard_watcher;
 pub mod commands;
 pub mod config_manager;
@@ -134,6 +138,8 @@ pub mod error;
 pub mod focus_manager;
 pub mod fs_atomic;
 pub mod gif_manager;
+pub mod history_crypto;
+pub mod history_store;
 pub mod image_store;
 pub mod input_simulator;
 pub mod linux_shortcut_manager;

@@ -1,6 +1,6 @@
 # 🛡️ Threat Model — Modern Clipboard History for Linux
 
-> **Status:** Living document · **Applies to:** v2.2.0
+> **Status:** Living document · **Applies to:** v2.3.0
 > This document describes the assets, trust boundaries, threat agents, and
 > the controls in place. It is the reference for security reviews and for
 > any future hardening work (e.g. optional encryption).
@@ -54,7 +54,7 @@ Key boundaries:
 ## 4. Controls per threat
 
 ### 4.1 Clipboard poisoning (T3)
-- **Secret filter** (`privacy.rs`): drops PEM private keys, JWTs, known token prefixes (`ghp_`, `sk_live_`, `AKIA…`), and `password=`-style assignments before they reach history. Default ON.
+- **Secret filter** (`privacy.rs`): drops PEM private keys, JWTs, known token prefixes (`ghp_`, `sk_live_`, `AKIA…`), and `password=`-style assignments of **any length** before they reach history. Default ON.
 - **Sensitive-source skip** (X11 only): password managers and incognito/private windows are excluded via WM_CLASS/title matching (`window_identity.rs`). Wayland compositors do not expose focus identity — documented limitation.
 - **Smart-action URL sanitizer** (`urlSafety.ts` + `open_url.rs`): protocol allowlist (`http/https/mailto`), blocks credentials, control chars, localhost, private/loopback/CGNAT IPs. The webview calls `open_safe_url`; Rust re-validates and execs `xdg-open` (no Tauri `shell:allow-open`).
 - **Regex search guard** (`historySearch.ts`): length cap (80), nested-quantifier detection, try/catch — prevents ReDoS on the UI thread.
@@ -72,7 +72,7 @@ Key boundaries:
 
 ### 4.4 Keystroke injection capability (T1-adjacent risk)
 - `/dev/uinput` (Wayland) or XTest (X11) can synthesize Ctrl+V into the focused window.
-- Guards: `finish_paste` requires a one-shot ticket issued after a clipboard write **and** a write recorded within 5 s; the paste transaction is serialized (`paste_gate`); on X11 the previous focused window is restored and **verified** before injection (`focus_manager`/`paste_sync`); the popup window hides and releases focus first.
+- Guards: `paste_item`, `paste_text`, and `finish_paste` all require a one-shot ticket issued after a clipboard write **and** a write recorded within 5 s; paste text is capped at 1 MiB; the paste transaction is serialized (`paste_gate`); on X11 the previous focused window is restored and **verified** before injection (`focus_manager`/`paste_sync`); the popup window hides and releases focus first.
 - udev rule grants access only to the logged-in session (`TAG+="uaccess"`); AppArmor profile restricts the device to the app binary.
 - **Residual risk (documented):** a compromised binary could type into any focused window. Users should treat the binary like a trusted input device (README + SECURITY.md).
 
@@ -87,7 +87,7 @@ Key boundaries:
 | Limitation | Risk | Mitigation / status |
 | --- | --- | --- |
 | Wayland: no focused-app detection | Secrets from password managers can land in history on Wayland | Secret filter still applies; UI warns; documented in README |
-| History text is field-encrypted; key is a local `history.key` | A local attacker with the same UID can still read the key | `0600` + ChaCha20-Poly1305; libsecret wrapping is a roadmap item |
+| History text is field-encrypted; key is a local `history.key` | A local attacker with the same UID can still read the key | `0600` + ChaCha20-Poly1305 (fail-closed); libsecret wrapping is a roadmap item |
 | `style-src 'unsafe-inline'` in CSP | XSS would still be constrained (no `script-src` relaxation), but inline styles are allowed | Required by Tailwind/React inline styles; revisit with hashing if feasible |
 | pkexec prompt surface | Social-engineering of the "Fix permissions" flow | Only triggered by explicit user action; command is argv-fixed (`setfacl -m u:<user>:rw /dev/uinput`) |
 | AppImage/Flatpak cannot install udev rules | Paste unavailable until user grants `/dev/uinput` | Documented; deb/rpm are the recommended channels |

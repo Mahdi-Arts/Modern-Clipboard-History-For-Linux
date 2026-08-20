@@ -1,7 +1,7 @@
 {
   "name": "win11-clipboard-history",
   "private": true,
-  "version": "2.2.0",
+  "version": "2.3.0",
   "type": "module",
   "description": "A Windows 11-style Clipboard History Manager for Linux built with Tauri",
   "author": "Mahdi Arts",
@@ -63,7 +63,7 @@
     "eslint": "^9.39.2",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.0",
-    "js-yaml": "^4.1.0",
+    "js-yaml": "^5.3.0",
     "jsdom": "^26.1.0",
     "postcss": "^8.5.25",
     "prettier": "^3.8.1",

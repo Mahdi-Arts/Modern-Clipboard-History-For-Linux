@@ -1,4 +1,13 @@
-# Linux packaging
+# Linux packaging / بسته‌بندی لینوکس
+
+<div dir="rtl">
+
+کانال پیشنهادی برای GitHub Release بستهٔ `.deb` است. Flatpak کانال **sandbox** است و به‌صورت پیش‌فرض `/dev/uinput` ندارد.
+
+</div>
+
+Preferred GitHub Release artifact is the `.deb`. Flatpak is the **sandboxed**
+channel and does not grant `/dev/uinput` by default.
 
 ## Debian / Ubuntu (`.deb`)
 

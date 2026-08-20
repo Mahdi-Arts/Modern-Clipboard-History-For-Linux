@@ -47,23 +47,34 @@ impl HistoryCrypto {
         })
     }
 
-    pub fn encrypt_optional(&self, plain: Option<&str>) -> Option<String> {
-        plain.map(|p| self.encrypt_str(p))
+    /// Encrypt an optional string. Fail-closed: never returns plaintext.
+    /// / رمزنگاری رشتهٔ اختیاری. در خطا شکست می‌خورد؛ هرگز plaintext برنمی‌گردد.
+    pub fn encrypt_optional(&self, plain: Option<&str>) -> Result<Option<String>, String> {
+        match plain {
+            Some(p) => Ok(Some(self.encrypt_str(p)?)),
+            None => Ok(None),
+        }
     }
 
-    pub fn encrypt_str(&self, plain: &str) -> String {
+    /// Encrypt `plain`. On AEAD failure the call errors out instead of
+    /// storing plaintext under the `W11E1` magic (fail-closed).
+    /// / در شکست AEAD خطا برمی‌گردد؛ plaintext ذخیره نمی‌شود.
+    pub fn encrypt_str(&self, plain: &str) -> Result<String, String> {
         let mut nonce_bytes = [0u8; NONCE_LEN];
         OsRng.fill_bytes(&mut nonce_bytes);
         let nonce = Nonce::from_slice(&nonce_bytes);
         let ct = self
             .cipher
             .encrypt(nonce, plain.as_bytes())
-            .unwrap_or_else(|_| plain.as_bytes().to_vec());
+            .map_err(|e| format!("ChaCha20-Poly1305 encrypt failed: {e}"))?;
         let mut out = Vec::with_capacity(MAGIC.len() + NONCE_LEN + ct.len());
         out.extend_from_slice(MAGIC);
         out.extend_from_slice(&nonce_bytes);
         out.extend_from_slice(&ct);
-        base64::Engine::encode(&base64::engine::general_purpose::STANDARD, out)
+        Ok(base64::Engine::encode(
+            &base64::engine::general_purpose::STANDARD,
+            out,
+        ))
     }
 
     pub fn decrypt_optional(&self, stored: Option<String>) -> Option<String> {
@@ -108,7 +119,7 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("hist-crypto-{}", Uuid::new_v4()));
         let _ = fs::create_dir_all(&dir);
         let crypto = HistoryCrypto::load_or_create(&dir).unwrap();
-        let enc = crypto.encrypt_str("secret clipboard");
+        let enc = crypto.encrypt_str("secret clipboard").unwrap();
         assert_ne!(enc, "secret clipboard");
         assert_eq!(crypto.decrypt_str(&enc), "secret clipboard");
         assert_eq!(crypto.decrypt_str("legacy plaintext"), "legacy plaintext");
@@ -119,7 +130,7 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("hist-crypto-k-{}", Uuid::new_v4()));
         let _ = fs::create_dir_all(&dir);
         let a = HistoryCrypto::load_or_create(&dir).unwrap();
-        let blob = a.encrypt_str("hello");
+        let blob = a.encrypt_str("hello").unwrap();
         let b = HistoryCrypto::load_or_create(&dir).unwrap();
         assert_eq!(b.decrypt_str(&blob), "hello");
     }

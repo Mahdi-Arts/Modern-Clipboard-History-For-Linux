@@ -12,6 +12,10 @@
 [![React 19](https://img.shields.io/badge/Frontend-React_19-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
 [![Bilingual](https://img.shields.io/badge/🌐_زبان-فارسی_|_English-009688?style=for-the-badge)]()
 
+<br/>
+
+<img src="docs/img/win11-clipboard-history.png" alt="Clipboard History popup" width="360" />
+
 </div>
 
 ---
@@ -30,6 +34,10 @@
 | 🔍 | Search with optional regex | جستجو با regex اختیاری |
 | 🔒 | Fully offline — bundled fonts, zero runtime network | کاملاً آفلاین — فونت محلی، بدون اتصال شبکه |
 
+<p align="center">
+  <img src="docs/img/dynamic_themes.png" alt="Light and dark themes" width="520" />
+</p>
+
 ---
 
 ## Privacy / حریم خصوصی
@@ -42,19 +50,19 @@ Clipboard history is stored **only on this machine**:
 
 **Defaults (on):**
 
-- Skip private keys, API tokens, JWTs, and `password=` values
+- Skip private keys, API tokens, JWTs, and `password=` values (any length)
 - Skip password-manager and private-browsing windows on **X11** (Wayland compositors do not expose the focused app)
 - Save images (can be turned off)
 
-History size is capped at **2000** items. Persistence is incremental (upsert/delete), not a full rewrite on every copy.
+History size is capped at **2000** items. Persistence is incremental (upsert/delete), not a full rewrite on every copy. Encryption is **fail-closed**: a ChaCha20-Poly1305 error never stores plaintext.
 
 **Network:** the app does not upload clipboard contents, and in normal operation it makes **zero network calls** — the Vazirmatn font is bundled locally (see `public/fonts/OFL.txt`). GIF search (optional, currently hidden) requires `TENOR_API_KEY` in the environment and only talks to Tenor over pinned HTTPS with SSRF validation + DNS pinning.
 
-This project needs `/dev/uinput` (or XTest) to simulate Ctrl+V. That is a powerful permission — treat the binary like a trusted input device. An optional AppArmor profile (complain mode by default) is shipped in `packaging/apparmor/` and installed to `/usr/share/doc/win11-clipboard-history/apparmor/`.
+This project needs `/dev/uinput` (or XTest) to simulate Ctrl+V. That is a powerful permission — treat the binary like a trusted input device. An optional AppArmor profile (complain mode by default, `--enforce` available) is shipped in `packaging/apparmor/`.
 
 Tiling window managers (i3 / Sway / Hyprland) are **not** rewritten unless you enable *Allow rewriting tiling WM configs* in Settings.
 
-**Supply chain:** the installer **mandatorily verifies** every download against the release's `SHA256SUMS` (set `ALLOW_UNVERIFIED=1` to skip — not recommended), and CI gates on `cargo audit` + `npm audit`. Each release publishes an SPDX SBOM and SLSA build provenance. See [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md) and [docs/adr/](docs/adr/) for the full security posture.
+**Supply chain:** the installer **mandatorily verifies** every download against the release's `SHA256SUMS` (set `ALLOW_UNVERIFIED=1` to skip — not recommended). CI **blocks** on `cargo audit` + `npm audit --audit-level=high`, frontend coverage, and `cargo test`. Each release publishes an SPDX SBOM and SLSA build provenance. See [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md) and [docs/adr/](docs/adr/).
 
 ---
 
@@ -65,7 +73,7 @@ Prefer your package manager over piping scripts to `bash`. Verify `SHA256SUMS` f
 ### Debian / Ubuntu
 
 ```bash
-sudo apt install ./win11-clipboard-history_2.2.0_amd64.deb
+sudo apt install ./win11-clipboard-history_2.3.0_amd64.deb
 sudo setfacl -m u:$USER:rw /dev/uinput
 ```
 
@@ -74,7 +82,7 @@ Download the `.deb` from [GitHub Releases](https://github.com/Mahdi-Arts/Modern-
 ### Fedora
 
 ```bash
-sudo dnf install ./win11-clipboard-history-2.2.0-1.x86_64.rpm
+sudo dnf install ./win11-clipboard-history-2.3.0-1.x86_64.rpm
 sudo setfacl -m u:$USER:rw /dev/uinput
 ```
 
@@ -86,7 +94,11 @@ yay -S win11-clipboard-history-bin
 
 ### Flatpak
 
-See [`packaging/README.md`](packaging/README.md) for Debian source layout (`packaging/debian/`) and the Flatpak manifest (`packaging/flatpak/`). The Flatpak sandbox does not grant `/dev/uinput`; use the `.deb`/`.rpm` for paste simulation, or override with `--device=all`.
+See [`packaging/README.md`](packaging/README.md). The Flatpak sandbox does **not** grant `/dev/uinput`; use the `.deb`/`.rpm` for paste simulation, or:
+
+```bash
+flatpak override --user --device=all io.github.mahdi-arts.clipboard-history
+```
 
 ### Convenience installer (review before running)
 
@@ -115,13 +127,15 @@ The installer **requires** matching the downloaded artifact against the release'
 
 ## Architecture / معماری
 
+Full diagram: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+
 | Layer | Stack |
 | --- | --- |
 | UI | React 19, TypeScript, Tailwind CSS 4, lazy-loaded pickers |
-| Backend | Rust, Tauri v2 (shortcut backends split per-DE in `linux_shortcut_manager/`) |
+| Backend | Rust, Tauri v2 (shortcut backends split per-DE) |
 | Clipboard I/O | arboard + `wl-copy` / `xclip` |
 | Persistence | SQLite (WAL) + ChaCha20-Poly1305 field encryption, PNG files, atomic JSON |
-| Input | Persistent uinput device (Wayland) / XTest (X11) |
+| Input | Persistent uinput device (Wayland) / XTest (X11), paste tickets |
 | Fonts | Bundled Vazirmatn (SIL OFL 1.1) — zero runtime network calls |
 | Security | CSP (`font-src 'self'`), `withGlobalTauri: false`, SSRF allowlist + DNS pin, Rust `open_safe_url`, paste tickets, mandatory checksum verification |
 
@@ -155,7 +169,7 @@ make build
 Frontend tests include component tests (Testing Library + jsdom) and a **coverage gate**:
 
 ```bash
-npm run test:coverage   # 72+ tests; coverage thresholds enforced
+npm run test:coverage   # coverage thresholds enforced
 node scripts/check-rust-syntax.mjs  # fast syntax gate (tree-sitter)
 ```
 
@@ -165,7 +179,7 @@ CI (see `.github/workflows/ci.yml`) **blocks** on:
 - `npm run test:coverage` (Vitest + coverage thresholds)
 - `cargo test`, `cargo clippy -- -D warnings`, `cargo fmt --check`
 - `cargo audit` and `npm audit --audit-level=high` (no `continue-on-error`)
-- Xvfb smoke: `--version` / `--help` on the release binary
+- CLI smoke: `--version` / `--help` on the release binary
 
 Tagged releases publish `.deb` / `.rpm` / AppImage plus `SHA256SUMS`, an SPDX SBOM, and SLSA build provenance. All URLs point at this repository (`Mahdi-Arts/Modern-Clipboard-History-For-Linux`).
 
@@ -178,11 +192,12 @@ Tagged releases publish `.deb` / `.rpm` / AppImage plus `SHA256SUMS`, an SPDX SB
 | `TENOR_API_KEY` | Optional GIF search (not bundled) |
 | `RUST_LOG=info` | Tracing level |
 
-Packaging notes: `packaging/README.md`.
+Packaging notes: [`packaging/README.md`](packaging/README.md).
 
 ## Security / امنیت
 
 - Contributing: [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md)
+- Architecture: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 - Full threat model: [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md)
 - Architecture decision records: [`docs/adr/`](docs/adr/)
 - Reporting vulnerabilities: [`SECURITY.md`](.github/SECURITY.md) (GitHub private advisory — do not open public issues)

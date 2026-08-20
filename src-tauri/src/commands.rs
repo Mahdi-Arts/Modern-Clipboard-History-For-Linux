@@ -31,7 +31,7 @@ pub fn get_item(state: State<AppState>, id: String) -> Result<ClipboardItem, App
         .clipboard_manager
         .lock()
         .get_item(&id)
-        .cloned()
+        .map(ClipboardItem::for_ipc)
         .ok_or(AppError::NotFound { id })
 }
 
@@ -182,6 +182,34 @@ pub fn is_theme_listener_active() -> bool {
 // Paste commands
 // ---------------------------------------------------------------------------
 
+const MAX_PASTE_TEXT_BYTES: usize = 1024 * 1024; // 1 MiB
+
+/// Hide popup, restore target focus, and inject Ctrl+V only after a real
+/// clipboard write in the last 5 seconds.
+/// پنجره را مخفی می‌کند، فوکوس مقصد را برمی‌گرداند و فقط پس از نوشتن واقعی
+/// کلیپ‌بورد در ۵ ثانیهٔ اخیر Ctrl+V تزریق می‌کند.
+async fn inject_authorized_paste(
+    app: &AppHandle,
+    state: &State<'_, AppState>,
+) -> Result<(), AppError> {
+    let ticket = state.issue_paste_ticket();
+    if !state.consume_paste_ticket(&ticket) {
+        return Err(AppError::PermissionDenied(
+            "Invalid or expired paste ticket".into(),
+        ));
+    }
+    if !crate::clipboard_io::wrote_recently(Duration::from_secs(5)) {
+        return Err(AppError::Other(
+            "Refusing to inject Ctrl+V: no clipboard write was recorded in the last 5 seconds"
+                .into(),
+        ));
+    }
+    crate::window_controller::WindowController::hide(app);
+    crate::window_controller::PasteHelper::prepare_target_window(app).await?;
+    simulate_paste_keystroke()?;
+    Ok(())
+}
+
 #[tauri::command]
 pub async fn paste_item(
     app: AppHandle,
@@ -197,15 +225,14 @@ pub async fn paste_item(
 
     match item {
         Some(item) => {
-            crate::window_controller::WindowController::hide(&app);
-            crate::window_controller::PasteHelper::prepare_target_window(&app).await?;
-
-            let mut manager = state.clipboard_manager.lock();
-            manager.paste_item(&item)?;
-
-            let history = manager.get_history_for_ui();
-            drop(manager);
-            let _ = app.emit("history-sync", &history);
+            {
+                let mut manager = state.clipboard_manager.lock();
+                manager.write_item_to_clipboard(&item)?;
+                let history = manager.get_history_for_ui();
+                drop(manager);
+                let _ = app.emit("history-sync", &history);
+            }
+            inject_authorized_paste(&app, &state).await?;
         }
         None => {
             tracing::warn!(
@@ -229,14 +256,17 @@ pub async fn paste_text(
 ) -> Result<(), AppError> {
     let _paste_guard = state.paste_gate.lock().await;
 
+    if text.len() > MAX_PASTE_TEXT_BYTES {
+        return Err(AppError::Other(
+            "Paste text exceeds the 1 MiB safety limit".into(),
+        ));
+    }
+
     if let Some(t) = item_type.as_deref() {
         if t == "emoji" {
             state.emoji_manager.lock().record_usage(&text);
         }
     }
-
-    crate::window_controller::WindowController::hide(&app);
-    crate::window_controller::PasteHelper::prepare_target_window(&app).await?;
 
     {
         let mut manager = state.clipboard_manager.lock();
@@ -244,7 +274,7 @@ pub async fn paste_text(
         manager.set_text_robust(&text)?;
     }
 
-    simulate_paste_keystroke()?;
+    inject_authorized_paste(&app, &state).await?;
     Ok(())
 }
 

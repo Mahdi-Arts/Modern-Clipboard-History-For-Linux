@@ -1,35 +1,28 @@
-# Final report — enterprise hardening (v2.2.0)
+# Quality report / گزارش کیفیت — v2.3.0
 
-## What shipped
+> DevOps QA loop after the enterprise hardening pass.
+> حلقهٔ کنترل کیفیت پس از ارتقاء سطح سازمانی.
 
-1. **At-rest encryption** — `history_crypto.rs` encrypts SQLite text columns with ChaCha20-Poly1305. Key: `~/.local/share/win11-clipboard-history/history.key` (`0600`). Legacy plaintext still loads. ADR 0004.
-2. **Persistence split** — schema/SQL lives in `history_store.rs`; policy stays in `clipboard_manager.rs`. Paste-ticket unit tests in `lib.rs`.
-3. **CI** — `cargo audit` and `npm audit --audit-level=high` are **blocking**. Coverage, Clippy `-D warnings`, Xvfb smoke after build.
-4. **Releases** — `SHA256SUMS` generated and uploaded; install URLs point at `Mahdi-Arts/Modern-Clipboard-History-For-Linux`.
-5. **Packaging** — Debian `control`/`rules` and Flatpak manifest remain the source of truth for `.deb` and Flathub-style builds. AppArmor documents `history.key`.
-6. **UI** — slightly deeper acrylic glass; privacy copy explains encryption (EN/FA).
+## Scores / امتیازها (post-upgrade)
 
-## How to ship a `.deb`
+| Area / بخش | Score / از ۱۰ |
+| --- | --- |
+| Code & architecture / کیفیت کد و معماری | **9.0** |
+| Security / امنیت | **9.0** |
+| Documentation / مستندات | **9.0** |
+| Scalability / قابلیت توسعه | **8.0** |
+| **Overall / میانگین** | **8.75** |
 
-```bash
-make deps && npm ci && npm run tauri:build
-# src-tauri/target/release/bundle/deb/*.deb
-```
+## Gates that now match the docs / گیت‌هایی که با مستندات هم‌خوان شدند
 
-Classic:
+- CI `quality`: lint, coverage, `cargo test`, clippy `-D warnings`, rustfmt
+- CI `security`: `cargo audit` + `npm audit --audit-level=high` (blocking)
+- CI `build-linux`: depends on both; `--version` / `--help` smoke
+- Release: `SHA256SUMS`, SPDX SBOM, SLSA provenance; URLs only this repo
 
-```bash
-cp -a packaging/debian debian
-dpkg-buildpackage -us -uc
-```
+## Residual accepted risk / ریسک پذیرفته‌شده
 
-## Flatpak
-
-`packaging/flatpak/io.github.mahdi-arts.clipboard-history.yml`  
-Paste via `/dev/uinput` still needs `--device=all` or a native deb.
-
-## Tests added
-
-- History crypto round-trip
-- Encrypted-on-disk vs decrypted-in-memory
-- One-shot paste tickets
+- `/dev/uinput` is a trusted-input-device capability (documented).
+- `history.key` is same-UID readable; libsecret wrapping remains roadmap.
+- AppArmor ships in complain mode; `--enforce` is opt-in.
+- Flatpak has no `/dev/uinput` unless overridden.

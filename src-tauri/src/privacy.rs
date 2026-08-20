@@ -189,6 +189,9 @@ mod tests {
             "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4ifQ.s3cr3tSignatureHere"
         ));
         assert!(looks_like_secret("https://example.com/login?password=hunter2"));
+        // Long dumps must still be filtered. / فایل‌های بلند هم باید فیلتر شوند.
+        let long_env = format!("{}password=supersecret", "x".repeat(5000));
+        assert!(looks_like_secret(&long_env));
         assert!(!looks_like_secret("hello world"));
         assert!(!looks_like_secret("https://example.com/docs"));
     }
