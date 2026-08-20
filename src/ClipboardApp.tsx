@@ -15,6 +15,7 @@ import { useLanguageEffect } from './i18n/useLanguage'
 import { changeLanguage } from './i18n/config'
 import type { ActiveTab, UserSettings } from './types/clipboard'
 import { ClipboardTab } from './components/ClipboardTab'
+import { DEFAULT_SETTINGS } from './utils/defaultSettings'
 
 // Lazy-loaded tabs for code splitting
 const EmojiPicker = lazy(() =>
@@ -26,21 +27,6 @@ const KaomojiPicker = lazy(() =>
 const SymbolPicker = lazy(() =>
   import('./components/SymbolPicker').then((m) => ({ default: m.SymbolPicker }))
 )
-
-const DEFAULT_SETTINGS: UserSettings = {
-  theme_mode: 'system',
-  dark_background_opacity: 0.7,
-  light_background_opacity: 0.7,
-  language: 'en',
-  enable_smart_actions: true,
-  enable_ui_polish: true,
-  enable_dynamic_tray_icon: true,
-  max_history_size: 50,
-  auto_delete_interval: 0,
-  auto_delete_unit: 'hours',
-  custom_kaomojis: [],
-  ui_scale: 1,
-}
 
 /**
  * Maps theme mode setting to actual dark mode state.
@@ -136,9 +122,10 @@ function ClipboardApp() {
     // Load initial settings
     invoke<UserSettings>('get_user_settings')
       .then((loadedSettings) => {
-        setSettings(loadedSettings)
-        applyBackgroundOpacity(loadedSettings)
-        applyUIScale(loadedSettings.ui_scale)
+        const merged = { ...DEFAULT_SETTINGS, ...loadedSettings }
+        setSettings(merged)
+        applyBackgroundOpacity(merged)
+        applyUIScale(merged.ui_scale)
         setSettingsLoaded(true)
       })
       .catch((err) => {

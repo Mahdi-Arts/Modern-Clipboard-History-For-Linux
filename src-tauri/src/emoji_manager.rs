@@ -143,10 +143,8 @@ impl EmojiManager {
             emojis: self.recent.clone(),
         };
 
-        let content = serde_json::to_string_pretty(&wrapper)
-            .map_err(|e| format!("Serialize error: {}", e))?;
-
-        fs::write(self.history_path(), content).map_err(|e| format!("Write error: {}", e))?;
+        crate::fs_atomic::write_json_atomic(&self.history_path(), &wrapper)
+            .map_err(|e| format!("Write error: {}", e))?;
         Ok(())
     }
 }

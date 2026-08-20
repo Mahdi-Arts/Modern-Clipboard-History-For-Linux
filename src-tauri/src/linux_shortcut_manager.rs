@@ -1,6 +1,19 @@
 //! Linux Desktop Environment Shortcut Manager
 
 use percent_encoding::{utf8_percent_encode, AsciiSet, CONTROLS};
+use std::sync::atomic::{AtomicBool, Ordering};
+
+/// When false (default), tiling WM handlers never comment out the user's existing bindings.
+static ALLOW_WM_CONFIG_REWRITE: AtomicBool = AtomicBool::new(false);
+
+/// Opt-in: allow commenting out existing Super+V bindings in i3/Sway/Hyprland configs.
+pub fn set_allow_wm_config_rewrite(allow: bool) {
+    ALLOW_WM_CONFIG_REWRITE.store(allow, Ordering::Relaxed);
+}
+
+fn allow_wm_config_rewrite() -> bool {
+    ALLOW_WM_CONFIG_REWRITE.load(Ordering::Relaxed)
+}
 use std::env;
 use std::fs;
 use std::io::{self, Write};
@@ -1483,6 +1496,30 @@ impl HyprlandHandler {
             .map_err(|_| ShortcutError::UnsupportedEnvironment("HOME not set".into()))?;
 
         let xdg_config =
+            env::var("XDG_CONFIG_HOME").unwrap_or_else(|_| format_lines.push(line.to_string());
+                }
+            }
+
+            Ok(Some(new_lines.join("\n")))
+        })?;
+
+        // Reload Sway only after file was successfully written
+        if modified {
+            Self::reload_sway();
+        }
+        Ok(())
+    }
+}
+
+// --- Hyprland ---
+
+struct HyprlandHandler;
+impl HyprlandHandler {
+    fn get_config_path() -> Result<PathBuf> {
+        let home = env::var("HOME")
+            .map_err(|_| ShortcutError::UnsupportedEnvironment("HOME not set".into()))?;
+
+        let xdg_config =
             env::var("XDG_CONFIG_HOME").unwrap_or_else(|_| format!("{}/.config", home));
 
         let path = PathBuf::from(&xdg_config).join("hypr/hyprland.conf");
@@ -1577,6 +1614,11 @@ impl ShortcutHandler for HyprlandHandler {
             }
 
             Ok(Some(new_lines.join("\n")))
+        })?;
+        Ok(())
+    }
+}
+)
         })?;
         Ok(())
     }

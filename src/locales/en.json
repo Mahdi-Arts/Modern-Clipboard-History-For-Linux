@@ -130,6 +130,19 @@
       "label": "Permissions",
       "fix": "Fix Permissions",
       "fix_desc": "Check and fix input permissions for keystroke simulation"
+    },
+    "privacy": {
+      "label": "Privacy & security",
+      "desc": "Clipboard history stays on this machine. Tune what is stored.",
+      "filter_secrets": "Skip secrets",
+      "filter_secrets_desc": "Do not save private keys, API tokens, JWTs, or password= values.",
+      "save_images": "Save images",
+      "save_images_desc": "Store copied images as files on disk (thumbnails only in the UI).",
+      "exclude_apps": "Ignore password managers",
+      "exclude_apps_desc": "On X11, skip capture from KeePass, 1Password, Bitwarden, and private browsing windows.",
+      "wm_rewrite": "Allow rewriting tiling WM configs",
+      "wm_rewrite_desc": "Off by default. When enabled, setup may comment out existing Super+V bindings in i3/Sway/Hyprland.",
+      "storage_note": "History is stored locally at ~/.local/share/win11-clipboard-history/ (mode 0600). Nothing is uploaded unless you search GIFs with TENOR_API_KEY set."
     }
   },
   "tray": {

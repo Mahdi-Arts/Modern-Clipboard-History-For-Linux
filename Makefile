@@ -338,6 +338,11 @@ uninstall:
 # Code Quality
 # ============================================================================
 
+test:
+	@echo -e "$(CYAN)Running tests...$(RESET)"
+	npm test
+	cd src-tauri && cargo test
+
 lint:
 	@echo -e "$(CYAN)Running linters...$(RESET)"
 	npm run lint

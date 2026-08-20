@@ -100,13 +100,16 @@ fn set_user_settings(
     let manager = UserSettingsManager::new();
     manager.save(&new_settings)?;
 
-    // Update clipboard manager's max history size if it changed
     {
         let mut clipboard_manager = state.clipboard_manager.lock();
         if clipboard_manager.get_max_history_size() != new_settings.max_history_size {
             clipboard_manager.set_max_history_size(new_settings.max_history_size);
         }
+        clipboard_manager.set_privacy_policy(new_settings.privacy_policy());
     }
+    win11_clipboard_history_lib::linux_shortcut_manager::set_allow_wm_config_rewrite(
+        new_settings.allow_wm_config_rewrite,
+    );
 
     // Emit event to notify all windows that settings have changed
     app.emit("app-settings-changed", &new_settings)
@@ -140,7 +143,7 @@ fn get_default_settings() -> UserSettings {
 async fn set_app_language(
     app: AppHandle,
     lang: String,
-    state: State<'_, AppState>,
+    _state: State<'_, AppState>,
 ) -> Result<(), String> {
     // Validate language
     if lang != "en" && lang != "fa" {
@@ -294,6 +297,12 @@ async fn paste_gif_from_url(
 #[tauri::command]
 async fn finish_paste(app: AppHandle, state: State<'_, AppState>) -> Result<(), String> {
     let _paste_guard = state.paste_gate.lock().await;
+    if !win11_clipboard_history_lib::clipboard_io::wrote_recently(Duration::from_secs(5)) {
+        return Err(
+            "Refusing to inject Ctrl+V: no clipboard write was recorded in the last 5 seconds"
+                .into(),
+        );
+    }
     WindowController::hide(&app);
     PasteHelper::prepare_target_window(&app).await?;
     simulate_paste_keystroke().map_err(|e| e.to_string())?;
@@ -714,9 +723,8 @@ fn handle_window_moved_for_wayland(
         .flatten()
         .and_then(|m| m.name().map(|n| n.to_string()));
 
-    let _config = state.config_manager.lock();
-    // UPDATE MEMORY ONLY (No Disk I/O here)
-    // config.update_state(monitor_name, pos.x, pos.y);
+    let mut config = state.config_manager.lock();
+    config.update_state(_monitor_name, _pos.x, _pos.y);
 }
 
 // --- Background Listeners ---
@@ -733,58 +741,74 @@ fn start_clipboard_watcher(app: AppHandle, clipboard_manager: Arc<Mutex<Clipboar
         let mut last_text_hash: Option<u64> = None;
         let mut last_image_hash: Option<u64> = None;
         let mut cleanup_counter = 0;
+        let mut idle_ticks = 0u32;
 
         loop {
-            std::thread::sleep(Duration::from_millis(500));
+            let delay = if idle_ticks == 0 {
+                Duration::from_millis(200)
+            } else {
+                Duration::from_millis(800)
+            };
+            std::thread::sleep(delay);
             cleanup_counter += 1;
 
-            // Phase 1: Read system clipboard outside the history lock
-            // This prevents paste commands from being blocked by I/O
+            let settings = UserSettingsManager::new().load();
+            let policy = settings.privacy_policy();
+
+            if policy.exclude_sensitive_apps {
+                if let Some(src) = win11_clipboard_history_lib::window_identity::focused_source() {
+                    if win11_clipboard_history_lib::privacy::is_sensitive_source(
+                        &src.class,
+                        &src.title,
+                        &policy.extra_excluded_apps,
+                    ) {
+                        idle_ticks = idle_ticks.saturating_add(1);
+                        continue;
+                    }
+                }
+            }
+
             let (text, html, image) = read_system_clipboard(&mut clipboard);
-
-            // Phase 2: Brief lock only for history mutation & dedup
             let mut manager = clipboard_manager.lock();
+            manager.set_privacy_policy(policy);
 
-            // Background cleanup every ~30 seconds
-            if cleanup_counter >= 60 {
+            if cleanup_counter >= 40 {
                 cleanup_counter = 0;
-                let settings = UserSettingsManager::new().load();
                 let interval_in_minutes = settings.auto_delete_interval_in_minutes();
-
                 if interval_in_minutes > 0 && manager.cleanup_old_items(interval_in_minutes) {
-                    println!("[Watcher] Background cleanup triggered sync");
                     let _ = app.emit("history-cleared", ());
                 }
             }
 
-            // Text
-            if let Ok(ref text) = text {
-                if !text.is_empty() {
+            let mut changed = false;
+
+            if let Ok(ref captured) = text {
+                if !captured.is_empty() {
                     let text_hash =
-                        win11_clipboard_history_lib::clipboard_manager::calculate_hash(text);
-                     if Some(text_hash) != last_text_hash {
+                        win11_clipboard_history_lib::clipboard_manager::calculate_hash(captured);
+                    if Some(text_hash) != last_text_hash {
                         last_text_hash = Some(text_hash);
                         last_image_hash = None;
-
-                        // HTML is now read in phase 1
-                        if let Some(item) = manager.add_text(text, html) {
+                        if let Some(item) = manager.add_text(captured.clone(), html.clone()) {
                             let _ = app.emit("clipboard-changed", &item);
+                            changed = true;
                         }
                     }
                 }
             }
 
-            // Image
             if let Ok(Some((image_data, hash))) = image {
                 if Some(hash) != last_image_hash {
                     last_image_hash = Some(hash);
                     last_text_hash = None;
                     if let Some(item) = manager.add_image(image_data, hash) {
                         let _ = app.emit("clipboard-changed", &item);
+                        changed = true;
                     }
                 }
             }
-            // lock drops here (phase 2 ends)
+
+            idle_ticks = if changed { 0 } else { idle_ticks.saturating_add(1) };
         }
     });
 }
@@ -824,6 +848,8 @@ fn read_system_clipboard(
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 fn main() {
+    win11_clipboard_history_lib::init_tracing();
+
     let args: Vec<String> = std::env::args().collect();
 
     // Handle --version / -v
@@ -894,6 +920,12 @@ fn main() {
         history_path,
         user_settings.max_history_size,
     )));
+    clipboard_manager
+        .lock()
+        .set_privacy_policy(user_settings.privacy_policy());
+    win11_clipboard_history_lib::linux_shortcut_manager::set_allow_wm_config_rewrite(
+        user_settings.allow_wm_config_rewrite,
+    );
 
     let emoji_manager = Arc::new(Mutex::new(EmojiManager::new(base_dir.clone())));
 

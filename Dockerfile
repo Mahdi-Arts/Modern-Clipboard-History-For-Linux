@@ -1,24 +1,17 @@
 # =============================================================================
 # Modern Clipboard History for Linux — Docker Build Environment
 # =============================================================================
-# This provides a reproducible environment for CI builds and testing.
-# It is NOT for distribution — use native DEB/RPM/AppImage for that.
+# Reproducible environment for CI builds and tests.
+# Not for distribution — use native DEB/RPM/AppImage for that.
 #
-# BUILD:
 #   docker build -t clipboard-history:latest .
-#
-# RUN TESTS:
-#   docker run --rm clipboard-history:latest cargo test --manifest-path src-tauri/Cargo.toml
-#
-# RUN LINT:
-#   docker run --rm clipboard-history:latest bash -c "cd src-tauri && cargo clippy"
+#   docker run --rm clipboard-history:latest
 # =============================================================================
 
 FROM ghcr.io/tauri-apps/tauri:ubuntu-24.04
 
 WORKDIR /app
 
-# Install Node.js + build essentials
 RUN apt-get update && apt-get install -y --no-install-recommends \
     nodejs \
     npm \
@@ -26,15 +19,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     wl-clipboard \
     && rm -rf /var/lib/apt/lists/*
 
-# Cache npm dependencies (before source for layer caching)
 COPY package.json package-lock.json ./
-RUN npm ci --no-audit --no-fund 2>/dev/null || true
+RUN npm ci --no-audit --no-fund
 
-# Copy source
 COPY . .
 
-# Build frontend (required for Tauri build, even in test mode)
-RUN npm run build 2>/dev/null || true
+RUN npm run lint
+RUN npm test
+RUN npm run build
 
-# Default: run Rust tests
 CMD ["cargo", "test", "--manifest-path", "src-tauri/Cargo.toml", "--all-features"]

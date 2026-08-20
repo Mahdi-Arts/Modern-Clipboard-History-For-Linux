@@ -112,14 +112,17 @@ export function useClipboardHistory() {
     let unlistenSync: UnlistenFn | undefined
 
     const setupListeners = async () => {
-      const uChanged = await listen<ClipboardItem>('clipboard-changed', async () => {
-        // Backend emits the event and already enforces trimming. Fetch full history
-        // to keep frontend in sync with backend limits and ordering.
-        try {
-          await fetchHistory()
-        } catch (e) {
-          console.warn('[useClipboardHistory] Failed to refresh history on clipboard-changed', e)
-        }
+      const uChanged = await listen<ClipboardItem>('clipboard-changed', (event) => {
+        const incoming = event.payload
+        setHistory((prev) => {
+          const without = prev.filter((item) => item.id !== incoming.id)
+          const pinned = without.filter((item) => item.pinned)
+          const unpinned = without.filter((item) => !item.pinned)
+          if (incoming.pinned) {
+            return [incoming, ...pinned, ...unpinned]
+          }
+          return [...pinned, incoming, ...unpinned]
+        })
       })
       if (!isMounted) {
         uChanged()

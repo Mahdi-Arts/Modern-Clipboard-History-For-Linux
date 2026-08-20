@@ -31,14 +31,20 @@
     "core:tray:allow-set-icon",
     "core:tray:allow-set-tooltip",
     "core:resources:default",
-    "shell:default",
-    "shell:allow-open",
     "global-shortcut:allow-is-registered",
     "global-shortcut:allow-register",
     "global-shortcut:allow-register-all",
     "global-shortcut:allow-unregister",
     "global-shortcut:allow-unregister-all",
-    "core:webview:allow-set-webview-zoom"
+    "core:webview:allow-set-webview-zoom",
+    {
+      "identifier": "shell:allow-open",
+      "allow": [
+        { "url": "https://*" },
+        { "url": "http://*" },
+        { "url": "mailto:*" }
+      ]
+    }
   ],
   "platforms": ["linux"]
 }

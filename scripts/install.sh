@@ -4,6 +4,9 @@
 
 set -e
 
+# Security note: piping this file to bash trusts GitHub + your DNS/TLS path.
+# Prefer: curl the script, read it, then run it. Package-manager installs are safer.
+
 # Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'

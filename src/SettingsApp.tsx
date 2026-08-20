@@ -9,27 +9,15 @@ import { useTranslation } from 'react-i18next'
 import type { UserSettings, CustomKaomoji, BooleanSettingKey } from './types/clipboard'
 import { FeaturesSection } from './components/FeaturesSection'
 import { Switch } from './components/Switch'
+import { PrivacySection } from './components/settings/PrivacySection'
 import { useSystemThemePreference } from './utils/systemTheme'
 import { useLanguageEffect } from './i18n/useLanguage'
+import { changeLanguage } from './i18n/config'
 import { useRenderingEnv } from './hooks/useRenderingEnv'
+import { DEFAULT_SETTINGS } from './utils/defaultSettings'
 
 const MIN_HISTORY_SIZE = 1
 const MAX_HISTORY_SIZE = 100_000
-
-const DEFAULT_SETTINGS: UserSettings = {
-  theme_mode: 'system',
-  dark_background_opacity: 0.7,
-  light_background_opacity: 0.7,
-  language: 'en',
-  enable_smart_actions: true,
-  enable_ui_polish: true,
-  enable_dynamic_tray_icon: true,
-  max_history_size: 50,
-  custom_kaomojis: [],
-  ui_scale: 1,
-  auto_delete_interval: 0,
-  auto_delete_unit: 'hours',
-}
 
 type ThemeMode = 'system' | 'dark' | 'light'
 
@@ -317,7 +305,7 @@ function SettingsApp() {
   useEffect(() => {
     invoke<UserSettings>('get_user_settings')
       .then((loadedSettings) => {
-        setSettings(loadedSettings)
+        setSettings({ ...DEFAULT_SETTINGS, ...loadedSettings })
         setIsLoading(false)
       })
       .catch((err) => {
@@ -618,6 +606,37 @@ function SettingsApp() {
                 onChange={() => handleToggle('enable_dynamic_tray_icon')}
                 isDark={isDark}
               />
+            </div>
+          </div>
+
+          <div
+            className={clsx('mt-6 pt-6 border-t', isDark ? 'border-white/5' : 'border-gray-100')}
+          >
+            <div className="text-sm font-medium mb-3">Language / زبان</div>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { id: 'en' as const, label: 'English' },
+                { id: 'fa' as const, label: 'فارسی' },
+              ].map((lang) => (
+                <button
+                  key={lang.id}
+                  onClick={() => {
+                    updateSettings({ language: lang.id })
+                    void changeLanguage(lang.id)
+                    invoke('set_app_language', { lang: lang.id }).catch(console.error)
+                  }}
+                  className={clsx(
+                    'px-4 py-2.5 rounded-lg border text-sm font-medium transition-all',
+                    settings.language === lang.id
+                      ? 'border-win11-bg-accent bg-win11-bg-accent/10 text-win11-bg-accent'
+                      : isDark
+                        ? 'border-white/10 hover:bg-white/5'
+                        : 'border-gray-200 hover:bg-gray-50'
+                  )}
+                >
+                  {lang.label}
+                </button>
+              ))}
             </div>
           </div>
         </section>
@@ -1034,6 +1053,8 @@ function SettingsApp() {
             )}
           </div>
         </section>
+
+        <PrivacySection settings={settings} isDark={isDark} onToggle={handleToggle} />
 
         {/* Features Section */}
         <FeaturesSection settings={settings} isDark={isDark} onToggle={handleToggle} />

@@ -1,11 +1,27 @@
 import { open } from '@tauri-apps/plugin-shell'
+import { normalizeHttpUrl, sanitizeOpenUrl } from '../utils/urlSafety'
 
 export type SmartActionType = 'open-link' | 'compose-email' | 'color-preview'
 
 export interface SmartAction {
   id: SmartActionType
   label: string
-  data?: string // extra data like the color hex or the formatted url
+  data?: string
+}
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const HEX_COLOR_REGEX = /^#([0-9A-F]{3}){1,2}$/i
+const RGB_COLOR_REGEX =
+  /^rgb\(\s*(25[0-5]|2[0-4]\d|1?\d?\d)\s*,\s*(25[0-5]|2[0-4]\d|1?\d?\d)\s*,\s*(25[0-5]|2[0-4]\d|1?\d?\d)\s*\)$/i
+
+function looksLikeHttpUrl(value: string): boolean {
+  if (value.length > 2048) return false
+  try {
+    const url = new URL(normalizeHttpUrl(value))
+    return url.protocol === 'http:' || url.protocol === 'https:'
+  } catch {
+    return false
+  }
 }
 
 export const smartActionService = {
@@ -15,36 +31,26 @@ export const smartActionService = {
 
     const trimmed = content.trim()
 
-    // 1. URL Detection
-    const urlRegex =
-      /^(?!mailto:)(?:(?:http|https|ftp):\/\/)(?:\S+(?::\S*)?@)?(?:(?:(?:[1-9]\d?|1\d\d|2[01]\d|22[0-3])(?:\.(?:1?\d{1,2}|2[0-4]\d|25[0-5])){2}(?:\.(?:[0-9]\d?|1\d\d|2[0-4]\d|25[0-4]))|(?:(?:[a-z\u00a1-\uffff0-9]+-?)*[a-z\u00a1-\uffff0-9]+)(?:\.(?:[a-z\u00a1-\uffff0-9]+-?)*[a-z\u00a1-\uffff0-9]+)*(?:\.(?:[a-z\u00a1-\uffff]{2,})))|localhost)(?::\d{2,5})?(?:(\/|\?|#)(?:[^\s]*[^.\s])?)?$/i
-
-    if (urlRegex.test(trimmed)) {
-      const normalizedUrl = trimmed.startsWith('http') ? trimmed : `https://${trimmed}`
-
-      actions.push({
-        id: 'open-link',
-        label: 'Open Link',
-        data: normalizedUrl,
-      })
+    if (looksLikeHttpUrl(trimmed) && !EMAIL_REGEX.test(trimmed)) {
+      const normalizedUrl = normalizeHttpUrl(trimmed)
+      const safe = sanitizeOpenUrl(normalizedUrl)
+      if (safe) {
+        actions.push({
+          id: 'open-link',
+          label: 'Open Link',
+          data: safe,
+        })
+      }
     }
 
-    // 2. Email Detection
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (emailRegex.test(trimmed)) {
-      actions.push({ id: 'compose-email', label: 'Compose Email', data: `mailto:${trimmed}` })
+    if (EMAIL_REGEX.test(trimmed)) {
+      const mailto = sanitizeOpenUrl(`mailto:${trimmed}`)
+      if (mailto) {
+        actions.push({ id: 'compose-email', label: 'Compose Email', data: mailto })
+      }
     }
 
-    // 3. Color Detection (Hex)
-    const hexColorRegex = /^#([0-9A-F]{3}){1,2}$/i
-    if (hexColorRegex.test(trimmed)) {
-      actions.push({ id: 'color-preview', label: 'Color', data: trimmed })
-    }
-
-    // 4. Color Detection (RGB)
-    const rgbColorRegex =
-      /^rgb\(\s*(25[0-5]|2[0-4]\d|1?\d?\d)\s*,\s*(25[0-5]|2[0-4]\d|1?\d?\d)\s*,\s*(25[0-5]|2[0-4]\d|1?\d?\d)\s*\)$/i
-    if (rgbColorRegex.test(trimmed)) {
+    if (HEX_COLOR_REGEX.test(trimmed) || RGB_COLOR_REGEX.test(trimmed)) {
       actions.push({ id: 'color-preview', label: 'Color', data: trimmed })
     }
 
@@ -55,18 +61,21 @@ export const smartActionService = {
     try {
       switch (action.id) {
         case 'open-link':
-          if (action.data) await open(action.data)
+        case 'compose-email': {
+          if (!action.data) return
+          const safe = sanitizeOpenUrl(action.data)
+          if (!safe) {
+            throw new Error('Blocked unsafe URL')
+          }
+          await open(safe)
           break
-        case 'compose-email':
-          if (action.data) await open(action.data)
-          break
-        // Color preview actions are passive; no additional execution is required
+        }
         default:
-          console.warn('Unknown smart action', action.id)
+          break
       }
     } catch (e) {
       console.error('Failed to execute smart action', e)
-      throw e // Propagate error for UI handling
+      throw e
     }
   },
 }

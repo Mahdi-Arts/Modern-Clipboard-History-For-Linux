@@ -11,6 +11,7 @@ import { SearchBar } from './common/SearchBar'
 import { EmptyState } from './EmptyState'
 import { HistoryItem } from './HistoryItem'
 import { useHistoryKeyboardNavigation } from '../hooks/useHistoryKeyboardNavigation'
+import { filterHistory } from '../utils/historySearch'
 
 // --- Virtualized List Row Component ---
 
@@ -255,36 +256,21 @@ export function ClipboardTab(props: {
     }
   }, [])
 
-  // Filter history by search query
-  const filteredHistory = useMemo(() => {
-    if (!searchQuery) return history
-    let regex: RegExp | null = null
-    if (isRegexMode) {
-      try {
-        regex = new RegExp(searchQuery, 'i')
-      } catch {
-        return []
-      }
-    }
-    return history.filter((item) => {
-      let searchableText = ''
-      if (item.content.type === 'Text') searchableText = item.content.data
-      else if (item.content.type === 'RichText') searchableText = item.content.data.plain
-      else return false
-      if (isRegexMode && regex) return regex.test(searchableText)
-      return searchableText.toLowerCase().includes(searchQuery.toLowerCase())
-    })
-  }, [history, searchQuery, isRegexMode])
+  const filteredHistory = useMemo(
+    () => filterHistory(history, searchQuery, isRegexMode),
+    [history, searchQuery, isRegexMode]
+  )
 
   const pinnedItems = useMemo(() => filteredHistory.filter((i) => i.pinned), [filteredHistory])
   const unpinnedItems = useMemo(() => filteredHistory.filter((i) => !i.pinned), [filteredHistory])
   const showSections = !searchQuery && pinnedItems.length > 0
 
-  // Visible items (flat list for virtualizer)
+  // Visible items for the virtualizer. When the pinned section is rendered
+  // inline above, only unpinned items belong in the list (avoids duplicates).
   const visibleItems = useMemo(() => {
-    if (showSections && !pinnedExpanded) return unpinnedItems
+    if (showSections) return unpinnedItems
     return filteredHistory
-  }, [filteredHistory, showSections, pinnedExpanded, unpinnedItems])
+  }, [filteredHistory, showSections, unpinnedItems])
 
   const ITEM_HEIGHT = isCompact ? 44 : 64
   const GAP_HEIGHT = 8 // gap-2 between items

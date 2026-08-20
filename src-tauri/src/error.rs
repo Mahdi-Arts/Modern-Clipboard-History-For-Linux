@@ -1,12 +1,11 @@
 //! Unified error types for the application.
-//! Replaces stringly-typed `Result<(), String>` throughout the codebase.
 
 use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum AppError {
     #[error("Clipboard operation failed: {0}")]
-    Clipboard(#[from] arboard::Error),
+    Clipboard(String),
 
     #[error("Serialization error: {0}")]
     Serialization(#[from] serde_json::Error),
@@ -24,7 +23,7 @@ pub enum AppError {
     NotFound { id: String },
 
     #[error("Network error: {0}")]
-    Network(#[from] reqwest::Error),
+    Network(String),
 
     #[error("Invalid URL: {0}")]
     InvalidUrl(String),
@@ -37,18 +36,39 @@ pub enum AppError {
 
     #[error("X11 error: {0}")]
     X11(String),
+
+    #[error("Privacy policy blocked this clipboard item")]
+    PrivacyBlocked,
+
+    #[error("{0}")]
+    Other(String),
 }
 
 pub type AppResult<T> = Result<T, AppError>;
 
 impl From<String> for AppError {
     fn from(msg: String) -> Self {
-        AppError::Persistence(msg)
+        AppError::Other(msg)
     }
 }
 
 impl From<&str> for AppError {
     fn from(msg: &str) -> Self {
-        AppError::Persistence(msg.to_string())
+        AppError::Other(msg.to_string())
+    }
+}
+
+impl From<arboard::Error> for AppError {
+    fn from(err: arboard::Error) -> Self {
+        AppError::Clipboard(err.to_string())
+    }
+}
+
+impl serde::Serialize for AppError {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(&self.to_string())
     }
 }

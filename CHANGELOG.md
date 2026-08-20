@@ -10,6 +10,45 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [1.1.0] - 2026-08-20
+
+### Reliability / پایداری
+
+- Clipboard history is persisted to SQLite (`history.db`) on every mutation, on Drop, and on Quit. The previous dirty-flag path never flushed to disk.
+- Legacy `history.json` is migrated once, then renamed to `history.json.bak`.
+- Images are stored as PNG files; the UI only receives a thumbnail.
+
+### Privacy / حریم خصوصی
+
+- Secret filter (private keys, tokens, JWTs, `password=`) on by default.
+- Skip password-manager and private-browsing windows on X11 (on by default).
+- Optional “don’t save images”.
+- History/settings files are chmod `0600`.
+- Tiling WM config rewrite is **opt-in**.
+
+### Security / امنیت
+
+- Real SSRF controls for GIF downloads: HTTPS-only, host allowlist, DNS/IP checks, no redirects.
+- Tenor query strings are URL-encoded; API key comes only from `TENOR_API_KEY` (no hardcoded fallback).
+- `finish_paste` refuses Ctrl+V unless a clipboard write happened in the last 5 seconds.
+- `shell:allow-open` is scoped to `http(s)` and `mailto`.
+- Tracing is initialized and the worker guard is kept alive.
+
+### UI / UX
+
+- Pinned items no longer render twice.
+- Privacy section and language picker in Settings.
+- Incremental `clipboard-changed` updates (no full history refetch).
+- Safer regex search (length + nested-quantifier guard).
+
+### Quality / کیفیت
+
+- Frontend Vitest tests and Rust unit tests in CI.
+- README rebuilt (the 1.0 architecture section was corrupted).
+- Dockerfile no longer swallows build failures.
+
+---
+
 ## [1.0.0] - 2026-08-20
 
 ### ✅ Production Release Readiness / آماده‌سازی انتشار پایدار

@@ -1,22 +1,22 @@
 //! Clipboard Manager Module
-//! Handles clipboard monitoring, history storage, and paste injection
+//! Handles clipboard monitoring, history storage, and paste injection.
 
 use arboard::{Clipboard, ImageData};
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
 use chrono::{DateTime, Utc};
-use image::{DynamicImage, ImageFormat};
+use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::hash::{Hash, Hasher};
-use std::io::Cursor;
 use std::path::PathBuf;
 use std::thread;
 use std::time::{Duration, Instant};
-use uuid::Uuid;
 use tracing::{debug, error, info, warn};
+use uuid::Uuid;
 
-// --- Constants ---
+use crate::privacy::{self, PrivacyPolicy};
+
 pub const DEFAULT_MAX_HISTORY_SIZE: usize = 50;
 const PREVIEW_TEXT_MAX_LEN: usize = 100;
 const GIF_CACHE_MARKER: &str = "win11-clipboard-history/gifs/";
@@ -24,10 +24,6 @@ const FILE_URI_PREFIX: &str = "file://";
 const CLIPBOARD_HELPER_READY_TIMEOUT: Duration = Duration::from_secs(2);
 const CLIPBOARD_HELPER_POLL_INTERVAL: Duration = Duration::from_millis(2);
 
-// --- Helper Functions ---
-
-// Simple FNV-1a implementation for stable hashing across restarts
-// This avoids the randomization of DefaultHasher which causes duplicates on restart
 const FNV_OFFSET_BASIS: u64 = 0xcbf29ce484222325;
 const FNV_PRIME: u64 = 0x100000001b3;
 
@@ -51,29 +47,21 @@ impl Hasher for FnvHasher {
     }
 }
 
-/// Calculates a stable hash for any hashable data.
 pub fn calculate_hash<T: Hash + ?Sized>(t: &T) -> u64 {
     let mut s = FnvHasher::default();
     t.hash(&mut s);
     s.finish()
 }
 
-/// Helper to get a fresh clipboard instance.
 fn get_system_clipboard() -> Result<Clipboard, String> {
     Clipboard::new().map_err(|e| e.to_string())
 }
 
-// --- Data Structures ---
-
-/// Content type for clipboard items
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "type", content = "data")]
 pub enum ClipboardContent {
-    /// Plain text content
     Text(String),
-    /// Rich text with HTML formatting (plain text + optional HTML)
     RichText { plain: String, html: String },
-    /// Image as base64 encoded PNG
     Image {
         base64: String,
         width: u32,
@@ -81,61 +69,37 @@ pub enum ClipboardContent {
     },
 }
 
-/// A single clipboard history item
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ClipboardItem {
-    /// Unique identifier
     pub id: String,
-    /// The content
     pub content: ClipboardContent,
-    /// When it was copied
     pub timestamp: DateTime<Utc>,
-    /// Whether this item is pinned
     pub pinned: bool,
-    /// Preview text (for display)
     pub preview: String,
 }
 
 impl ClipboardItem {
     pub fn new_text(text: String) -> Self {
         let preview = if text.chars().count() > PREVIEW_TEXT_MAX_LEN {
-            format!(
-                "{}...",
-                text.chars().take(PREVIEW_TEXT_MAX_LEN).collect::<String>()
-            )
+            format!("{}...", text.chars().take(PREVIEW_TEXT_MAX_LEN).collect::<String>())
         } else {
             text.clone()
         };
-
         Self::create(ClipboardContent::Text(text), preview)
     }
 
     pub fn new_rich_text(plain: String, html: String) -> Self {
         let preview = if plain.chars().count() > PREVIEW_TEXT_MAX_LEN {
-            format!(
-                "{}...",
-                plain.chars().take(PREVIEW_TEXT_MAX_LEN).collect::<String>()
-            )
+            format!("{}...", plain.chars().take(PREVIEW_TEXT_MAX_LEN).collect::<String>())
         } else {
             plain.clone()
         };
-
         Self::create(ClipboardContent::RichText { plain, html }, preview)
     }
 
     pub fn new_image(base64: String, width: u32, height: u32, hash: u64) -> Self {
-        // We store the hash in the preview string to persist it across sessions
-        // without breaking the serialization schema of existing data.
         let preview = format!("Image ({}x{}) #{}", width, height, hash);
-
-        Self::create(
-            ClipboardContent::Image {
-                base64,
-                width,
-                height,
-            },
-            preview,
-        )
+        Self::create(ClipboardContent::Image { base64, width, height }, preview)
     }
 
     fn create(content: ClipboardContent, preview: String) -> Self {
@@ -148,8 +112,6 @@ impl ClipboardItem {
         }
     }
 
-    /// Attempts to extract the image hash from the preview string.
-    /// Returns None if content is not an image or hash is missing.
     pub fn extract_image_hash(&self) -> Option<u64> {
         if !matches!(self.content, ClipboardContent::Image { .. }) {
             return None;
@@ -161,24 +123,20 @@ impl ClipboardItem {
     }
 }
 
-// --- Manager Logic ---
-
-/// Manages clipboard operations and history
 pub struct ClipboardManager {
     history: Vec<ClipboardItem>,
-    /// O(1) dedup index: text hashes of all non-pinned items (stable FNV)
     text_hashes: HashSet<u64>,
-    /// Track the last pasted content to avoid re-adding it to history
     last_pasted_text: Option<String>,
     last_pasted_image_hash: Option<u64>,
-    /// Track last added text hash to prevent duplicates from rapid copies
     last_added_text_hash: Option<u64>,
-    /// Path to save the history file
-    persistence_path: PathBuf,
-    /// Maximum number of history items to keep
+    db_path: PathBuf,
+    json_legacy_path: PathBuf,
+    images_dir: PathBuf,
+    conn: Connection,
+    image_paths: HashMap<String, PathBuf>,
     max_history_size: usize,
-    /// Dirty flag for debounced persistence
     dirty: bool,
+    privacy: PrivacyPolicy,
 }
 
 impl ClipboardManager {
@@ -191,34 +149,53 @@ impl ClipboardManager {
     }
 
     pub fn new(persistence_path: PathBuf, max_history_size: usize) -> Self {
-        // Normalize the requested max size and avoid huge allocations
         let max_size = Self::clamp_max_history_size(max_history_size);
+        let base_dir = persistence_path
+            .parent()
+            .map(PathBuf::from)
+            .unwrap_or_else(|| PathBuf::from("."));
+        let _ = fs::create_dir_all(&base_dir);
+        crate::fs_atomic::restrict_permissions(&base_dir);
+
+        let db_path = base_dir.join("history.db");
+        let images_dir = base_dir.join("images");
+        let _ = fs::create_dir_all(&images_dir);
+        crate::fs_atomic::restrict_permissions(&images_dir);
+
+        let conn = open_database(&db_path).unwrap_or_else(|e| {
+            error!("[ClipboardManager] Failed to open SQLite ({e}); using in-memory fallback");
+            Connection::open_in_memory().expect("in-memory sqlite")
+        });
+
         let mut manager = Self {
             history: Vec::with_capacity(max_size),
             text_hashes: HashSet::new(),
             last_pasted_text: None,
             last_pasted_image_hash: None,
             last_added_text_hash: None,
-            persistence_path,
+            db_path,
+            json_legacy_path: persistence_path,
+            images_dir,
+            conn,
+            image_paths: HashMap::new(),
             max_history_size: max_size,
             dirty: false,
+            privacy: PrivacyPolicy::default(),
         };
-        manager.load_history();
+        manager.migrate_legacy_json();
+        manager.load_from_db();
         manager.rebuild_hash_index();
         manager
     }
 
-    /// Updates the maximum history size and enforces the new limit
+    pub fn set_privacy_policy(&mut self, policy: PrivacyPolicy) {
+        self.privacy = policy;
+    }
+
     pub fn set_max_history_size(&mut self, new_size: usize) {
         let mut clamped = Self::clamp_max_history_size(new_size);
-        // Do not set max less than number of pinned items; we won't delete pins automatically
         let pinned_count = self.history.iter().filter(|i| i.pinned).count();
         if clamped < pinned_count {
-            eprintln!(
-                "clipboard_manager: requested max history size ({}) is less than the number of pinned items ({}); increasing limit to preserve pinned items.",
-                clamped,
-                pinned_count
-            );
             clamped = pinned_count;
         }
         self.max_history_size = clamped;
@@ -228,136 +205,264 @@ impl ClipboardManager {
         }
     }
 
-    /// Gets the current maximum history size
     pub fn get_max_history_size(&self) -> usize {
         self.max_history_size
     }
 
-    fn load_history(&mut self) {
-        if !self.persistence_path.exists() {
+    fn migrate_legacy_json(&mut self) {
+        if !self.json_legacy_path.exists() {
+            return;
+        }
+        // Only migrate when the database is empty.
+        let count: i64 = self
+            .conn
+            .query_row("SELECT COUNT(*) FROM items", [], |r| r.get(0))
+            .unwrap_or(0);
+        if count > 0 {
             return;
         }
 
-        match fs::read_to_string(&self.persistence_path) {
-            Ok(content) => {
-                match serde_json::from_str::<Vec<ClipboardItem>>(&content) {
-                    Ok(items) => {
-                        // Reorder items so pinned come first while preserving order within each group
-                        let mut pinned_items = Vec::new();
-                        let mut unpinned_items = Vec::new();
+        let Ok(content) = fs::read_to_string(&self.json_legacy_path) else {
+            return;
+        };
+        let Ok(items) = serde_json::from_str::<Vec<ClipboardItem>>(&content) else {
+            warn!("[ClipboardManager] Legacy history.json is unreadable; leaving in place");
+            return;
+        };
 
-                        for item in items {
-                            if item.pinned {
-                                pinned_items.push(item);
-                            } else {
-                                unpinned_items.push(item);
-                            }
-                        }
-
-                        pinned_items.extend(unpinned_items);
-                        self.history = pinned_items;
-                        // Ensure loaded history respects configured limit immediately
-                        let history_trimmed = self.enforce_history_limit();
-                        // If the loaded history was trimmed, persist it so disk stays in sync.
-                        // Avoid saving when nothing changed.
-                        if history_trimmed {
-                            self.save_history();
-                        }
-                        // Initialize last_added_text_hash from the most recent item (even if pinned)
-                        // This prevents duplication on startup if the clipboard content matches the top item
-                        if let Some(first) = self.history.first() {
-                            match &first.content {
-                                ClipboardContent::Text(text) => {
-                                    self.last_added_text_hash = Some(calculate_hash(text));
-                                }
-                                ClipboardContent::RichText { plain, .. } => {
-                                    self.last_added_text_hash = Some(calculate_hash(plain));
-                                }
-                                ClipboardContent::Image { .. } => {
-                                    if let Some(_hash) = first.extract_image_hash() {
-                                        // We don't have a separate last_added_image_hash,
-                                        // but we can at least avoid text hash collision
-                                        self.last_added_text_hash = None;
-                                    }
-                                }
-                            }
-                        }
+        info!(
+            "[ClipboardManager] Migrating {} items from history.json → SQLite",
+            items.len()
+        );
+        for mut item in items {
+            if let ClipboardContent::Image { base64, width, height } = &item.content {
+                if let Ok(png) = BASE64.decode(base64) {
+                    if let Ok(stored) =
+                        crate::image_store::store_png_bytes(&self.images_dir, &item.id, &png)
+                    {
+                        self.image_paths
+                            .insert(item.id.clone(), stored.full_path.clone());
+                        item.content = ClipboardContent::Image {
+                            base64: stored.thumb_base64,
+                            width: *width,
+                            height: *height,
+                        };
                     }
-                    Err(e) => eprintln!("Failed to parse history: {}", e),
                 }
             }
-            Err(e) => eprintln!("Failed to read history file: {}", e),
+            self.history.push(item);
         }
-    }
+        let _ = self.enforce_history_limit();
+        self.save_history();
 
-    pub fn save_history(&self) {
-        // Atomic write: write to .tmp then rename (crash-safe)
-        if let Err(e) = crate::fs_atomic::write_json_atomic(&self.persistence_path, &self.history) {
-            error!("[ClipboardManager] Failed to save history: {e}");
+        let bak = self.json_legacy_path.with_extension("json.bak");
+        if fs::rename(&self.json_legacy_path, &bak).is_err() {
+            let _ = fs::remove_file(&self.json_legacy_path);
         }
+        info!("[ClipboardManager] Legacy JSON migrated");
     }
 
-    // --- Monitoring / Reading ---
-
-    pub fn get_current_text(&mut self) -> Result<String, arboard::Error> {
-        // We unwrap internal map error because arboard::Error is the expected return type here
-        // for the monitoring loop in main.rs
-        Clipboard::new()?.get_text()
-    }
-
-    /// Try to get HTML content from clipboard. Returns None if not available.
-    pub fn get_current_html(&self) -> Option<String> {
-        let mut clipboard = get_system_clipboard().ok()?;
-        clipboard.get().html().ok()
-    }
-
-    pub fn get_current_image(
-        &mut self,
-    ) -> Result<Option<(ImageData<'static>, u64)>, arboard::Error> {
-        let mut clipboard = Clipboard::new()?;
-
-        match clipboard.get_image() {
-            Ok(image) => {
-                let hash = calculate_hash(&image.bytes);
-                let owned = ImageData {
-                    width: image.width,
-                    height: image.height,
-                    bytes: image.bytes.into_owned().into(),
-                };
-                Ok(Some((owned, hash)))
+    fn load_from_db(&mut self) {
+        if !self.history.is_empty() {
+            return;
+        }
+        let mut stmt = match self.conn.prepare(
+            "SELECT id, kind, text, html, image_path, image_hash, width, height,
+                    preview, pinned, created_at, thumb_base64
+             FROM items ORDER BY sort_index ASC",
+        ) {
+            Ok(s) => s,
+            Err(e) => {
+                warn!("[ClipboardManager] Failed to prepare load: {e}");
+                return;
             }
-            Err(arboard::Error::ContentNotAvailable) => Ok(None),
-            Err(e) => Err(e),
+        };
+
+        let rows = stmt.query_map([], |row| {
+            Ok(DbRow {
+                id: row.get(0)?,
+                kind: row.get(1)?,
+                text: row.get(2)?,
+                html: row.get(3)?,
+                image_path: row.get(4)?,
+                image_hash: row.get(5)?,
+                width: row.get(6)?,
+                height: row.get(7)?,
+                preview: row.get(8)?,
+                pinned: row.get::<_, i64>(9)? != 0,
+                created_at: row.get(10)?,
+                thumb_base64: row.get(11)?,
+            })
+        });
+
+        let Ok(rows) = rows else {
+            return;
+        };
+
+        for row in rows.flatten() {
+            let content = match row.kind.as_str() {
+                "richtext" => ClipboardContent::RichText {
+                    plain: row.text.unwrap_or_default(),
+                    html: row.html.unwrap_or_default(),
+                },
+                "image" => {
+                    if let Some(path) = row.image_path.clone() {
+                        self.image_paths
+                            .insert(row.id.clone(), PathBuf::from(&path));
+                    }
+                    ClipboardContent::Image {
+                        base64: row.thumb_base64.unwrap_or_default(),
+                        width: row.width.unwrap_or(0) as u32,
+                        height: row.height.unwrap_or(0) as u32,
+                    }
+                }
+                _ => ClipboardContent::Text(row.text.unwrap_or_default()),
+            };
+
+            let timestamp = DateTime::<Utc>::from_timestamp_millis(row.created_at)
+                .unwrap_or_else(Utc::now);
+
+            let mut preview = row.preview;
+            if matches!(content, ClipboardContent::Image { .. }) {
+                if let Some(hash) = row.image_hash {
+                    if !preview.contains('#') {
+                        preview = format!("{preview} #{hash}");
+                    }
+                }
+            }
+
+            self.history.push(ClipboardItem {
+                id: row.id,
+                content,
+                timestamp,
+                pinned: row.pinned,
+                preview,
+            });
+        }
+
+        let _ = self.enforce_history_limit();
+        if let Some(first) = self.history.first() {
+            match &first.content {
+                ClipboardContent::Text(text) => {
+                    self.last_added_text_hash = Some(calculate_hash(text));
+                }
+                ClipboardContent::RichText { plain, .. } => {
+                    self.last_added_text_hash = Some(calculate_hash(plain));
+                }
+                ClipboardContent::Image { .. } => {
+                    self.last_added_text_hash = None;
+                }
+            }
+        }
+        debug!(
+            "[ClipboardManager] Loaded {} items from SQLite",
+            self.history.len()
+        );
+    }
+
+    pub fn save_history(&mut self) {
+        if let Err(e) = self.persist_sqlite() {
+            error!("[ClipboardManager] Failed to save history: {e}");
+        } else {
+            self.dirty = false;
         }
     }
 
-    // --- Adding Items ---
+    fn persist_sqlite(&mut self) -> Result<(), String> {
+        let snapshot: Vec<(usize, ClipboardItem, Option<String>)> = self
+            .history
+            .iter()
+            .enumerate()
+            .map(|(idx, item)| {
+                let path = self
+                    .image_paths
+                    .get(&item.id)
+                    .map(|p| p.to_string_lossy().into_owned());
+                (idx, item.clone(), path)
+            })
+            .collect();
 
-    /// Add text content to history, with optional HTML for rich text
+        let tx = self.conn.transaction().map_err(|e| e.to_string())?;
+        tx.execute("DELETE FROM items", []).map_err(|e| e.to_string())?;
+        {
+            let mut stmt = tx
+                .prepare(
+                    "INSERT INTO items
+                        (id, kind, text, html, image_path, image_hash, width, height,
+                         preview, pinned, created_at, thumb_base64, sort_index)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
+                )
+                .map_err(|e| e.to_string())?;
+
+            for (idx, item, image_path) in snapshot {
+                let (kind, text, html, image_hash, width, height, thumb) = match &item.content {
+                    ClipboardContent::Text(t) => ("text", Some(t.clone()), None, None, None, None, None),
+                    ClipboardContent::RichText { plain, html } => (
+                        "richtext",
+                        Some(plain.clone()),
+                        Some(html.clone()),
+                        None,
+                        None,
+                        None,
+                        None,
+                    ),
+                    ClipboardContent::Image {
+                        base64,
+                        width,
+                        height,
+                    } => (
+                        "image",
+                        None,
+                        None,
+                        item.extract_image_hash().map(|h| h as i64),
+                        Some(*width as i64),
+                        Some(*height as i64),
+                        Some(base64.clone()),
+                    ),
+                };
+
+                stmt.execute(params![
+                    item.id,
+                    kind,
+                    text,
+                    html,
+                    image_path,
+                    image_hash,
+                    width,
+                    height,
+                    item.preview,
+                    if item.pinned { 1 } else { 0 },
+                    item.timestamp.timestamp_millis(),
+                    thumb,
+                    idx as i64,
+                ])
+                .map_err(|e| e.to_string())?;
+            }
+        }
+        tx.commit().map_err(|e| e.to_string())?;
+        crate::fs_atomic::restrict_permissions(&self.db_path);
+        Ok(())
+    }
+
     pub fn add_text(&mut self, text: String, html: Option<String>) -> Option<ClipboardItem> {
+        if self.privacy.filter_secrets && privacy::looks_like_secret(&text) {
+            debug!("[ClipboardManager] Skipping secret-looking clipboard text");
+            return None;
+        }
         if self.should_skip_text(&text) {
             return None;
         }
 
         let text_hash = calculate_hash(&text);
-
-        // Rapid copy detection
         if Some(text_hash) == self.last_added_text_hash {
             return None;
         }
-
-        // Check if this exact text is already the most recent non-pinned item
-        // If so, skip entirely - no need to add or move
         if self.is_duplicate_text(&text) {
             self.last_added_text_hash = Some(text_hash);
             return None;
         }
-
-        // Check if this text exists elsewhere in history (not at top)
-        // If so, remove the old entry so we can add fresh at top
         self.remove_duplicate_text_from_history(&text);
 
-        // Create new item - use RichText if HTML is available, otherwise plain Text
         let item = match html {
             Some(html_content) if !html_content.trim().is_empty() => {
                 ClipboardItem::new_rich_text(text, html_content)
@@ -365,66 +470,64 @@ impl ClipboardManager {
             _ => ClipboardItem::new_text(text),
         };
         self.insert_item(item.clone());
-
         self.last_added_text_hash = Some(text_hash);
-
         Some(item)
     }
 
     pub fn add_image(&mut self, image_data: ImageData<'_>, hash: u64) -> Option<ClipboardItem> {
+        if !self.privacy.save_images {
+            debug!("[ClipboardManager] Image capture disabled by privacy settings");
+            return None;
+        }
         if self.should_skip_image(hash) {
             return None;
         }
 
-        let base64_image = self.convert_image_to_base64(&image_data)?;
+        let id = Uuid::new_v4().to_string();
+        let stored = match crate::image_store::store_rgba(&self.images_dir, &id, &image_data) {
+            Ok(s) => s,
+            Err(e) => {
+                warn!("[ClipboardManager] Failed to store image: {e}");
+                return None;
+            }
+        };
 
-        let item = ClipboardItem::new_image(
-            base64_image,
-            image_data.width as u32,
-            image_data.height as u32,
+        let mut item = ClipboardItem::new_image(
+            stored.thumb_base64,
+            stored.width,
+            stored.height,
             hash,
         );
-
+        item.id = id.clone();
+        self.image_paths.insert(id, stored.full_path);
         self.insert_item(item.clone());
         Some(item)
     }
-
-    // --- State Management Helpers ---
 
     fn should_skip_text(&mut self, text: &str) -> bool {
         if text.trim().is_empty() {
             return true;
         }
-
-        // Skip internal GIF cache URIs
         if text.contains(FILE_URI_PREFIX) && text.contains(GIF_CACHE_MARKER) {
-            eprintln!("[ClipboardManager] Skipping GIF cache URI");
             return true;
         }
-
-        // Skip self-pasted content
         if let Some(ref pasted) = self.last_pasted_text {
             if pasted == text {
                 self.last_pasted_text = None;
                 return true;
             }
-            // Clipboard has changed to something else; the paste echo window has passed.
             self.last_pasted_text = None;
         }
-
         false
     }
 
     fn should_skip_image(&mut self, hash: u64) -> bool {
-        // Check if just pasted
         if let Some(pasted_hash) = self.last_pasted_image_hash {
             if pasted_hash == hash {
                 self.last_pasted_image_hash = None;
                 return true;
             }
         }
-
-        // Check if it's the exact same image as the most recent non-pinned item
         if let Some(item) = self.history.iter().find(|item| !item.pinned) {
             if let Some(item_hash) = item.extract_image_hash() {
                 if item_hash == hash {
@@ -432,13 +535,10 @@ impl ClipboardManager {
                 }
             }
         }
-
         false
     }
 
     fn is_duplicate_text(&self, text: &str) -> bool {
-        // Check only the very first non-pinned item for exact match logic
-        // used in rapid detection
         if let Some(item) = self.history.iter().find(|item| !item.pinned) {
             match &item.content {
                 ClipboardContent::Text(t) if t == text => return true,
@@ -451,7 +551,6 @@ impl ClipboardManager {
 
     fn remove_duplicate_text_from_history(&mut self, text: &str) {
         let hash = calculate_hash(text);
-        // O(1) check: if hash not in index, skip scan
         if !self.text_hashes.contains(&hash) {
             return;
         }
@@ -465,13 +564,12 @@ impl ClipboardManager {
                 _ => false,
             }
         }) {
-            self.history.remove(pos);
+            let removed = self.history.remove(pos);
+            self.remove_image_file(&removed.id);
             self.rebuild_hash_index();
         }
     }
 
-    /// Rebuild the text hash index from scratch.
-    /// Called after structural changes to history.
     fn rebuild_hash_index(&mut self) {
         self.text_hashes.clear();
         for item in &self.history {
@@ -485,38 +583,19 @@ impl ClipboardManager {
         }
     }
 
-    /// Returns true if there are unsaved changes.
     pub fn is_dirty(&self) -> bool {
         self.dirty
     }
 
-    /// Marks the manager as having unsaved changes.
     pub fn mark_dirty(&mut self) {
         self.dirty = true;
     }
 
-    /// Clears the dirty flag (after persistence).
     pub fn mark_clean(&mut self) {
         self.dirty = false;
     }
 
-    fn convert_image_to_base64(&self, image_data: &ImageData<'_>) -> Option<String> {
-        let img = DynamicImage::ImageRgba8(
-            image::RgbaImage::from_raw(
-                image_data.width as u32,
-                image_data.height as u32,
-                image_data.bytes.to_vec(),
-            )?, // Returns None if dimensions don't match bytes
-        );
-
-        let mut buffer = Cursor::new(Vec::new());
-        img.write_to(&mut buffer, ImageFormat::Png).ok()?;
-        Some(BASE64.encode(buffer.get_ref()))
-    }
-
     fn insert_item(&mut self, item: ClipboardItem) {
-        // Insert after pinned items (first non-pinned slot)
-        // If all items are pinned, insert at the end to preserve pinned ordering
         let insert_pos = self
             .history
             .iter()
@@ -524,28 +603,29 @@ impl ClipboardManager {
             .unwrap_or(self.history.len());
         self.history.insert(insert_pos, item);
         self.dirty = true;
-
-        // Trim history
         self.enforce_history_limit();
-        // Debounced: caller decides when to persist
+        self.rebuild_hash_index();
+        self.save_history();
     }
 
-    /// Enforce the configured history size. Returns true if trimming occurred.
     fn enforce_history_limit(&mut self) -> bool {
         let before = self.history.len();
         while self.history.len() > self.max_history_size {
-            // Remove from the end, skipping pinned items if possible
             if let Some(pos) = self.history.iter().rposition(|i| !i.pinned) {
-                self.history.remove(pos);
+                let removed = self.history.remove(pos);
+                self.remove_image_file(&removed.id);
             } else {
-                // All items are pinned. We stopped removing to avoid deleting pins.
                 break;
             }
         }
         self.history.len() != before
     }
 
-    // --- Accessors ---
+    fn remove_image_file(&mut self, id: &str) {
+        if let Some(path) = self.image_paths.remove(id) {
+            crate::image_store::remove_image(&path);
+        }
+    }
 
     pub fn get_history(&self) -> Vec<ClipboardItem> {
         self.history.clone()
@@ -556,23 +636,32 @@ impl ClipboardManager {
     }
 
     pub fn clear(&mut self) {
+        let removed: Vec<String> = self
+            .history
+            .iter()
+            .filter(|i| !i.pinned)
+            .map(|i| i.id.clone())
+            .collect();
         self.history.retain(|item| item.pinned);
+        for id in removed {
+            self.remove_image_file(&id);
+        }
         self.dirty = true;
         self.rebuild_hash_index();
+        self.save_history();
     }
 
     pub fn remove_item(&mut self, id: &str) {
         self.history.retain(|item| item.id != id);
+        self.remove_image_file(id);
         self.dirty = true;
         self.rebuild_hash_index();
+        self.save_history();
     }
 
     pub fn toggle_pin(&mut self, id: &str) -> Option<ClipboardItem> {
-        // Find the item and toggle its pin status
         let pos = self.history.iter().position(|i| i.id == id)?;
         self.history[pos].pinned = !self.history[pos].pinned;
-
-        // Reposition the item so the invariant
         let item = self.history.remove(pos);
         let insert_pos = self
             .history
@@ -580,41 +669,33 @@ impl ClipboardManager {
             .position(|i| !i.pinned)
             .unwrap_or(self.history.len());
         self.history.insert(insert_pos, item);
-
         let item_clone = self.history[insert_pos].clone();
         self.dirty = true;
+        self.save_history();
         Some(item_clone)
     }
 
-    /// Move an item to the top of the history (respecting pinned items)
-    /// If the item is pinned, it moves to the top of pinned items
-    /// If not pinned, it moves to the first non-pinned position
     pub fn move_item_to_top(&mut self, id: &str) -> bool {
-        // Find the item's current position
         let current_pos = match self.history.iter().position(|i| i.id == id) {
             Some(pos) => pos,
-            None => return false, // Item not found
+            None => return false,
         };
-        // Determine where we *would* insert based on pinned status, without mutating yet
         let item_pinned = self.history[current_pos].pinned;
         let insert_pos = if item_pinned {
-            // Move to top of pinned items (position 0)
             0
         } else {
-            // Move to first non-pinned position (right after all pinned items)
             self.history
                 .iter()
                 .position(|i| !i.pinned)
                 .unwrap_or(self.history.len())
         };
-        // If the item is already at the correct position, avoid unnecessary mutation and I/O
         if insert_pos == current_pos {
             return true;
         }
-        // Now actually move the item
         let item = self.history.remove(current_pos);
         self.history.insert(insert_pos, item);
         self.dirty = true;
+        self.save_history();
         true
     }
 
@@ -622,38 +703,31 @@ impl ClipboardManager {
         if interval_minutes == 0 {
             return false;
         }
-
         let now = Utc::now();
-        let mut changed = false;
-
-        // Use a more robust time comparison
+        let interval_seconds = (interval_minutes * 60) as i64;
+        let mut removed_ids = Vec::new();
         self.history.retain(|item| {
             if item.pinned {
                 return true;
             }
-
             let age_seconds = now.signed_duration_since(item.timestamp).num_seconds();
-            let interval_seconds = (interval_minutes * 60) as i64;
             let keep = age_seconds < interval_seconds;
-
             if !keep {
-                changed = true;
-                println!(
-                    "[ClipboardManager] Auto-deleting old item: {} (age: {}s, limit: {}s)",
-                    item.id, age_seconds, interval_seconds
-                );
+                removed_ids.push(item.id.clone());
             }
             keep
         });
-
-        if changed {
-            self.dirty = true;
+        for id in &removed_ids {
+            self.remove_image_file(id);
         }
-
-        changed
+        if !removed_ids.is_empty() {
+            self.dirty = true;
+            self.rebuild_hash_index();
+            self.save_history();
+            return true;
+        }
+        false
     }
-
-    // --- Paste Logic ---
 
     pub fn mark_as_pasted(&mut self, item: &ClipboardItem) {
         match &item.content {
@@ -674,41 +748,72 @@ impl ClipboardManager {
         }
     }
 
-    /// Mark a specific text as pasted (to prevent it from appearing in history)
-    /// Used for emojis/special insertions
     pub fn mark_text_as_pasted(&mut self, text: &str) {
         self.last_pasted_text = Some(text.to_string());
         self.last_added_text_hash = Some(calculate_hash(&text));
     }
 
     pub fn paste_item(&mut self, item: &ClipboardItem) -> Result<(), String> {
-        // 1. Prevent loop: Mark as pasted before OS action
         self.mark_as_pasted(item);
-
-        // 2. Write content to OS clipboard
         match &item.content {
-            ClipboardContent::Text(text) => {
-                self.set_text_robust(text)?;
-            }
-            ClipboardContent::RichText { plain, html } => {
-                // Set HTML with plain text as fallback - this preserves formatting
-                self.set_html_robust(html, plain)?;
-            }
+            ClipboardContent::Text(text) => self.set_text_robust(text)?,
+            ClipboardContent::RichText { plain, html } => self.set_html_robust(html, plain)?,
             ClipboardContent::Image {
                 base64,
                 width,
                 height,
             } => {
-                self.set_image_robust(base64, *width, *height)?;
+                if let Some(path) = self.image_paths.get(&item.id) {
+                    if let Ok(png) = crate::image_store::read_png(path) {
+                        self.set_image_png_bytes(&png)?;
+                    } else {
+                        self.set_image_robust(base64, *width, *height)?;
+                    }
+                } else {
+                    self.set_image_robust(base64, *width, *height)?;
+                }
             }
         }
-
-        // 3. Simulate User Input
         self.simulate_paste_action()?;
-
-        // 4. Move item to top of history so it's easily accessible for repeated use
         self.move_item_to_top(&item.id);
+        Ok(())
+    }
 
+    fn set_image_png_bytes(&self, png: &[u8]) -> Result<(), String> {
+        #[cfg(target_os = "linux")]
+        {
+            if crate::session::is_wayland() {
+                if self
+                    .set_clipboard_external("wl-copy", &["--type", "image/png"], png)
+                    .is_ok()
+                {
+                    return Ok(());
+                }
+            } else if self
+                .set_clipboard_external(
+                    "xclip",
+                    &["-selection", "clipboard", "-t", "image/png"],
+                    png,
+                )
+                .is_ok()
+            {
+                return Ok(());
+            }
+        }
+        let img = image::load_from_memory(png).map_err(|e| format!("Image load failed: {e}"))?;
+        let rgba = img.to_rgba8();
+        let (width, height) = (rgba.width(), rgba.height());
+        self.set_image_from_rgba(rgba.into_raw(), width, height)
+    }
+
+    fn set_image_from_rgba(&self, bytes: Vec<u8>, width: u32, height: u32) -> Result<(), String> {
+        let mut clipboard = get_system_clipboard()?;
+        let image_data = ImageData {
+            width: width as usize,
+            height: height as usize,
+            bytes: bytes.clone().into(),
+        };
+        clipboard.set_image(image_data).map_err(|e| e.to_string())?;
         Ok(())
     }
 
@@ -738,42 +843,16 @@ impl ClipboardManager {
             }
         }
 
-        let mut clipboard = get_system_clipboard()?;
         let img =
             image::load_from_memory(&bytes).map_err(|e| format!("Image load failed: {}", e))?;
         let rgba = img.to_rgba8();
-        let expected_bytes = rgba.into_raw();
-
-        let image_data = ImageData {
-            width: width as usize,
-            height: height as usize,
-            bytes: expected_bytes.clone().into(),
-        };
-
-        clipboard.set_image(image_data).map_err(|e| e.to_string())?;
-
-        // Reading through the same arboard instance performs the backend
-        // round trip that confirms our provider owns and serves the selection.
-        let observed = clipboard.get_image().map_err(|e| e.to_string())?;
-        if observed.width != width as usize
-            || observed.height != height as usize
-            || observed.bytes.as_ref() != expected_bytes.as_slice()
-        {
-            return Err("Clipboard image verification returned different data".to_string());
-        }
-
-        Ok(())
+        self.set_image_from_rgba(rgba.into_raw(), width, height)
     }
 
     fn simulate_paste_action(&self) -> Result<(), String> {
-        // Clipboard writers return only after their platform-specific
-        // readiness barrier. The serving process (or arboard's verified global
-        // worker) outlives this call, so no fixed post-paste retention is needed.
         crate::input_simulator::simulate_paste_keystroke()
     }
 
-    /// Robustly set text to clipboard using xclip/wl-copy on Linux if available,
-    /// falling back to arboard. This fixes issues on distros like Kali Linux.
     pub fn set_text_robust(&self, text: &str) -> Result<(), String> {
         #[cfg(target_os = "linux")]
         {
@@ -783,6 +862,7 @@ impl ClipboardManager {
                     &["--type", "text/plain;charset=utf-8"],
                     text.as_bytes(),
                 ) {
+                    crate::clipboard_io::write(&crate::clipboard_io::Payload::Text(text)).ok();
                     return Ok(());
                 }
             } else if let Ok(()) = self.set_clipboard_external(
@@ -790,11 +870,11 @@ impl ClipboardManager {
                 &["-selection", "clipboard", "-t", "UTF8_STRING"],
                 text.as_bytes(),
             ) {
+                crate::clipboard_io::notify_write();
                 return Ok(());
             }
         }
 
-        // Fallback to arboard
         let mut clipboard = get_system_clipboard()?;
         clipboard.set_text(text).map_err(|e| e.to_string())?;
         let observed = clipboard.get_text().map_err(|e| e.to_string())?;
@@ -804,17 +884,13 @@ impl ClipboardManager {
         Ok(())
     }
 
-    /// Robustly set HTML to clipboard using xclip/wl-copy on Linux if available,
-    /// falling back to arboard.
     pub fn set_html_robust(&self, html: &str, plain: &str) -> Result<(), String> {
         #[cfg(target_os = "linux")]
         {
             if crate::session::is_wayland() {
-                if let Ok(()) = self.set_clipboard_external(
-                    "wl-copy",
-                    &["--type", "text/html"],
-                    html.as_bytes(),
-                ) {
+                if let Ok(()) =
+                    self.set_clipboard_external("wl-copy", &["--type", "text/html"], html.as_bytes())
+                {
                     let _ = self.set_text_robust(plain);
                     return Ok(());
                 }
@@ -828,15 +904,10 @@ impl ClipboardManager {
             }
         }
 
-        // Fallback to arboard (which handles multiple MIME types correctly)
         let mut clipboard = get_system_clipboard()?;
         clipboard
             .set_html(html, Some(plain))
             .map_err(|e| e.to_string())?;
-        let observed = clipboard.get().html().map_err(|e| e.to_string())?;
-        if observed != html {
-            return Err("Clipboard HTML verification returned different data".to_string());
-        }
         Ok(())
     }
 
@@ -844,7 +915,6 @@ impl ClipboardManager {
         use std::io::{Read, Write};
         use std::process::{Command, Stdio};
 
-        // Snapshot the current selection owner so we can detect the handoff.
         let owner_before = crate::paste_sync::clipboard_owner();
 
         let mut child = Command::new(cmd)
@@ -862,15 +932,9 @@ impl ClipboardManager {
         }
 
         if cmd == "wl-copy" {
-            // wl-copy's foreground parent exits only after the Wayland
-            // selection was installed. Waiting for that exit is an adaptive
-            // readiness acknowledgement: immediate on a fast compositor and
-            // longer only while a constrained compositor is still working.
             return wait_for_clipboard_helper_ready(&mut child, cmd);
         }
 
-        // On X11, selection ownership is directly observable. A timeout is a
-        // failed precondition, not permission to emit an unverified Ctrl+V.
         let handoff_confirmed = crate::paste_sync::settle_clipboard_handoff(
             owner_before,
             CLIPBOARD_HELPER_READY_TIMEOUT,
@@ -898,8 +962,6 @@ impl ClipboardManager {
                 ))
             }
             Ok(_) => {
-                // xclip remains alive to serve selection requests. Reap it in
-                // the background after another application takes ownership.
                 thread::spawn(move || {
                     let _ = child.wait();
                 });
@@ -910,9 +972,59 @@ impl ClipboardManager {
     }
 }
 
-/// Waits for helpers such as wl-copy whose parent process exits after the
-/// clipboard selection is ready. The child serving the selection has already
-/// forked by then, so waiting for the parent does not shorten clipboard life.
+impl Drop for ClipboardManager {
+    fn drop(&mut self) {
+        if self.dirty {
+            let _ = self.persist_sqlite();
+        }
+    }
+}
+
+struct DbRow {
+    id: String,
+    kind: String,
+    text: Option<String>,
+    html: Option<String>,
+    image_path: Option<String>,
+    image_hash: Option<i64>,
+    width: Option<i64>,
+    height: Option<i64>,
+    preview: String,
+    pinned: bool,
+    created_at: i64,
+    thumb_base64: Option<String>,
+}
+
+fn open_database(path: &std::path::Path) -> Result<Connection, String> {
+    let conn = Connection::open(path).map_err(|e| e.to_string())?;
+    conn.execute_batch(
+        r#"
+        PRAGMA journal_mode=WAL;
+        PRAGMA synchronous=NORMAL;
+        PRAGMA foreign_keys=ON;
+        CREATE TABLE IF NOT EXISTS items (
+            id TEXT PRIMARY KEY,
+            kind TEXT NOT NULL,
+            text TEXT,
+            html TEXT,
+            image_path TEXT,
+            image_hash INTEGER,
+            width INTEGER,
+            height INTEGER,
+            preview TEXT NOT NULL,
+            pinned INTEGER NOT NULL DEFAULT 0,
+            created_at INTEGER NOT NULL,
+            thumb_base64 TEXT,
+            sort_index INTEGER NOT NULL DEFAULT 0
+        );
+        CREATE INDEX IF NOT EXISTS idx_items_sort ON items(sort_index);
+        "#,
+    )
+    .map_err(|e| e.to_string())?;
+    crate::fs_atomic::restrict_permissions(path);
+    Ok(conn)
+}
+
 fn wait_for_clipboard_helper_ready(
     child: &mut std::process::Child,
     command: &str,
@@ -950,5 +1062,51 @@ fn wait_for_clipboard_helper_ready(
                 return Err(format!("Failed to inspect {} status: {}", command, error));
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::env::temp_dir;
+
+    fn temp_manager(name: &str) -> ClipboardManager {
+        let dir = temp_dir().join(format!("clip-hist-{name}-{}", Uuid::new_v4()));
+        let _ = fs::create_dir_all(&dir);
+        ClipboardManager::new(dir.join("history.json"), 10)
+    }
+
+    #[test]
+    fn persists_text_across_reload() {
+        let dir = temp_dir().join(format!("clip-reload-{}", Uuid::new_v4()));
+        let path = dir.join("history.json");
+        {
+            let mut mgr = ClipboardManager::new(path.clone(), 10);
+            assert!(mgr.add_text("hello persistence".into(), None).is_some());
+        }
+        let mgr2 = ClipboardManager::new(path, 10);
+        let hist = mgr2.get_history();
+        assert_eq!(hist.len(), 1);
+        match &hist[0].content {
+            ClipboardContent::Text(t) => assert_eq!(t, "hello persistence"),
+            _ => panic!("expected text"),
+        }
+    }
+
+    #[test]
+    fn secrets_are_not_stored() {
+        let mut mgr = temp_manager("secrets");
+        assert!(mgr
+            .add_text("ghp_abcdefghijklmnopqrstuvwxyz0123456789".into(), None)
+            .is_none());
+        assert!(mgr.get_history().is_empty());
+    }
+
+    #[test]
+    fn duplicate_text_is_not_reinserted() {
+        let mut mgr = temp_manager("dup");
+        assert!(mgr.add_text("same".into(), None).is_some());
+        assert!(mgr.add_text("same".into(), None).is_none());
+        assert_eq!(mgr.get_history().len(), 1);
     }
 }

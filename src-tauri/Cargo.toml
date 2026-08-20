@@ -1,6 +1,6 @@
 [package]
 name = "win11-clipboard-history-lib"
-version = "1.0.0"
+version = "1.1.0"
 description = "A Windows 11-style Clipboard History Manager for Linux"
 authors = ["gustavosett"]
 license = "MIT"
@@ -77,6 +77,9 @@ tracing-appender = "0.2"
 
 # URL parsing for SSRF protection
 url = "2"
+
+# Local history database (bundled SQLite — no system lib required)
+rusqlite = { version = "0.32", features = ["bundled"] }
 
 # Async stream for reqwest
 futures-util = "0.3"
