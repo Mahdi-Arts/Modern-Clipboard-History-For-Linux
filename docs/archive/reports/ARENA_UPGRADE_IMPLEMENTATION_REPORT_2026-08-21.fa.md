@@ -135,6 +135,14 @@ QA (بازبینی ← اجرا ← آزمون ← اصلاح) پیش رفت و 
 | **Flatpak** | ✅ آماده — manifest معتبر، لینت `flatpak-builder-lint` در CI، راهنمای ارسال به Flathub در `packaging/DEPLOYMENT.md` |
 | AUR | ✅ آماده — PKGBUILD هم‌نام با ورک‌فلو (fail-closed) |
 
-**گام باقی‌مانده برای انتشار:** ساخت و انتشار با تگ `v2.5.0` (یا نسخهٔ
-جدیدتر) — `git push origin arena/...` سپس تگ‌گذاری؛ CI و release workflow
-بقیه را انجام می‌دهند.
+**گام باقی‌مانده برای انتشار:** (۱) فعال‌سازی ورک‌فلوهای hardened با دستور
+نگهدارنده: `git am docs/archive/patches/hardened-ci-workflows.patch && git push`
+(فایل‌های ورک‌فلو عمداً از PR خارج‌اند چون توکن ربات مجوز `workflows`
+ندارد)؛ سپس (۲) ساخت و انتشار با تگ `v2.5.0` (یا نسخهٔ جدیدتر) — CI و
+release workflow بقیه را انجام می‌دهند.
+
+**Remaining release steps:** (1) activate the hardened workflows with the
+maintainer command `git am docs/archive/patches/hardened-ci-workflows.patch
+&& git push` (workflow files are intentionally outside the PR because the
+bot token lacks the `workflows` permission); then (2) build and release by
+tagging `v2.5.0` (or newer) — CI and the release workflow handle the rest.

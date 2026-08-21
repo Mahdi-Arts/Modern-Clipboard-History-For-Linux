@@ -1,30 +1,41 @@
 # Archived workflow patches / پچ‌های آرشیوشدهٔ ورک‌فلو
 
-> **Status:** every patch in this directory is historical/superseded — do
-> not apply. The hardened, canonical-named pipelines are **active in-repo**
-> (`.github/workflows/` is the single source of truth); the final activation
-> patch (`hardened-ci-workflows.patch` below) was applied on 2026-08-21 and
-> is kept here as the audit record of what was shipped.
+> **Status:** the earlier patches in this directory are historical/superseded
+> — do not apply. The **active** activation patch is
+> [`docs/archive/patches/hardened-ci-workflows.patch`](hardened-ci-workflows.patch);
+> apply it with:
 >
-> **وضعیت:** همهٔ پچ‌های این پوشه تاریخی/منسوخ‌اند — اعمال نکنید. خطوط
-> لولهٔ hardened و نام‌گذاری‌شدهٔ رسمی **هم‌اکنون فعال‌اند** (`.github/workflows/`
-> منبع حقیقت واحد است)؛ پچ فعال‌سازی نهایی (`hardened-ci-workflows.patch`
-> در همین‌جا) در ۲۰۲۶-۰۸-۲۱ اعمال شد و به‌عنوان سند حسابرسیِ آنچه
-> منتشر شده نگهداری می‌شود.
+> ```bash
+> git am docs/archive/patches/hardened-ci-workflows.patch && git push
+> ```
+>
+> (A bot token without the `workflows` permission cannot push
+> `.github/workflows/*`, so the patch travels instead — the maintainer step
+> above activates `ci.yml` / `release.yml` / `e2e.yml` / `stale.yml`, after
+> which `.github/workflows/` becomes the single source of truth.)
+>
+> **وضعیت:** پچ‌های پیشین این پوشه تاریخی/منسوخ‌اند — اعمال نکنید. پچ
+> فعال‌سازیِ **جاری**
+> [`docs/archive/patches/hardened-ci-workflows.patch`](hardened-ci-workflows.patch)
+> است؛ آن را با دستور بالا اعمال کنید (توکن ربات بدون مجوز `workflows`
+> نمی‌تواند `.github/workflows/*` را پوش کند، پس پچ به‌جای آن حمل می‌شود؛
+> پس از اعمال، `.github/workflows/` منبع حقیقت واحد می‌شود).
 
 ## Contents / محتوا
 
 - `workflows-rename-*.patch`, `enterprise-workflow-upgrade.patch` — earlier,
   superseded iterations. **Do not apply.**
   تکرارهای پیشین و منسوخ. **اعمال نکنید.**
-- `hardened-ci-workflows.patch` — the **applied** final iteration (2026-08-21):
+- `hardened-ci-workflows.patch` — the **active final iteration** (2026-08-21):
   canonical `ci.yml` (rustup-only, packaging job incl. `flatpak-builder-lint`),
   `release.yml` (canonical artifact names/URLs/AUR, GPG/SBOM/SLSA), a new
   manual `e2e.yml`, and `actions/stale` pinned to a full commit SHA.
-  Historical record — **do not apply**; `.github/workflows/` already contains
-  its result.
-  تکرار نهاییِ **اعمال‌شده** (۲۰۲۶-۰۸-۲۱): `ci.yml` رسمی (فقط rustup، job
+  Applies cleanly; verified in a pristine worktree (after applying,
+  `scripts/check-packaging.sh` passes and the CI smoke test targets the
+  canonical binary).
+  تکرار نهاییِ **جاری** (۲۰۲۶-۰۸-۲۱): `ci.yml` رسمی (فقط rustup، job
   بسته‌بندی شامل `flatpak-builder-lint`)، `release.yml` (نام‌های رسمی
   آرتیفکت/URL/AUR، GPG/SBOM/SLSA)، `e2e.yml` دستی جدید و پین‌شدن
-  `actions/stale` به SHA کامل. سند تاریخی — **اعمال نکنید**؛ نتیجه‌اش
-  همین حالا در `.github/workflows/` است.
+  `actions/stale` به SHA کامل. اعمال تمیز دارد؛ در کار درخت تمیز
+  راستی‌آزمایی شد (پس از اعمال، `scripts/check-packaging.sh` سبز و smoke
+  تست CI باینری رسمی را هدف می‌گیرد).

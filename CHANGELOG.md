@@ -12,24 +12,32 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased] — 2026-08-21
 
-### Workflows activated in-repo + security/UX pass / فعال‌سازی ورک‌فلوها در مخزن + گردش امنیت و UX (2026-08-21)
+### Workflows hardened + security/UX pass / سخت‌سازی ورک‌فلوها + گردش امنیت و UX (2026-08-21)
 
-- **Hardened pipelines are now active in-repo.** The final activation patch
-  (`docs/archive/patches/hardened-ci-workflows.patch`) was applied to
-  `.github/workflows/` (ci/release/e2e/stale) and archived; `docs/CI.md`,
-  `docs/archive/patches/README.md` and the README supply-chain section were
-  updated to the active state. `scripts/check-packaging.sh` passes again
+- **Hardened pipelines implemented; activation is one maintainer step.**
+  The final activation patch is archived at
+  `docs/archive/patches/hardened-ci-workflows.patch` and applies cleanly:
+  `git am docs/archive/patches/hardened-ci-workflows.patch && git push`.
+  It activates canonical `ci.yml` (rustup-only Rust install, packaging job
+  incl. `flatpak-builder-lint`, canonical binary smoke test), `release.yml`
+  (canonical artifact names/URLs/AUR, GPG/SBOM/SLSA), a manual `e2e.yml`
+  Playwright workflow and a SHA-pinned `stale.yml`. The workflow files
+  themselves are intentionally not part of this PR: a bot token without the
+  `workflows` permission cannot push `.github/workflows/*`. Verified in a
+  pristine worktree: after applying, `scripts/check-packaging.sh` passes
   (legacy `win11-clipboard-history` / `Modern-Clipboard-History-For-Linux`
-  names and the missing `check-rust-syntax.mjs` reference are gone; the CI
-  smoke test now targets the canonical binary).
-  **خطوط لولهٔ hardened اکنون در خود مخزن فعال‌اند.** پچ نهایی
-  (`docs/archive/patches/hardened-ci-workflows.patch`) روی `.github/workflows/`
-  اعمال و بایگانی شد و `docs/CI.md`، `docs/archive/patches/README.md` و بخش
-  زنجیرهٔ تأمین README به حالت فعال به‌روزرسانی شدند. گارد
-  `scripts/check-packaging.sh` دوباره سبز است (نام‌های قدیمی
-  `win11-clipboard-history` / `Modern-Clipboard-History-For-Linux` و ارجاع
-  مفقود به `check-rust-syntax.mjs` حذف شدند؛ smoke تست CI اکنون باینری رسمی
-  را هدف می‌گیرد).
+  names and the missing `check-rust-syntax.mjs` reference are gone).
+  **خطوط لولهٔ hardened پیاده‌سازی شدند؛ فعال‌سازی یک گام نگهدارنده است.**
+  پچ نهایی در `docs/archive/patches/hardened-ci-workflows.patch` بایگانی
+  شده و اعمال تمیز دارد: `git am ... && git push`. این پچ `ci.yml` رسمی
+  (نصب Rust فقط با rustup، job بسته‌بندی شامل `flatpak-builder-lint`،
+  smoke تست باینری رسمی)، `release.yml` (نام‌های رسمی آرتیفکت/URL/AUR،
+  GPG/SBOM/SLSA)، `e2e.yml` دستی و `stale.yml` پین‌شده را فعال می‌کند.
+  فایل‌های ورک‌فلو عمداً جزو این PR نیستند: توکن ربات بدون مجوز
+  `workflows` نمی‌تواند `.github/workflows/*` را پوش کند. در کار درخت
+  تمیز تأیید شد: پس از اعمال، `scripts/check-packaging.sh` سبز است (نام‌های
+  قدیمی `win11-clipboard-history` / `Modern-Clipboard-History-For-Linux` و
+  ارجاع مفقود به `check-rust-syntax.mjs` حذف می‌شوند).
 - **Security: secret filter extended.** New well-known token prefixes
   (`EAAC`, `SG.`, `xoxs-`, `whsec_`) and Telegram bot-token detection
   (`<bot_id>:<secret>`, length-gated) — with unit tests. Legacy unbounded
