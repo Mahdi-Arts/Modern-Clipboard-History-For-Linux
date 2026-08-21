@@ -30,7 +30,14 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "bash scripts/e2e.sh",
-    "qa:packaging": "bash scripts/check-packaging.sh"
+    "test:e2e:playwright": "playwright test",
+    "test:e2e:playwright:ui": "playwright test --ui",
+    "test:e2e:playwright:debug": "playwright test --debug",
+    "test:e2e:playwright:headed": "playwright test --headed",
+    "test:e2e:playwright:report": "playwright show-report",
+    "test:e2e:playwright:install": "playwright install --with-deps chromium webkit",
+    "qa:packaging": "bash scripts/check-packaging.sh",
+    "qa:all": "npm run lint && npm run test:coverage && npm run test:e2e"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.11.1",
@@ -49,6 +56,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.2.4",
+    "@playwright/test": "^1.52.0",
     "@tauri-apps/cli": "^2.11.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",

@@ -193,6 +193,41 @@ npm run test:coverage   # coverage thresholds enforced
 node scripts/check-rust-syntax.mjs  # fast syntax gate (tree-sitter)
 ```
 
+### E2E Testing with Playwright
+
+Comprehensive end-to-end tests are available using Playwright:
+
+```bash
+# Install Playwright browsers
+npm run test:e2e:playwright:install
+
+# Run E2E tests
+npm run test:e2e:playwright
+
+# Run with UI mode (watch mode)
+npm run test:e2e:playwright:ui
+
+# Run in headed mode (see browser)
+npm run test:e2e:playwright:headed
+
+# Debug mode
+npm run test:e2e:playwright:debug
+
+# View HTML report
+npm run test:e2e:playwright:report
+```
+
+E2E test suites cover:
+- **Application Launch**: Window management, UI rendering, theming
+- **Clipboard History**: Item display, search, pin/delete actions
+- **Paste Operations**: Keyboard shortcuts, throttling, authorization
+- **Tab Navigation**: Lazy-loaded pickers (emoji, kaomoji, symbols)
+- **Settings & Privacy**: Theme, privacy controls, language support
+- **System Integration**: Tray, global shortcuts, DE compatibility
+- **Security**: CSP, paste tickets, SSRF protection
+
+See [`tests/e2e/playwright/`](tests/e2e/playwright/) for test files and configuration.
+
 CI contract: [`docs/CI.md`](docs/CI.md). The hardened workflows (SHA-pinned
 actions) live in [`docs/github-workflows/`](docs/github-workflows/) with a
 ready-to-apply patch — activate with `git am
