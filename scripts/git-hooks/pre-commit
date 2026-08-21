@@ -27,8 +27,12 @@ if [ -n "$rs_files" ]; then
     echo "▸ cargo fmt --check / بررسی فرمت Rust"
     cd src-tauri && cargo fmt --all -- --check && cd ..
   else
-    echo "▸ cargo not found — running tree-sitter syntax gate / گیت سینتکس"
-    node scripts/check-rust-syntax.mjs
+    # Without a Rust toolchain there is nothing meaningful to check — say so
+    # loudly instead of running a weaker substitute gate.
+    # / بدون toolchain ی Rust چیزی معنادار برای بررسی نیست — به‌جای گیت
+    # جایگزین ضعیف‌تر، این موضوع با صراحت اعلام می‌شود.
+    echo "▸ cargo not found — Rust format gate SKIPPED / گیت فرمت Rust رد شد" >&2
+    echo "  install Rust via rustup to enable it / برای فعال‌شدنش Rust را با rustup نصب کنید" >&2
   fi
 fi
 

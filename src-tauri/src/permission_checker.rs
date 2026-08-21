@@ -70,12 +70,11 @@ pub fn check_permissions(window: WebviewWindow) -> Result<PermissionStatus, AppE
 
 /// Test whether a trusted executable is available through `PATH`.
 /// بررسی وجود ابزار مورد اعتماد در `PATH`.
+///
+/// Delegates to the in-process `PATH` probe — no `which` subprocess.
+/// به بررسی درون‌فرآیندی PATH واگذار می‌شود — بدون subprocess ی `which`.
 fn command_exists(command: &str) -> bool {
-    Command::new("which")
-        .arg(command)
-        .output()
-        .map(|output| output.status.success())
-        .unwrap_or(false)
+    crate::exec_lookup::command_exists(command)
 }
 
 /// Apply a user-specific ACL through Polkit after explicit UI action.

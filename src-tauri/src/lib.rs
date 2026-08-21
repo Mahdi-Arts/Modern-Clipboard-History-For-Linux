@@ -75,7 +75,7 @@ mod paste_ticket_tests {
         let _ = std::fs::create_dir_all(&dir);
         AppState {
             clipboard_manager: Arc::new(PMutex::new(
-                clipboard_manager::ClipboardManager::new(dir.join("history.json"), 8),
+                clipboard_manager::ClipboardManager::new(dir.clone(), 8),
             )),
             emoji_manager: Arc::new(PMutex::new(emoji_manager::EmojiManager::new(dir.clone()))),
             config_manager: Arc::new(PMutex::new(config_manager::ConfigManager::new(dir.clone()))),
@@ -136,6 +136,7 @@ pub mod commands;
 pub mod config_manager;
 pub mod emoji_manager;
 pub mod error;
+pub mod exec_lookup;
 pub mod focus_manager;
 pub mod fs_atomic;
 #[cfg(feature = "gif-search")]

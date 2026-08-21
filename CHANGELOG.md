@@ -12,6 +12,80 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased] — 2026-08-21
 
+### Hardened pipelines activated + maintenance pass / فعال‌سازی خطوط لولهٔ hardened + گردش نگهداشت (2026-08-21)
+
+- **Hardened CI/release/E2E pipelines finalised; two-step activation.**
+  The canonical-named, SHA-pinned workflows (CI, release, and a NEW manual
+  `e2e.yml` Playwright workflow) are complete, but the bot token cannot
+  push `.github/workflows/*` — they ship as the regenerated
+  `docs/patches/hardened-ci-workflows.patch` (applies cleanly on master;
+  verified in a pristine worktree). One maintainer command activates them:
+  `git am docs/patches/hardened-ci-workflows.patch && git push`. The
+  `docs/github-workflows/` mirror is deleted for good; superseded patches
+  live in `docs/archive/patches/`.
+  **خطوط لولهٔ hardened نهایی و آماده‌اند؛** چون توکن ربات نمی‌تواند
+  ورک‌فلوها را پوش کند، با پچ بازتولیدشدهٔ
+  `docs/patches/hardened-ci-workflows.patch` حمل می‌شوند (اعمال تمیز روی
+  master راستی‌آزمایی شد) و فعال‌سازی با یک دستور نگهدارنده است. کپی
+  آینه‌ای برای همیشه حذف شد.
+- **`actions/stale` is pinned to a full commit SHA** (`4391f3da…` # v11.0.0),
+  closing the last unpinned action and honouring the supply-chain contract.
+  **آخرین اکشن بدون پین (`actions/stale`) به SHA کامل پین شد.**
+- **Repository slimmed by ~41 MB.** Removed the unreferenced 34 MB
+  `docs/img/banner.gif`, the duplicate `dynamic_themes.jpg` (3.4 MB), and
+  converted `dynamic_themes.png` → WebP (3.8 MB → 247 KB, same 2046×1160).
+  **مخزن ~۴۱ مگابایت سبک شد** (حذف گیف مردهٔ ۳۴ مگابایتی، حذف نسخهٔ
+  تکراری jpg و تبدیل png به WebP با کیفیت یکسان).
+- **Font payload right-sized.** `Vazirmatn-ExtraLight` (never declared) and
+  `Vazirmatn-Light` (weight 300, never used by the UI) removed; the CSS now
+  documents the variable-font-first strategy with 400/500/600/700 static
+  fallbacks only.
+  **بار فونت بهینه شد؛** دو وزن بی‌استفاده حذف و راهبرد «فونت متغیر
+  اول، چهار وزن ایستا برای سازگاری» مستند شد.
+- **tree-sitter dev gate removed.** The 20 MB native devDependencies
+  (`tree-sitter`, `tree-sitter-rust`) and `scripts/check-rust-syntax.mjs`
+  were dropped — `cargo fmt`/`clippy`/`cargo test` in CI (and the pre-commit
+  hook when Rust is installed) already cover syntax with strictly more
+  precision. README, `docs/CI.md`, CONTRIBUTING, Makefile and the workflows
+  were updated accordingly.
+  **گیت سینتکس tree-sitter حذف شد** (۲۰ مگابایت وابستگی native کمتر)؛
+  پوشش کامل‌تر با `cargo fmt/clippy/test` از قبل در CI وجود دارد.
+- **`which` subprocess eliminated.** New `src-tauri/src/exec_lookup.rs`
+  resolves helpers against `PATH` in-process (with unit tests); the five
+  former `Command::new("which")` call sites now delegate to it — one fewer
+  fork per availability check and no trust in a PATH-hijackable `which`.
+  **جستجوی برنامه‌های کمکی بدون subprocess ی `which`** در ماژول جدید
+  `exec_lookup` انجام می‌شود؛ پنج نقطهٔ فراخوانی به آن واگذار شد.
+- **`ClipboardManager::new` takes the data directory.** The vestigial
+  `persistence_path` (`history.json`) parameter — whose parent directory
+  was the real data dir — was renamed to an explicit `data_dir`; the legacy
+  JSON path is now derived inside the constructor.
+  **امضای سازندهٔ `ClipboardManager` صریح شد؛** پارامتر تاریخی
+  `history.json` حذف و `data_dir` مستقیم گرفته می‌شود.
+- **`ClipboardTab` decomposed (561 → ~360-line orchestrator).** Rendering
+  moved to `src/components/HistoryList/` (`HistoryRow`, `PinnedSection`,
+  `RecentSectionLabel`, `LoadMoreButton`) with bilingual docs; behaviour
+  unchanged, all 135 frontend tests stay green.
+  **تب کلیپ‌بورد تجزیه شد** — اجزای رندر به `HistoryList/` منتقل و تب
+  به هماهنگ‌کنندهٔ ~۳۶۰ خطی تبدیل شد (رفتار بدون تغییر، تست‌ها سبز).
+- **Flatpak readiness hardened.** Runtime bumped GNOME 46 → 48; CI now
+  lints the manifest **and** AppStream metainfo with `flatpak-builder-lint`
+  (pinned to a full commit SHA, PyGObject from the prebuilt system package
+  — nothing compiles from source); the Flatpak guide documents Flathub
+  submission and the new gate.
+  **آمادگی فلت‌پک:** runtime به GNOME 48 ارتقا یافت و lint فلت‌هاب به
+  CI اضافه شد (پین‌شده به SHA، بدون کامپایل سورس).
+- **Packaging architecture documented.** `packaging/DEPLOYMENT.md` now
+  opens with an explicit two-path table (Tauri bundle → GitHub Releases;
+  `packaging/` tree → distro integration) enforced by the packaging gate.
+  **معماری دو‌مسیری بسته‌بندی در DEPLOYMENT.md مستند شد.**
+- **Favicon & `.gitattributes` fixed.** The Vite default icon is replaced
+  by the app icon (`/icon.svg`); linguist hints now only mark lockfiles as
+  generated (hand-edited JSON stays visible in blame) and binaries are
+  marked `binary`.
+  **آیکون پیش‌فرض Vite با آیکون برنامه جایگزین شد** و
+  `.gitattributes` فقط lockfileها را «تولیدشده» می‌شمارد.
+
 ### Release-readiness pass / گردش کار آماده‌سازی انتشار (2026-08-21)
 
 - **Release pipeline fully renamed to the canonical project.** 17 stale

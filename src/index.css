@@ -4,9 +4,19 @@
 /* ============================================================================
    Local fonts — Vazirmatn v33.0.3 (SIL OFL 1.1, see public/fonts/OFL.txt)
    Bundled as static assets: the app never contacts Google Fonts at runtime.
-   The variable font is preferred; static faces cover older WebKit versions.
+   The variable font serves every weight in one file; the four static faces
+   actually used by the UI (400/500/600/700) are kept as a fallback for the
+   libwebkit2gtk-4.0 dependency path on older distributions.
+   فونت‌های محلی — وزیرمتن v33.0.3 (SIL OFL 1.1، متن مجوز در public/fonts/OFL.txt)
+   به‌صورت استاتیک همراه برنامه می‌آیند: برنامه هرگز در زمان اجرا به
+   Google Fonts متصل نمی‌شود. فونت متغیر همهٔ وزن‌ها را در یک فایل پوشش
+   می‌دهد؛ چهار چهرهٔ ایستای واقعاً استفاده‌شدهٔ رابط (400/500/600/700)
+   به‌عنوان جایگزین برای مسیر وابستگی libwebkit2gtk-4.0 در توزیع‌های قدیمی
+   نگه داشته شده‌اند.
    ========================================================================= */
 
+/* Variable font — covers weights 100–900 in a single 111 KB file.
+   / فونت متغیر — وزن‌های ۱۰۰ تا ۹۰۰ را در یک فایل ۱۱۱ کیلوبایتی می‌پوشاند. */
 @font-face {
   font-family: 'Vazirmatn';
   src: url('/fonts/Vazirmatn[wght].woff2') format('woff2-variations');
@@ -15,6 +25,8 @@
   font-display: swap;
 }
 
+/* Static fallbacks for older WebKit builds (weights in actual use).
+   / جایگزین‌های ایستا برای نسخه‌های قدیمی WebKit (وزن‌های واقعاً استفاده‌شده). */
 @font-face {
   font-family: 'Vazirmatn';
   src: url('/fonts/Vazirmatn-Regular.woff2') format('woff2');
@@ -43,14 +55,6 @@
   font-family: 'Vazirmatn';
   src: url('/fonts/Vazirmatn-Bold.woff2') format('woff2');
   font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Vazirmatn';
-  src: url('/fonts/Vazirmatn-Light.woff2') format('woff2');
-  font-weight: 300;
   font-style: normal;
   font-display: swap;
 }

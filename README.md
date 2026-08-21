@@ -47,7 +47,7 @@
 | 🔒 | Fully offline — bundled fonts, zero runtime network | کاملاً آفلاین — فونت محلی، بدون اتصال شبکه |
 
 <p align="center">
-  <img src="docs/img/dynamic_themes.png" alt="Light and dark themes" width="520" />
+  <img src="docs/img/dynamic_themes.webp" alt="Light and dark themes" width="520" />
 </p>
 
 ---
@@ -78,7 +78,7 @@ This project needs `/dev/uinput` (or XTest) to simulate Ctrl+V. That is a powerf
 
 Tiling window managers (i3 / Sway / Hyprland) are **not** rewritten unless you enable *Allow rewriting tiling WM configs* in Settings.
 
-**Supply chain:** the installer **mandatorily verifies** every download against the release's `SHA256SUMS` (set `ALLOW_UNVERIFIED=1` to skip — not recommended); optional GPG verification of the checksum file via `WINDOWS_11_CLIPBOARD_TRUST_KEY`. The hardened CI contract ([`docs/CI.md`](docs/CI.md)) **blocks** on `cargo audit`, `cargo deny` (advisories/bans/licenses/sources), `npm audit --audit-level=high`, type-aware ESLint + `tsc`, frontend coverage thresholds, a tree-sitter Rust syntax gate, `cargo test` (default and `--all-features`), `clippy -D warnings`, a release-binary smoke test, and the packaging contract (`scripts/check-packaging.sh`). Every GitHub Action is pinned to a full commit SHA (OpenSSF recommendation). Each release publishes `SHA256SUMS`, an optional GPG `SHA256SUMS.sig`, a **per-artifact** SPDX SBOM (syft), and SLSA build-provenance attestations. The AUR push fails closed unless verified SSH host keys are configured (`AUR_KNOWN_HOSTS`). The live `.github/workflows/` **already run the hardened, canonical-named pipelines**; `docs/github-workflows/` mirrors them as the reference copy and `docs/patches/hardened-ci-workflows.patch` is the fallback for contributors whose GitHub App lacks the `workflows` permission to push those files directly. See [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md) and [docs/adr/](docs/adr/).
+**Supply chain:** the installer **mandatorily verifies** every download against the release's `SHA256SUMS` (set `ALLOW_UNVERIFIED=1` to skip — not recommended); optional GPG verification of the checksum file via `WINDOWS_11_CLIPBOARD_TRUST_KEY`. The hardened CI contract ([`docs/CI.md`](docs/CI.md)) **blocks** on `cargo audit`, `cargo deny` (advisories/bans/licenses/sources), `npm audit --audit-level=high`, type-aware ESLint + `tsc`, frontend coverage thresholds, `cargo test` (default and `--all-features`), `clippy -D warnings`, a release-binary smoke test, and the packaging contract (`scripts/check-packaging.sh`). Every GitHub Action is pinned to a full commit SHA (OpenSSF recommendation). Each release publishes `SHA256SUMS`, an optional GPG `SHA256SUMS.sig`, a **per-artifact** SPDX SBOM (syft), and SLSA build-provenance attestations. The AUR push fails closed unless verified SSH host keys are configured (`AUR_KNOWN_HOSTS`). The hardened, canonical-named pipelines ship with this repository: the bot cannot push `.github/workflows/*` directly, so activation is one maintainer step (`git am docs/patches/hardened-ci-workflows.patch && git push`, after which `.github/workflows/` is the single source of truth; the old `docs/github-workflows/` mirror is gone). See [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md) and [docs/adr/](docs/adr/).
 
 ---
 
@@ -192,8 +192,7 @@ make build
 Frontend tests include component tests (Testing Library + jsdom) and a **coverage gate**:
 
 ```bash
-npm run test:coverage   # coverage thresholds enforced
-node scripts/check-rust-syntax.mjs  # fast syntax gate (tree-sitter)
+npm run test:coverage   # coverage thresholds enforced / آستانهٔ پوشش الزامی
 ```
 
 ### E2E Testing with Playwright
@@ -233,12 +232,11 @@ See [`tests/e2e/playwright/`](tests/e2e/playwright/) for test files and configur
 
 CI contract: [`docs/CI.md`](docs/CI.md). The live `.github/workflows/` run the
 hardened, canonical-named pipelines (SHA-pinned actions) directly, with
-`docs/github-workflows/` kept in sync as the reference copy. The gate
+`.github/workflows/` (the single source of truth). The gate
 **blocks** on:
 
 - `npm run lint` (type-aware ESLint + tsc, zero warnings) — including the Playwright E2E specs
 - `npm run test:coverage` (Vitest + coverage thresholds)
-- `node scripts/check-rust-syntax.mjs` (fast tree-sitter syntax gate)
 - `cargo test` (default and `--all-features`), `cargo clippy --all-targets -- -D warnings`, `cargo fmt --check`
 - `cargo audit`, `cargo deny check` (advisories/bans/licenses/sources — see `src-tauri/deny.toml`), and `npm audit --audit-level=high` (no `continue-on-error`)
 - `scripts/check-packaging.sh` (canonical names, deb/rpm parity, version drift, udev/AUR contract)

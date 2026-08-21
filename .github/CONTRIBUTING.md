@@ -127,7 +127,7 @@ make dev
 - [ ] کد مطابق با راهنمای سبک پروژه است
 - [ ] همه لینترها پاس می‌شوند (`make lint`)
 - [ ] `cargo test --lib` برای تست‌های persistence، رمزنگاری و paste ticket
-- [ ] تغییرات محلی تست شده‌اند: `npm test` و `npm run test:coverage` (گیت پوشش) و `node scripts/check-rust-syntax.mjs`
+- [ ] تغییرات محلی تست شده‌اند: `npm test` و `npm run test:coverage` (گیت پوشش)
 - [ ] برای تغییرات Rust: `cargo fmt --check` و `cargo clippy -- -D warnings`
 - [ ] مستندات به‌روز شده است (در صورت نیاز)
 - [ ] برای تغییرات i18n، هر دو فایل `fa.json` و `en.json` به‌روز شده‌اند
@@ -181,8 +181,10 @@ make hooks   # نصب pre-commit و commit-msg
 - گزارش‌های بازبینی/QA مربوط به یک نشست، در `docs/archive/reports/`
   با پسوند تاریخ ISO قرار می‌گیرند (یا بهتر: در شرح خود PR).
   فهرست: [`docs/reports/README.md`](../docs/reports/README.md).
-- `docs/github-workflows/` کپی مرجعِ ورک‌فلوهای زندهٔ
-  `.github/workflows/` است؛ با هر تغییر ورک‌فلو، هر دو را همگام کنید.
+- ورک‌فلوها در `.github/workflows/` زندگی می‌کنند (منبع حقیقت واحد)؛ تا
+  فعال‌سازی نهایی، پچ جاریِ معتبر `docs/patches/hardened-ci-workflows.patch`
+  است و پچ‌های قدیمی در `docs/archive/patches/` آرشیو شده‌اند — آن‌ها را
+  اعمال نکنید.
 
 ### وابستگی‌های جدید
 

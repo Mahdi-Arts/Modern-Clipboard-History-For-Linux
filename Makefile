@@ -36,7 +36,7 @@ RESET := \033[0m
 
 .PHONY: all help deps deps-ubuntu deps-debian deps-fedora deps-arch \
         rust node check-deps dev build install uninstall clean clean-first-run run \
-        lint format test test-coverage rust-syntax audit packaging hooks release
+        lint format test test-coverage audit packaging hooks release
 
 all: build
 
@@ -332,10 +332,6 @@ test:
 test-coverage:
 	@echo -e "$(CYAN)Running frontend tests with coverage gate...$(RESET)"
 	npm run test:coverage
-
-rust-syntax:
-	@echo -e "$(CYAN)Checking Rust syntax (tree-sitter)...$(RESET)"
-	node scripts/check-rust-syntax.mjs
 
 audit:
 	@echo -e "$(CYAN)Auditing dependencies (cargo audit + cargo deny + npm audit)...$(RESET)"

@@ -1,7 +1,6 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { listen } from '@tauri-apps/api/event'
 import { clsx } from 'clsx'
-import { Pin, History, ChevronDown } from 'lucide-react'
 import { List, ListImperativeAPI } from 'react-window'
 
 import type { ClipboardItem, UserSettings } from '../types/clipboard'
@@ -9,70 +8,20 @@ import type { TabBarRef } from './TabBar'
 import { Header } from './Header'
 import { SearchBar } from './common/SearchBar'
 import { EmptyState } from './EmptyState'
-import { HistoryItem } from './HistoryItem'
+import { HistoryRow, PinnedSection, RecentSectionLabel, LoadMoreButton, type RowData } from './HistoryList'
 import { useHistoryKeyboardNavigation } from '../hooks/useHistoryKeyboardNavigation'
 import { filterHistory } from '../utils/historySearch'
 import { useTranslation } from 'react-i18next'
 
-// --- Virtualized List Row Component ---
-
-interface RowData {
-  items: ClipboardItem[]
-  onPaste: (id: string) => void
-  onDelete: (id: string) => void
-  onTogglePin: (id: string) => void
-  onFocus: (idx: number) => void
-  focusedIndex: number
-  isDark: boolean
-  isCompact: boolean
-  secondaryOpacity: number
-  enableSmartActions: boolean
-  enableUiPolish: boolean
-  setItemRef: (index: number, element: HTMLDivElement | null) => void
-}
-
-function HistoryRow({
-  index,
-  style,
-  items,
-  setItemRef,
-  onPaste,
-  onDelete,
-  onTogglePin,
-  onFocus,
-  focusedIndex,
-  isDark,
-  isCompact,
-  secondaryOpacity,
-  enableSmartActions,
-  enableUiPolish,
-}: { index: number; style: React.CSSProperties } & RowData) {
-  if (index >= items.length) return null
-
-  const item = items[index]
-  return (
-    <div style={style}>
-      <HistoryItem
-        ref={(el) => setItemRef(index, el)}
-        item={item}
-        index={index}
-        isFocused={index === focusedIndex}
-        onPaste={onPaste}
-        onDelete={onDelete}
-        onTogglePin={onTogglePin}
-        onFocus={() => onFocus(index)}
-        isDark={isDark}
-        secondaryOpacity={secondaryOpacity}
-        isCompact={isCompact}
-        enableSmartActions={enableSmartActions}
-        enableUiPolish={enableUiPolish}
-      />
-    </div>
-  )
-}
-
-// --- Main ClipboardTab Component ---
-
+/**
+ * The "Clipboard" tab: owns search/section/keyboard state and orchestrates
+ * the virtualized history list, the inline pinned section and pagination.
+ * Rendering components live in `./HistoryList/`.
+ *
+ * تب «کلیپ‌بورد»: مالک وضعیت جستجو/بخش‌ها/کیبورد و هماهنگ‌کنندهٔ فهرست
+ * مجازی‌شدهٔ تاریخچه، بخش درون‌خطی سنجاق‌شده‌ها و صفحه‌بندی است.
+ * اجزای رندر در `./HistoryList/` قرار دارند.
+ */
 export function ClipboardTab(props: {
   history: ClipboardItem[]
   isLoading: boolean
@@ -109,9 +58,15 @@ export function ClipboardTab(props: {
   } = props
   const { t } = useTranslation()
 
+  // --- Search state (Ctrl+F or simply start typing) ---
+  // --- وضعیت جستجو (Ctrl+F یا شروع تایپ) ---
   const [searchQuery, setSearchQuery] = useState('')
   const [isRegexMode, setIsRegexMode] = useState(false)
+  const [isSearchVisible, setIsSearchVisible] = useState(false)
+  const searchInputRef = useRef<HTMLInputElement>(null)
 
+  // --- Layout preferences (persisted locally) ---
+  // --- ترجیحات چیدمان (به‌صورت محلی ذخیره می‌شود) ---
   const [isCompact, setIsCompact] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('clipboard-history-compact-mode') === 'true'
@@ -125,31 +80,6 @@ export function ClipboardTab(props: {
     }
   }, [isCompact])
 
-  const [isSearchVisible, setIsSearchVisible] = useState(false)
-  const searchInputRef = useRef<HTMLInputElement>(null)
-  const [focusedIndex, setFocusedIndex] = useState(0)
-  const historyItemRefs = useRef<(HTMLDivElement | null)[]>([])
-  const setHistoryItemRef = useCallback((index: number, element: HTMLDivElement | null) => {
-    historyItemRefs.current[index] = element
-  }, [])
-  const listRef = useRef<ListImperativeAPI | null>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
-  const [containerHeight, setContainerHeight] = useState(300)
-
-  // Measure container height for virtualized list
-  useEffect(() => {
-    const el = containerRef.current
-    if (!el) return
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        setContainerHeight(entry.contentRect.height)
-      }
-    })
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [])
-
-  // Pinned section collapsible state (persisted)
   const [pinnedExpanded, setPinnedExpanded] = useState(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('clipboard-pinned-expanded')
@@ -164,7 +94,33 @@ export function ClipboardTab(props: {
     }
   }, [pinnedExpanded])
 
+  // --- Focus & virtualizer plumbing ---
+  // --- زیرساخت فوکوس و مجازی‌ساز ---
+  const [focusedIndex, setFocusedIndex] = useState(0)
+  const historyItemRefs = useRef<(HTMLDivElement | null)[]>([])
+  const setHistoryItemRef = useCallback((index: number, element: HTMLDivElement | null) => {
+    historyItemRefs.current[index] = element
+  }, [])
+  const listRef = useRef<ListImperativeAPI | null>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [containerHeight, setContainerHeight] = useState(300)
+
+  // Measure container height for the virtualized list
+  // اندازه‌گیری ارتفاع ظرف برای فهرست مجازی‌شده
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setContainerHeight(entry.contentRect.height)
+      }
+    })
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
   // Check if a key is a printable character that should trigger search
+  // بررسی اینکه آیا کلید، نویسهٔ چاپی است و باید جستجو را فعال کند
   const isPrintableKey = useCallback((e: KeyboardEvent): boolean => {
     if (e.ctrlKey || e.altKey || e.metaKey) return false
     const specialKeys = [
@@ -210,6 +166,7 @@ export function ClipboardTab(props: {
   }, [])
 
   // Toggle search visibility with Ctrl+F or start typing to filter
+  // فعال/غیرفعال‌کردن جستجو با Ctrl+F یا شروع تایپ برای فیلتر
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       const activeElement = document.activeElement
@@ -255,6 +212,8 @@ export function ClipboardTab(props: {
     }
   }, [isSearchVisible])
 
+  // Reset search whenever the popup window is shown again
+  // بازنشانی جستجو هر بار که پنجره دوباره نمایش داده می‌شود
   useEffect(() => {
     const resetSearch = () => {
       setIsSearchVisible(false)
@@ -268,6 +227,8 @@ export function ClipboardTab(props: {
     }
   }, [])
 
+  // --- Derived data ---
+  // --- داده‌های مشتق‌شده ---
   const filteredHistory = useMemo(
     () => filterHistory(history, searchQuery, isRegexMode),
     [history, searchQuery, isRegexMode]
@@ -279,15 +240,18 @@ export function ClipboardTab(props: {
 
   // Visible items for the virtualizer. When the pinned section is rendered
   // inline above, only unpinned items belong in the list (avoids duplicates).
+  // آیتم‌های قابل‌رؤیت مجازی‌ساز. وقتی بخش سنجاق‌شده درون‌خطی بالای
+  // فهرست رسم می‌شود، فقط آیتم‌های غیرسنجاق در فهرست می‌مانند (بدون تکرار).
   const visibleItems = useMemo(() => {
     if (showSections) return unpinnedItems
     return filteredHistory
   }, [filteredHistory, showSections, unpinnedItems])
 
   const ITEM_HEIGHT = isCompact ? 44 : 64
-  const GAP_HEIGHT = 8 // gap-2 between items
+  const GAP_HEIGHT = 8 // gap-2 between items / فاصلهٔ gap-2 بین آیتم‌ها
 
-  // Keyboard navigation
+  // Keyboard navigation across sections
+  // ناوبری کیبورد میان بخش‌ها
   const onUpFromFirstItem = useCallback(() => {
     if (showSections && !pinnedExpanded) {
       setPinnedExpanded(true)
@@ -321,6 +285,8 @@ export function ClipboardTab(props: {
     onLeftArrow,
   })
 
+  // Reset focus to the top whenever the filtered set changes identity
+  // بازنشانی فوکوس به ابتدا هر بار که هویت مجموعهٔ فیلترشده عوض می‌شود
   useEffect(() => {
     const timer = globalThis.setTimeout(() => {
       setFocusedIndex(0)
@@ -334,7 +300,8 @@ export function ClipboardTab(props: {
     filteredHistoryRef.current = filteredHistory
   }, [filteredHistory])
 
-  // Focus first item on window shown
+  // Focus the first item when the popup window is shown
+  // فوکوس روی نخستین آیتم هنگام نمایش پنجره
   useEffect(() => {
     const focusFirstItem = () => {
       setTimeout(() => {
@@ -354,11 +321,13 @@ export function ClipboardTab(props: {
   }, [listRef])
 
   // Track which ref slot is the actual focused item for the virtualizer
+  // ردیابی اینکه کدام جایگاه مرجع، آیتم فوکوس‌شدهٔ مجازی‌ساز است
   const handleItemFocus = useCallback((idx: number) => {
     setFocusedIndex(idx)
   }, [])
 
   // Row data for react-window
+  // دادهٔ ردیف برای react-window
   const rowData: RowData = useMemo(
     () => ({
       items: visibleItems,
@@ -445,74 +414,35 @@ export function ClipboardTab(props: {
         </div>
       ) : (
         <div className="flex flex-col flex-1 min-h-0">
-          {/* Pinned section header (only when sections shown) */}
           {showSections && (
-            <div className="px-3 pt-2 pb-1 flex-shrink-0">
-              <button
-                onClick={() => {
-                  const willCollapse = pinnedExpanded
-                  setPinnedExpanded(!pinnedExpanded)
-                  if (willCollapse) {
-                    setFocusedIndex(0)
-                    setTimeout(() => historyItemRefs.current[0]?.focus(), 50)
-                  }
-                }}
-                className={clsx(
-                  'flex items-center gap-1.5 px-1 py-1 text-xs font-medium w-full',
-                  'dark:text-win11-text-tertiary text-win11Light-text-tertiary',
-                  'hover:dark:text-win11-text-secondary hover:text-win11Light-text-secondary',
-                  'rounded transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-win11-bg-accent'
-                )}
-                aria-expanded={pinnedExpanded}
-              >
-                <Pin size={12} />
-                <span>{t('clipboard.pinned_section')}</span>
-                <span className="ml-auto opacity-60">{pinnedItems.length}</span>
-                <ChevronDown
-                  size={12}
-                  className={clsx(
-                    'transition-transform duration-150',
-                    !pinnedExpanded && '-rotate-90'
-                  )}
-                />
-              </button>
-            </div>
+            <PinnedSection
+              items={pinnedItems}
+              expanded={pinnedExpanded}
+              onToggleExpanded={() => {
+                const willCollapse = pinnedExpanded
+                setPinnedExpanded(!pinnedExpanded)
+                if (willCollapse) {
+                  setFocusedIndex(0)
+                  setTimeout(() => historyItemRefs.current[0]?.focus(), 50)
+                }
+              }}
+              focusedIndex={focusedIndex}
+              onPaste={onPaste}
+              onDelete={deleteItem}
+              onTogglePin={togglePin}
+              onFocus={setFocusedIndex}
+              isDark={isDark}
+              isCompact={isCompact}
+              secondaryOpacity={secondaryOpacity}
+              enableSmartActions={settings.enable_smart_actions}
+              enableUiPolish={settings.enable_ui_polish}
+              setItemRef={setHistoryItemRef}
+            />
           )}
 
-          {/* Pinned items (always small, rendered inline) */}
-          {showSections && pinnedExpanded && (
-            <div className="px-3 pb-1 flex-shrink-0 space-y-2">
-              {pinnedItems.map((item, offset) => (
-                <HistoryItem
-                  key={item.id}
-                  ref={(el) => setHistoryItemRef(offset, el)}
-                  item={item}
-                  index={offset}
-                  isFocused={offset === focusedIndex}
-                  onPaste={onPaste}
-                  onDelete={deleteItem}
-                  onTogglePin={togglePin}
-                  onFocus={() => setFocusedIndex(offset)}
-                  isDark={isDark}
-                  secondaryOpacity={secondaryOpacity}
-                  isCompact={isCompact}
-                  enableSmartActions={settings.enable_smart_actions}
-                  enableUiPolish={settings.enable_ui_polish}
-                />
-              ))}
-            </div>
-          )}
+          {showSections && unpinnedItems.length > 0 && <RecentSectionLabel count={unpinnedItems.length} />}
 
-          {/* Recent section label */}
-          {showSections && unpinnedItems.length > 0 && (
-            <div className="px-3 py-1 flex items-center gap-1.5 text-xs dark:text-win11-text-tertiary text-win11Light-text-tertiary flex-shrink-0">
-              <History size={12} />
-              <span>{t('clipboard.recent_section')}</span>
-              <span className="ml-auto opacity-60">{unpinnedItems.length}</span>
-            </div>
-          )}
-
-          {/* Virtualized list */}
+          {/* Virtualized list / فهرست مجازی‌شده */}
           <div ref={containerRef} className="flex-1 min-h-0 px-3 pb-3">
             {visibleItems.length > 0 && (
               <List<RowData>
@@ -534,22 +464,11 @@ export function ClipboardTab(props: {
             )}
             {hasMore && (
               <div className="flex items-center justify-center py-3" aria-live="polite">
-                <button
-                  type="button"
+                <LoadMoreButton
                   onClick={() => onLoadMore?.()}
-                  disabled={isLoadingMore}
-                  className={clsx(
-                    'text-[12px] font-medium px-4 py-1.5 rounded-full transition-all',
-                    'shadow-sm',
-                    isDark
-                      ? 'text-sky-100 bg-win11-bg-accent/80 hover:bg-win11-bg-accent'
-                      : 'text-white bg-win11-bg-accent hover:bg-[#006cbd]',
-                    'disabled:opacity-60 disabled:cursor-wait',
-                    'focus:outline-none focus-visible:ring-2 focus-visible:ring-win11-bg-accent focus-visible:ring-offset-2'
-                  )}
-                >
-                  {isLoadingMore ? t('common.loading') : t('clipboard.load_more')}
-                </button>
+                  isLoading={isLoadingMore}
+                  isDark={isDark}
+                />
               </div>
             )}
           </div>

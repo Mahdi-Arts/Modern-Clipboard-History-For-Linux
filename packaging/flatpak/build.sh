@@ -7,7 +7,7 @@
 #   FLATPAK_INSTALL=0 ./packaging/flatpak/build.sh   # build only / فقط ساخت
 #
 # Requirements / پیش‌نیازها (installed once / نصب یک‌باره):
-#   flatpak install --user flathub org.gnome.Sdk//46 org.gnome.Platform//46 \
+#   flatpak install --user flathub org.gnome.Sdk//48 org.gnome.Platform//48 \
 #     org.freedesktop.Sdk.Extension.rust-stable org.freedesktop.Sdk.Extension.node20
 
 set -euo pipefail

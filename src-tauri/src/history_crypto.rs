@@ -153,15 +153,11 @@ impl HistoryCrypto {
     }
 
     /// True when the `secret-tool` helper is installed and executable.
+    /// Checks `PATH` in-process — no `which` subprocess (see `exec_lookup`).
     /// وقتی helper `secret-tool` نصب و اجرایی باشد «درست» است.
+    /// بررسی PATH درون‌فرآیندی — بدون subprocess ی `which` (`exec_lookup`).
     pub fn secret_service_available() -> bool {
-        Command::new("which")
-            .arg("secret-tool")
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .status()
-            .map(|s| s.success())
-            .unwrap_or(false)
+        crate::exec_lookup::command_exists("secret-tool")
     }
 
     // -----------------------------------------------------------------

@@ -76,7 +76,6 @@ fn main() {
         tracing::error!("Failed to create base directory: {e}");
     }
 
-    let history_path = base_dir.join("history.json");
     let user_settings = UserSettingsManager::new().load();
 
     // Construct the manager with the user's preferred encryption-key
@@ -90,7 +89,7 @@ fn main() {
         key_backend.as_str()
     );
     let clipboard_manager = Arc::new(Mutex::new(ClipboardManager::new_with_key_backend(
-        history_path,
+        base_dir.clone(),
         user_settings.max_history_size,
         key_backend,
     )));

@@ -156,10 +156,8 @@ pub struct ShortcutToolsStatus {
     pub can_auto_resolve_conflicts: bool,
 }
 
+/// In-process `PATH` probe — no `which` subprocess (see `crate::exec_lookup`).
+/// بررسی درون‌فرآیندی PATH — بدون subprocess ی `which` (`crate::exec_lookup`).
 fn command_exists(command: &str) -> bool {
-    std::process::Command::new("which")
-        .arg(command)
-        .output()
-        .map(|output| output.status.success())
-        .unwrap_or(false)
+    crate::exec_lookup::command_exists(command)
 }

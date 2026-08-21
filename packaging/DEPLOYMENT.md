@@ -13,6 +13,7 @@
 
 ## Table of Contents / فهرست مطالب
 
+0. [Packaging architecture / معماری بسته‌بندی](#packaging-architecture)
 1. [Prerequisites / پیش‌نیازها](#prerequisites)
 2. [Building / ساخت](#building)
 3. [Debian/Ubuntu (.deb)](#debianubuntu-deb)
@@ -23,6 +24,30 @@
 8. [Release Checklist / چک‌لیست انتشار](#release-checklist)
 
 ---
+
+## Packaging architecture
+
+There are deliberately **two** native packaging paths. They serve different
+audiences and must stay in lockstep — `scripts/check-packaging.sh`
+(structurally enforced in CI) guarantees they install the same system files.
+
+| Path / مسیر | Audience | Output | Owner |
+| --- | --- | --- | --- |
+| **Tauri bundle** (`src-tauri/tauri.conf.json` → `bundle.linux`) | GitHub Releases | `.deb`, `.rpm`, `.AppImage` (amd64 + arm64) | `release.yml` workflow |
+| **distro packaging** (`packaging/debian/`, `packaging/rpm/`) | Debian archives / PPAs / distro maintainers | source-built `.deb`/`.rpm` via `debhelper`/`rpmbuild` | maintainers |
+
+**Rule of thumb / قاعدهٔ کلی:** user-facing GitHub Releases always come from
+the Tauri bundle path; the `packaging/` tree exists for distribution
+integration. Never let the two drift — the packaging gate fails the build if
+the installed file sets diverge.
+
+**قاعده:** انتشار‌های گیت‌هاب همیشه از مسیر Tauri bundle ساخته می‌شوند؛
+درخت `packaging/` برای یکپارچه‌سازی با توزیع‌هاست. این دو نباید از هم
+فاصله بگیرند — اگر مجموعهٔ فایل‌های نصبی واگرا شود، گیت بسته‌بندی بیلد
+را متوقف می‌کند.
+
+---
+
 
 ## Prerequisites / پیش‌نیازها
 
