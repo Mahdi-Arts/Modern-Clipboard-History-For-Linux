@@ -1,45 +1,46 @@
 Source: windows-11-style-clipboard-history-manager
-Section: utils
+Section: utility
 Priority: optional
-Maintainer: Mahdi Arts <mahdi-arts@users.noreply.github.com>
+Maintainer: Mahdi Arts <mahdi@example.com>
 Build-Depends: debhelper-compat (= 13),
-               nodejs (>= 18),
-               npm,
                cargo,
-               rustc,
-               libwebkit2gtk-4.1-dev,
+               libwebkit2gtk-4.1-dev | libwebkit2gtk-4.0-dev,
                libssl-dev,
                libayatana-appindicator3-dev,
                librsvg2-dev,
                libxdo-dev,
                libgtk-3-dev,
                libglib2.0-dev,
-               pkg-config
-Standards-Version: 4.6.2
+               pkg-config,
+               nodejs,
+               npm
+Standards-Version: 4.6.0
 Homepage: https://github.com/Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager
-Vcs-Git: https://github.com/Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager.git
 Vcs-Browser: https://github.com/Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager
-Rules-Requires-Root: no
+Vcs-Git: https://github.com/Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager.git
 
 Package: windows-11-style-clipboard-history-manager
-Architecture: any
-Depends: ${shlibs:Depends},
-         ${misc:Depends},
+Architecture: amd64
+Depends: ${misc:Depends},
+         ${shlibs:Depends},
          xclip,
          xdotool,
          wl-clipboard,
          acl,
-         polkitd | policykit-1
-Recommends: libappindicator3-1 | libayatana-appindicator3-1
-Description: Windows 11-style Clipboard History Manager for Linux
- A modern, fast, bilingual clipboard manager for Linux (Wayland and X11),
- inspired by the Windows 11 Win+V clipboard experience.
+         polkitd | polkit,
+         pkexec,
+         libwebkit2gtk-4.1-0 | libwebkit2gtk-4.0-37,
+         libgtk-3-0,
+         libayatana-appindicator3-1 | libappindicator3-1
+Recommends: libsecret-tools
+Description: Windows 11-style clipboard history manager for Linux
+ A fast, beautiful clipboard history manager for Linux (Wayland & X11),
+ inspired by Windows 11 Win+V.
  .
  Features:
-  - Super+V / Ctrl+Alt+V shortcut to open clipboard history
-  - Persian (فارسی) + English Setup and Settings; stable English/LTR main popup
-  - Pin important items, emoji picker, kaomoji, and symbols
-  - Local SQLite history with at-rest encryption, secret filter, and privacy controls
-  - Acrylic/glass UI with light, dark, and system theme support
-  - Search with optional regex
-  - Image clipboard support with thumbnail previews
+  * Wayland and X11 clipboard monitoring
+  * Super+V / Ctrl+Alt+V global shortcuts
+  * Persian + English interface
+  * Encrypted local history (ChaCha20-Poly1305)
+  * Emoji, kaomoji, and symbol pickers
+  * Fully offline — bundled fonts

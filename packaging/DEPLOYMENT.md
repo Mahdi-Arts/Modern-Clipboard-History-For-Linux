@@ -1,221 +1,478 @@
-# Deployment Guide — .deb → GitHub Release → Flatpak
-# راهنمای استقرار — بستهٔ `.deb` → انتشار گیت‌هاب → Flatpak
+# 📦 Deployment Guide / راهنمای استقرار
+## Windows 11 Style Clipboard History Manager
 
-This document is the **operational** companion to [`packaging/README.md`](README.md).
-It describes how the project is packaged and published end-to-end, plus the
-Enterprise-critical concerns (key backup/recovery, signature verification,
-AppArmor) that must be understood before a release.
+<div dir="rtl">
 
-این سند، همراه **عملیاتی** [`packaging/README.md`](README.md) است و چگونگی
-بسته‌بندی و انتشار سراسری پروژه، به‌همراه نگرانی‌های حیاتی سطح Enterprise
-(پشتیبان‌گیری/بازیابی کلید، راستی‌آزمایی امضا، AppArmor) را شرح می‌دهد.
+## راهنمای جامع بسته‌بندی و انتشار
 
----
+این سند راهنمای کامل برای بسته‌بندی و انتشار برنامه در قالب‌های مختلف است.
 
-## ۱. هدف از این سند / Purpose
-
-The project ships to Linux users through three primary channels:
-
-1. **`.deb` (Debian/Ubuntu)** — the **primary** distribution artifact, published
-   to each GitHub Release and consumed by `install.sh`, `.deb` installs, and the
-   AUR (which repackages the `.deb`).
-2. **`.rpm` (Fedora/RHEL)** and **AppImage** — secondary artifacts in the same
-   release.
-3. **Flatpak** — a sandboxed channel built from the same source via
-   `packaging/flatpak/build.sh`.
-
-پروژه از سه کانال اصلی به کاربران لینوکس می‌رسد:
-
-1. **`.deb` (دبیان/اوبونتو)** — مهم‌ترین artifact، که در هر GitHub Release منتشر و
-   توسط `install.sh`، نصب `.deb` و AUR مصرف می‌شود.
-2. **`.rpm` (فدورا/RHEL)** و **AppImage** — artifactهای ثانویه در همان release.
-3. **Flatpak** — کانال sandbox که از همان سورس با `packaging/flatpak/build.sh` ساخته می‌شود.
+</div>
 
 ---
 
-## ۲. ساختار دایرکتوری بسته‌بندی / Packaging layout
+## Table of Contents / فهرست مطالب
 
-```
-packaging/
-├── README.md                 # Canonical binary & build instructions (دوزبانه)
-├── DEPLOYMENT.md             # ← این سند / this document
-├── apparmor/
-│   ├── windows-11-style-clipboard-history-manager   # AppArmor profile (complain default)
-│   └── install.sh            # installs profile; `--enforce` to harden
-├── debian/
-│   ├── control               # package metadata (Source/Package/Depends/Description)
-│   ├── rules                 # dh_* build/install rules
-│   ├── postinst / postrm     # post-install / post-remove hooks (udev, uinput)
-│   ├── changelog
-│   ├── copyright
-│   └── source/format
-└── flatpak/
-    ├── build.sh
-    ├── io.github.mahdi-arts.clipboard-history.yml
-    └── io.github.mahdi-arts.clipboard-history.metainfo.xml
-```
-
-Key installation paths produced by the `.deb` (see `debian/rules`):
-
-| Path | Purpose |
-| --- | --- |
-| `/usr/bin/windows-11-style-clipboard-history-manager` | launcher wrapper |
-| `/usr/lib/windows-11-style-clipboard-history-manager/…-bin` | host-linked binary |
-| `/etc/udev/rules.d/99-windows-11-style-clipboard-history-input.rules` | uinput permissions |
-| `/etc/modules-load.d/windows-11-style-clipboard-history-manager.conf` | load `uinput` module |
-| `/usr/share/applications/io.github.mahdi-arts.clipboard-history.desktop` | menu entry |
-| `/usr/share/doc/windows-11-style-clipboard-history-manager/apparmor/…` | AppArmor profile + installer |
-
-مسیرهای کلیدی تولیدشده توسط `.deb` (نگاه کنید به `debian/rules`):
-
-| مسیر | کاربرد |
-| --- | --- |
-| `/usr/bin/windows-11-style-clipboard-history-manager` | راه‌انداز wrapper |
-| `/usr/lib/windows-11-style-clipboard-history-manager/…-bin` | باینری متصل به میزبان |
-| `/etc/udev/rules.d/99-windows-11-style-clipboard-history-input.rules` | مجوزهای uinput |
-| `/etc/modules-load.d/windows-11-style-clipboard-history-manager.conf` | بارگذاری ماژول `uinput` |
-| `/usr/share/applications/io.github.mahdi-arts.clipboard-history.desktop` | ورودی منو |
-| `/usr/share/doc/windows-11-style-clipboard-history-manager/apparmor/…` | پروفایل AppArmor + نصب‌کننده |
+1. [Prerequisites / پیش‌نیازها](#prerequisites)
+2. [Building / ساخت](#building)
+3. [Debian/Ubuntu (.deb)](#debianubuntu-deb)
+4. [Fedora/RHEL (.rpm)](#fedorarhel-rpm)
+5. [AppImage (.AppImage)](#appimage-appimage)
+6. [Flatpak (.flatpak)](#flatpak-flatpak)
+7. [Arch Linux (AUR)](#arch-linux-aur)
+8. [Release Checklist / چک‌لیست انتشار](#release-checklist)
 
 ---
 
-## ۳. زنجیرهٔ انتشار / Release pipeline
+## Prerequisites / پیش‌نیازها
 
-The release is produced by `.github/workflows/release.yml`:
+<div dir="rtl">
 
-1. **Version bump** — reads the tag and writes `version` into
-   `src-tauri/tauri.conf.json` + `src-tauri/Cargo.toml`.
-2. **Build** — `npm run tauri:build` produces `.deb`, `.rpm`, and AppImage.
-3. **Supply-chain** — publishes `SHA256SUMS` (+ optional GPG `SHA256SUMS.sig`),
-   per-artifact SPDX SBOM (syft), and SLSA provenance (attest-build-provenance).
-4. **Optional channels** — Cloudsmith and AUR are opt-in via secrets and
-   **fail closed** on real errors.
+### پیش‌نیازهای عمومی
 
-**Bundle parity / برابری محتوای بسته‌ها:** the `.deb` and `.rpm` bundles
-install the identical set of system files — launcher wrapper, `/dev/uinput`
-udev rule, desktop entry, icon set, and the AppArmor profile (see
-`bundle.linux.deb.files` / `bundle.linux.rpm.files` in `tauri.conf.json`).
-`scripts/check-packaging.sh` enforces this parity on every QA run, so the two
-formats can never drift silently again.
-بسته‌های `.deb` و `.rpm` مجموعهٔ یکسانی از فایل‌های سیستمی را نصب می‌کنند —
-wrapper، قانون udev برای `/dev/uinput`، desktop entry، آیکون‌ها و پروفایل
-AppArmor. اسکریپت `scripts/check-packaging.sh` این برابری را در هر اجرای QA
-الزامی می‌کند تا دو قالب دیگر هرگز بی‌صدا از هم فاصله نگیرند.
+قبل از شروع بسته‌بندی، مطمئن شوید که موارد زیر نصب هستند:
 
-انتشار توسط `.github/workflows/release.yml` تولید می‌شود:
-
-1. **افزایش نسخه** — نسخه از برچسب خوانده و در `tauri.conf.json` + `Cargo.toml` نوشته می‌شود.
-2. **ساخت** — `npm run tauri:build` خروجی `.deb`، `.rpm` و AppImage می‌سازد.
-3. **زنجیرهٔ تأمین** — `SHA256SUMS` (+ امضای GPG اختیاری `SHA256SUMS.sig`)،
-   SBOM SPDX و provenance نوع SLSA منتشر می‌شود.
-4. **کانال‌های اختیاری** — Cloudsmith و AUR اختیاری‌اند و روی خطای واقعی **fail-closed** می‌شوند.
-
----
-
-## ۴. داده‌ها و کلید رمزنگاری (بازیابی و پشتیبان‌گیری) / Data & encryption key
-
-> **Enterprise-critical.** The clipboard history is encrypted at rest with a key
-> that lives either in a **key file** (`~/.local/share/windows-11-style-clipboard-history-manager/history.key`)
-> or in the **Secret Service keyring**. **Losing the key means losing the
-> history** — there is no backdoor and no master password reset.
->
-> **حیاتی.** تاریخچهٔ کلیپ‌بورد با کلیدی رمز می‌شود که یا در **فایل کلید**
-> (`~/.local/share/windows-11-style-clipboard-history-manager/history.key`) یا در
-> **کلید-ring دسکتاپ** است. **از دست دادن کلید یعنی از دست دادن تاریخچه**؛ هیچ
-> درِ پشتی و هیچ ریست master password وجود ندارد.
-
-**Backup strategy / راهبرد پشتیبان‌گیری:**
-
-- **File backend:** back up `history.db`, `history.db-wal`, `history.db-shm`,
-  `history.key`, and `history.key.check` **together** (they must stay in sync).
-  Back up فایل کلید: `history.db`، `history.db-wal`، `history.db-shm`،
-  `history.key` و `history.key.check` را **با هم** نگه دارید (باید هم‌اهنگ بمانند).
-- **Secret Service backend:** the key is in GNOME Keyring / KWallet. Back up
-  the keyring, or **export** the key and switch to the file backend via
-  Settings → Privacy before losing the keyring.
-  بک‌اند Secret Service: کلید در GNOME Keyring / KWallet است. از کلید-ring
-  پشتیبان بگیرید، یا پیش از از دست دادن آن، کلید را **خروجی** گرفته و از
-  Settings → Privacy به بک‌اند فایل سوئیچ کنید.
-- **Recommendation / توصیه:** prefer **Secret Service** on supported desktops;
-  it avoids an on-disk key. Prefer دریافت کلید از Secret Service در
-  دسکتاپ‌های پشتیبانی‌شده؛ چون کلید روی دیسک نمی‌ماند.
-
-**Quarantine / قرنطینه:** undecryptable history rows are recorded in
-`~/.local/share/windows-11-style-clipboard-history-manager/quarantine.log` (ids + reasons)
-instead of being silently dropped. Rows that fail to decrypt are **never**
-surfaced as partial items.
-
-ردیف‌های قابل‌رمزگشایی‌نشدن در `quarantine.log` ثبت می‌شوند (شناسه‌ها + دلایل)
-به‌جای حذف بی‌صدا. ردیف‌های رمزگشایی‌نشده هرگز به‌صورت آیتم ناقص نمایش داده نمی‌شوند.
-
----
-
-## ۵. AppArmor / محدودسازی
-
-The shipped AppArmor profile (`packaging/apparmor/…`) installs in **complain**
-mode by default (logs violations, blocks nothing). To harden:
+</div>
 
 ```bash
-sudo ./packaging/apparmor/install.sh --enforce
-sudo aa-status | grep windows   # confirm it is loaded
+# Common build dependencies
+sudo apt install -y \
+  build-essential \
+  cargo \
+  rustc \
+  nodejs \
+  npm \
+  pkg-config \
+  libwebkit2gtk-4.1-dev \
+  libssl-dev \
+  libayatana-appindicator3-dev \
+  librsvg2-dev \
+  libxdo-dev \
+  libgtk-3-dev \
+  libglib2.0-dev \
+  desktop-file-utils \
+  appstream
 ```
 
-Because `/dev/uinput` is a powerful capability, **enforce mode should be
-validated** on your desktop before rolling it out widely.
+<div dir="rtl">
 
-پروفایل AppArmor به‌صورت پیش‌فرض در حالت **complain** نصب می‌شود (فقط ثبت، بدون
-مسدودکردن). برای سخت‌کردن:
+### پیش‌نیازهای Debian/Ubuntu
+
+</div>
 
 ```bash
-sudo ./packaging/apparmor/install.sh --enforce
-sudo aa-status | grep windows   # تأیید بارگذاری
+# Debian-specific
+sudo apt install -y \
+  debhelper \
+  devscripts \
+  fakeroot \
+  lintian
 ```
 
-چون `/dev/uinput` قابلیت قدرتمندی است، **پیش از گسترش، حالت enforce باید** روی
-دسکتاپ خودتان اعتبارسنجی شود.
+<div dir="rtl">
+
+### پیش‌نیازهای Fedora/RHEL
+
+</div>
+
+```bash
+# Fedora/RHEL-specific
+sudo dnf install -y \
+  rpm-build \
+  make \
+  gcc \
+  gcc-c++ \
+  rustfmt
+```
+
+<div dir="rtl">
+
+### پیش‌نیازهای Flatpak
+
+</div>
+
+```bash
+# Flatpak
+sudo apt install -y \
+  flatpak \
+  flatpak-builder
+```
 
 ---
 
-## ۶. تست نصب بسته / Package install smoke test
+## Building / ساخت
 
-After building, verify the `.deb` installs and runs (see `scripts/verify-deb.sh`):
+<div dir="rtl">
+
+### ساخت باینری
+
+</div>
 
 ```bash
-sudo apt install ./windows-11-style-clipboard-history-manager_2.5.0_amd64.deb
-command -v windows-11-style-clipboard-history-manager          # launcher on PATH
-/usr/lib/windows-11-style-clipboard-history-manager/windows-11-style-clipboard-history-manager-bin --version
+# Clone and setup
+git clone https://github.com/Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager.git
+cd Windows-11-Style-Clipboard-History-Manager
+
+# Install Node.js dependencies
+npm ci
+
+# Build Tauri application
+npm run tauri:build
+
+# Verify build
+ls -lh src-tauri/target/release/bundle/
 ```
 
-And the Flatpak build:
+<div dir="rtl">
+
+### ساخت برای پلتفرم‌های مختلف
+
+</div>
 
 ```bash
-bash packaging/flatpak/build.sh
+# Release binary path
+BINARY=src-tauri/target/release/windows-11-style-clipboard-history-manager-bin
+
+# Verify binary
+file "$BINARY"
+"$BINARY" --version
+"$BINARY" --help
 ```
 
 ---
 
-## ۷. فهرست وظایف انتشار / Release checklist
+## Debian/Ubuntu (.deb)
 
-- [ ] `git tag vX.Y.Z` and push (release workflow runs).
-- [ ] `.deb`, `.rpm`, AppImage uploaded + `SHA256SUMS` (+ `.sig`).
-- [ ] SBOM + SLSA provenance present on the release.
-- [ ] `.deb` and `.rpm` both contain wrapper + udev rule + AppArmor profile
-      (`dpkg -c *.deb`, `rpm -qpl *.rpm`).
-- [ ] AUR/Cloudsmith channels updated (or confirmed skipped safely).
-- [ ] One-time AUR prerequisite: the empty package
-      `windows-11-style-clipboard-history-manager-bin` exists on
-      aur.archlinux.org — the release job clones it fail-closed.
-- [ ] CHANGELOG updated in both languages.
+<div dir="rtl">
 
-- [ ] برچسب `vX.Y.Z` و push (workflow انتشار اجرا شود).
-- [ ] بارگذاری `.deb`، `.rpm`، AppImage + `SHA256SUMS` (+ `.sig`).
-- [ ] وجود SBOM و provenance نوع SLSA در release.
-- [ ] هر دو بستهٔ `.deb` و `.rpm` شامل wrapper + قانون udev + پروفایل AppArmor
-      باشند (`dpkg -c *.deb`، `rpm -qpl *.rpm`).
-- [ ] به‌روزرسانی کانال‌های AUR/Cloudsmith (یا skip امن تأیید شود).
-- [ ] پیش‌نیاز یک‌بارهٔ AUR: بستهٔ خالی
-      `windows-11-style-clipboard-history-manager-bin` روی aur.archlinux.org
-      وجود داشته باشد — job انتشار آن را fail-closed کلون می‌کند.
-- [ ] به‌روزرسانی CHANGELOG به هر دو زبان.
+### روش ۱: Tauri Bundler (توصیه‌شده)
 
-**یا علی مدد.**
+</div>
+
+```bash
+# Build with Tauri bundler
+npm run tauri:build
+
+# Package is automatically created
+ls -lh src-tauri/target/release/bundle/deb/*.deb
+```
+
+<div dir="rtl">
+
+### روش ۲: مستقیم با dpkg-buildpackage
+
+</div>
+
+```bash
+# Build the .deb directly
+dpkg-buildpackage -us -uc -b
+
+# Check the package
+ls -lh ../*.deb
+lintian --pedantic ../*.changes
+```
+
+<div dir="rtl">
+
+### نصب و آزمون
+
+</div>
+
+```bash
+# Install
+sudo apt install ./path/to/windows-11-style-clipboard-history-manager_*.deb
+
+# Verify installation
+which windows-11-style-clipboard-history-manager
+windows-11-style-clipboard-history-manager --version
+
+# Test on a clean system (VM recommended)
+sudo apt install ./windows-11-style-clipboard-history-manager_*.deb
+
+# Cleanup
+sudo apt remove windows-11-style-clipboard-history-manager
+```
+
+<div dir="rtl">
+
+### نکات مهم Debian
+
+</div>
+
+| موضوع | توضیح |
+|-------|-------|
+| **udev rules** | قوانین udev با `TAG+="uaccess"` نصب می‌شوند |
+| **ACL permissions** | اسکریپت postinst مجوزها را تنظیم می‌کند |
+| **AppArmor** | پروفایل در حالت complain نصب می‌شود |
+
+---
+
+## Fedora/RHEL (.rpm)
+
+<div dir="rtl">
+
+### ساخت RPM
+
+</div>
+
+```bash
+# Method 1: Using the spec file
+rpmbuild -bb packaging/rpm/windows-11-style-clipboard-history-manager.spec
+
+# Method 2: Using Tauri bundler (if supported)
+npm run tauri:build -- --bundles rpm
+
+# Find the package
+ls -lh ~/rpmbuild/RPMS/x86_64/*.rpm
+```
+
+<div dir="rtl">
+
+### نصب
+
+</div>
+
+```bash
+# Install
+sudo dnf install ./path/to/windows-11-style-clipboard-history-manager-*.rpm
+
+# Verify
+rpm -qi windows-11-style-clipboard-history-manager
+```
+
+---
+
+## AppImage (.AppImage)
+
+<div dir="rtl">
+
+### Tauri Bundler
+
+</div>
+
+```bash
+# Build AppImage
+npm run tauri:build -- --bundles appimage
+
+# Find the package
+ls -lh src-tauri/target/release/bundle/appimage/*.AppImage
+
+# Make executable
+chmod +x *.AppImage
+
+# Run
+./windows-11-style-clipboard-history-manager_2.5.0_amd64.AppImage
+```
+
+<div dir="rtl">
+
+### نکات AppImage
+
+</div>
+
+| موضوع | توضیح |
+|-------|-------|
+| **NVIDIA workaround** | `IS_APPIMAGE=1` برای GPU انویدیا |
+| **Portable** | نیازی به نصب ندارد |
+| **udev** | قوانین udev نصب نمی‌شوند |
+
+---
+
+## Flatpak (.flatpak)
+
+<div dir="rtl">
+
+### ساخت Flatpak
+
+</div>
+
+```bash
+# Add Flathub repository (if not added)
+flatpak remote-add --if-not-exists flathub \
+  https://flathub.org/repo/flathub.flatpakrepo
+
+# Build from manifest
+cd packaging/flatpak
+./build.sh
+
+# Or manually
+flatpak-builder --force-clean --user --install build-dir \
+  io.github.mahdi-arts.clipboard-history.yml
+```
+
+<div dir="rtl">
+
+### محدودیت‌های Flatpak
+
+</div>
+
+<div dir="rtl">
+
+⚠️ **مهم**: سیاست Flatpak دسترسی به `/dev/uinput` را نمی‌دهد. بنابراین عملیات paste شبیه‌سازی‌شده ممکن است کار نکند. برای عملکرد کامل، از بسته‌های `.deb` یا `.rpm` استفاده کنید.
+
+</div>
+
+```bash
+# For history viewing (works)
+flatpak run io.github.mahdi-arts.clipboard-history
+
+# For paste simulation (may not work)
+# Enable network for GIF search
+flatpak override --user --share=network io.github.mahdi-arts.clipboard-history
+
+# For full paste (NOT recommended - security risk)
+flatpak override --user --device=all io.github.mahdi-arts.clipboard-history
+```
+
+---
+
+## Arch Linux (AUR)
+
+<div dir="rtl">
+
+### نصب از AUR
+
+</div>
+
+```bash
+# Using yay
+yay -S windows-11-style-clipboard-history-manager-bin
+
+# Or manually
+git clone https://aur.archlinux.org/windows-11-style-clipboard-history-manager-bin.git
+cd windows-11-style-clipboard-history-manager-bin
+makepkg -si
+```
+
+---
+
+## Release Checklist / چک‌لیست انتشار
+
+<div dir="rtl">
+
+قبل از انتشار هر نسخه، موارد زیر را بررسی کنید:
+
+</div>
+
+### Pre-Release / پیش از انتشار
+
+```bash
+# Quality gates
+npm run lint
+npm run test:coverage
+cargo fmt --check
+cargo clippy --all-targets -- -D warnings
+cargo test
+cargo test --all-features
+cargo audit
+cargo deny check advisories bans licenses sources
+npm audit --audit-level=high
+
+# Build all targets
+npm run tauri:build
+```
+
+### Integrity / یکپارچگی
+
+```bash
+# Generate checksums
+cd src-tauri/target/release/bundle
+sha256sum deb/*.deb rpm/*.rpm appimage/*.AppImage > SHA256SUMS
+
+# Verify checksums
+sha256sum -c SHA256SUMS
+
+# Optional GPG signing
+gpg --armor --detach-sign SHA256SUMS
+```
+
+### GitHub Release / انتشار GitHub
+
+```bash
+# Create and push tag
+git tag -a v2.5.0 -m "Release v2.5.0"
+git push origin v2.5.0
+
+# Upload artifacts to GitHub Release
+# - .deb
+# - .rpm  
+# - .AppImage
+# - SHA256SUMS
+# - SHA256SUMS.sig (if signed)
+# - SBOM per artifact
+# - Provenance attestations
+```
+
+### Post-Release / پس از انتشار
+
+```bash
+# Verify release
+# - Check all download links work
+# - Verify signatures
+# - Update AUR PKGBUILD checksums
+# - Update Flatpak manifest version
+# - Update CHANGELOG.md
+# - Announce on social media/discussion
+```
+
+---
+
+## Troubleshooting / عیب‌یابی
+
+<div dir="rtl">
+
+### مشکلات رایج
+
+</div>
+
+| مشکل | راه‌حل |
+|------|--------|
+| `Permission denied` on `/dev/uinput` | Log out and log back in |
+| `AppImage` not running | `chmod +x` and run with `IS_APPIMAGE=1` |
+| Flatpak paste not working | Use `.deb`/`.rpm` instead |
+| Symbol fonts missing | Bundled fonts should be used |
+
+---
+
+## Security Notes / نکات امنیتی
+
+<div dir="rtl">
+
+### تأیید بسته‌ها
+
+</div>
+
+```bash
+# Always verify checksums
+sha256sum -c SHA256SUMS
+
+# Verify GPG signature (if available)
+gpg --verify SHA256SUMS.sig SHA256SUMS
+
+# Check package signatures
+dpkg-sig --verify *.deb
+rpm --checksig *.rpm
+```
+
+<div dir="rtl">
+
+### توصیه‌های امنیتی
+
+</div>
+
+- ✅ Always download from official GitHub releases
+- ✅ Always verify checksums
+- ✅ Prefer signed releases
+- ✅ Use official repositories when available
+- ❌ Never run `curl | bash` installers without review
+
+---
+
+## License / مجوز
+
+MIT License - See [LICENSE](../LICENSE)
+
+---
+
+**Version / نسخه**: 2.5.0  
+**Last Updated / آخرین به‌روزرسانی**: 2026-08-21
