@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { invoke } from '@tauri-apps/api/core'
 import { getCurrentWindow, Window } from '@tauri-apps/api/window'
 import { emit, listen } from '@tauri-apps/api/event'
@@ -102,9 +102,13 @@ function SettingsApp() {
 
     // Hide main window when settings window closes
     return () => {
-      mainWindow.hide().catch(console.error)
-      unlistenClosePromise.then((unlisten) => unlisten())
-      unlistenSettingsPromise.then((unlisten) => unlisten())
+      void mainWindow.hide().catch(console.error)
+      void unlistenClosePromise.then((unlisten) => {
+        unlisten()
+      })
+      void unlistenSettingsPromise.then((unlisten) => {
+        unlisten()
+      })
     }
   }, [])
 
@@ -125,14 +129,23 @@ function SettingsApp() {
     }
   }, [t])
 
-  // Centralized settings update helper
+  // Centralized settings update helper.
+  // The merged snapshot is computed outside the state updater (updaters must
+  // stay pure); a ref mirrors the latest state so rapid toggles never save a
+  // stale snapshot.
+  // به‌روزرسان متمرکز تنظیمات. تصویر ادغام‌شده خارج از updater محاسبه
+  // می‌شود (updater باید خالص بماند)؛ یک ref آخرین state را آینه می‌کند تا
+  // تغییرات سریع هرگز تصویر کهنه‌ای ذخیره نکنند.
+  const settingsRef = useRef(settings)
+  useEffect(() => {
+    settingsRef.current = settings
+  }, [settings])
+
   const updateSettings = useCallback(
     (partial: Partial<UserSettings>) => {
-      setSettings((prev) => {
-        const next = { ...prev, ...partial }
-        saveSettings(next)
-        return next
-      })
+      const next = { ...settingsRef.current, ...partial }
+      setSettings(next)
+      void saveSettings(next)
     },
     [saveSettings]
   )
@@ -154,7 +167,7 @@ function SettingsApp() {
 
   // Commit opacity changes to disk (called on mouseUp/touchEnd/keyUp)
   const commitOpacityChange = () => {
-    saveSettings(settings)
+    void saveSettings(settings)
   }
 
   const handleAutoDeleteValueChange = (value: string) => {
@@ -164,14 +177,14 @@ function SettingsApp() {
       const interval = value === '' ? 0 : num
       const newSettings = { ...settings, auto_delete_interval: interval }
       setSettings(newSettings)
-      saveSettings(newSettings)
+      void saveSettings(newSettings)
     }
   }
 
   const handleAutoDeleteUnitChange = (unit: UserSettings['auto_delete_unit']) => {
     const newSettings = { ...settings, auto_delete_unit: unit }
     setSettings(newSettings)
-    saveSettings(newSettings)
+    void saveSettings(newSettings)
   }
 
   const handleUiScaleChange = (value: number) => {
@@ -185,7 +198,7 @@ function SettingsApp() {
   // Handle Feature Toggles
   const handleToggle = (key: BooleanSettingKey) => {
     // Type safe toggle
-    updateSettings({ [key]: !settings[key] } as Partial<UserSettings>)
+    updateSettings({ [key]: !settings[key] })
   }
 
   const handleLanguageChange = (lang: 'en' | 'fa') => {
@@ -357,7 +370,7 @@ function SettingsApp() {
         <KeyboardShortcutsSection isDark={isDark} />
 
         {/* Reset Section */}
-        <ResetSection isDark={isDark} onReset={handleReset} />
+        <ResetSection isDark={isDark} onReset={() => void handleReset()} />
       </main>
 
       {/* Footer */}
@@ -368,7 +381,7 @@ function SettingsApp() {
         )}
       >
         <button
-          onClick={handleClose}
+          onClick={() => void handleClose()}
           className="px-8 py-2.5 bg-win11-bg-accent hover:opacity-90 active:scale-95 text-white rounded-lg text-sm font-semibold shadow-sm transition-all"
         >
           {i18n.t('settings_page.done')}

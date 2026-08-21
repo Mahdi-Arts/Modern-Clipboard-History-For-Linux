@@ -1,23 +1,30 @@
 //! Clipboard Watcher Module
 //!
-//! Runs a background thread that polls the system clipboard for changes
+//! Runs a background thread that watches the system clipboard for changes
 //! and emits Tauri events when new content is detected. The watcher
 //! reuses a single `arboard::Clipboard` connection to avoid X11/Wayland
 //! connection churn.
+//!
+//! Wakeups are event-driven where the session allows it (XFixes on X11,
+//! `wl-paste --watch` on Wayland — see `clipboard_events.rs`); when no
+//! event source is available the watcher falls back to adaptive polling
+//! (200ms active / 800ms idle), which is also the cleanup heartbeat.
 
 use parking_lot::Mutex;
+use std::sync::mpsc::RecvTimeoutError;
 use std::sync::Arc;
 use std::time::Duration;
 use tauri::{AppHandle, Emitter};
 
 use crate::clipboard_manager::{self, ClipboardManager};
 
-/// Start the clipboard polling watcher in a background thread.
+/// Start the clipboard watcher in a background thread.
 ///
 /// The watcher:
 /// - Reuses one `arboard::Clipboard` instance across all reads.
 /// - Reads clipboard *outside* the history mutex (shorter lock window).
-/// - Uses adaptive polling: 200ms when active, 800ms when idle.
+/// - Wakes from XFixes / `wl-paste --watch` events when available; otherwise
+///   uses adaptive polling: 200ms when active, 800ms when idle.
 /// - Emits `clipboard-changed` events for incremental frontend updates.
 pub fn start(app: AppHandle, clipboard_manager: Arc<Mutex<ClipboardManager>>) {
     std::thread::Builder::new()
@@ -35,14 +42,33 @@ pub fn start(app: AppHandle, clipboard_manager: Arc<Mutex<ClipboardManager>>) {
             let mut cleanup_counter = 0u32;
             let mut idle_ticks = 0u32;
 
+            // Event-driven wakeups when the session provides them; `None`
+            // (or a dropped source) transparently falls back to polling.
+            // بیدارباش رویدادمحور وقتی نشست آن را فراهم کند؛ در غیر این صورت
+            // (`None` یا قطع منبع) به polling برمی‌گردد.
+            let mut wake = crate::clipboard_events::start_wake_source();
+
             loop {
-                // Adaptive polling: faster when active, slower when idle
+                // Adaptive cadence: fast when active, slower when idle. With
+                // an event source we block on it for the same window, so a
+                // copy still wakes us instantly while the timeout keeps the
+                // periodic cleanup heartbeat alive.
+                // آهنگ تطبیقی: سریع هنگام فعالیت، کندتر هنگام بیکاری. با منبع
+                // رویداد، همان بازه را روی آن مسدود می‌مانیم؛ کپی فوراً ما را
+                // بیدار می‌کند و timeout ضربان پاکسازی دوره‌ای را حفظ می‌کند.
                 let delay = if idle_ticks == 0 {
                     Duration::from_millis(200)
                 } else {
                     Duration::from_millis(800)
                 };
-                std::thread::sleep(delay);
+                if let Some(rx) = &wake {
+                    match rx.recv_timeout(delay) {
+                        Ok(()) | Err(RecvTimeoutError::Timeout) => {}
+                        Err(RecvTimeoutError::Disconnected) => wake = None,
+                    }
+                } else {
+                    std::thread::sleep(delay);
+                }
                 cleanup_counter += 1;
 
                 let policy = clipboard_manager.lock().privacy_policy();

@@ -8,7 +8,13 @@ name: Release
 #   - Publishes .deb / .rpm / AppImage + SHA256SUMS + per-artifact SPDX SBOM
 #   - SLSA build-provenance attestations via GitHub artifact attestations
 #   - Every URL points at this repository (Mahdi-Arts/Modern-Clipboard-History-For-Linux)
-#   - Optional channels (Cloudsmith / AUR) are opt-in via repository secrets
+#   - Optional channels (Cloudsmith / AUR / GPG signing) are opt-in via
+#     repository secrets and fail closed when unconfigured
+#
+# Supply chain: every action is pinned to a full commit SHA (OpenSSF
+# recommendation) — tags are listed in comments for review, not used.
+# زنجیرهٔ تأمین: هر action به SHA کامل کامیت پین شده است — تگ‌ها فقط در
+# کامنت برای بازبینی آمده‌اند، نه برای اجرا.
 
 on:
   push:
@@ -50,7 +56,7 @@ jobs:
             rpm_arch: aarch64
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -60,16 +66,16 @@ jobs:
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: '20'
           cache: 'npm'
 
       - name: Install Rust (from rust-toolchain.toml)
-        uses: dtolnay/rust-toolchain@master
+        uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
 
       - name: Cache Cargo
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: |
             ~/.cargo/bin/
@@ -105,7 +111,7 @@ jobs:
         run: npm run tauri:build
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: build-${{ matrix.arch }}
           path: |
@@ -124,7 +130,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
 
@@ -133,7 +139,7 @@ jobs:
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           path: artifacts
           merge-multiple: true
@@ -146,8 +152,35 @@ jobs:
           sha256sum -- * > SHA256SUMS
           cat SHA256SUMS
 
+      # -----------------------------------------------------------------
+      # Optional GPG signature over SHA256SUMS (opt-in via secrets).
+      # When RELEASE_GPG_PRIVATE_KEY is set, SHA256SUMS.sig is published and
+      # the installer can enforce it with WIN11_CLIPBOARD_TRUST_KEY.
+      # امضای اختیاری GPG روی SHA256SUMS (با secret فعال می‌شود). وقتی
+      # RELEASE_GPG_PRIVATE_KEY تنظیم باشد، SHA256SUMS.sig منتشر می‌شود و
+      # نصاب می‌تواند آن را با WIN11_CLIPBOARD_TRUST_KEY الزام کند.
+      # -----------------------------------------------------------------
+      - name: Sign SHA256SUMS (optional GPG)
+        env:
+          RELEASE_GPG_PRIVATE_KEY: ${{ secrets.RELEASE_GPG_PRIVATE_KEY }}
+          RELEASE_GPG_PASSPHRASE: ${{ secrets.RELEASE_GPG_PASSPHRASE }}
+        run: |
+          if [ -z "$RELEASE_GPG_PRIVATE_KEY" ]; then
+            echo "::notice::RELEASE_GPG_PRIVATE_KEY not set; publishing unsigned SHA256SUMS"
+            exit 0
+          fi
+          export GNUPGHOME="$(mktemp -d)"
+          printf '%s' "$RELEASE_GPG_PRIVATE_KEY" | gpg --batch --import
+          passphrase_args=()
+          if [ -n "$RELEASE_GPG_PASSPHRASE" ]; then
+            passphrase_args=(--pinentry-mode loopback --passphrase "$RELEASE_GPG_PASSPHRASE")
+          fi
+          gpg --batch --yes "${passphrase_args[@]}" \
+            --armor --detach-sign --output dist/SHA256SUMS.sig dist/SHA256SUMS
+          echo "::notice::SHA256SUMS.sig published; verify with WIN11_CLIPBOARD_TRUST_KEY"
+
       - name: Install syft (SBOM generator)
-        uses: anchore/sbom-action/download-syft@v0
+        uses: anchore/sbom-action/download-syft@e22c389904149dbc22b58101806040fa8d37a610 # v0
 
       - name: Generate per-artifact SPDX SBOM
         run: |
@@ -163,17 +196,18 @@ jobs:
           ls -la dist/
 
       - name: Attest build provenance (SLSA)
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@96b4a1ef7235a096b17240c259729fdd70c83d45 # v2
         with:
           subject-path: |
             dist/*.deb
             dist/*.rpm
             dist/*.AppImage
             dist/SHA256SUMS
+            dist/SHA256SUMS.sig
             dist/*.spdx.json
 
       - name: Create Release and Upload Assets
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@c12583777ecdfd3be55c69cf75464299dc01057e # v3
         if: startsWith(github.ref, 'refs/tags/')
         with:
           tag_name: ${{ github.ref_name }}
@@ -273,14 +307,35 @@ jobs:
               "$rpm" --api-key "$CLOUDSMITH_API_KEY" || echo "::warning::Cloudsmith .rpm upload failed for $rpm"
           done
 
+      # -----------------------------------------------------------------
+      # AUR update — fail closed.
+      # The AUR SSH host key is NEVER trusted on first use. The maintainer
+      # must store verified known_hosts lines for aur.archlinux.org in the
+      # AUR_KNOWN_HOSTS secret:
+      #   ssh-keyscan aur.archlinux.org >> known_hosts   (then verify the
+      #   fingerprints against a trusted channel, e.g. the Arch infra docs)
+      # Without that secret the update is skipped with a notice.
+      # به‌روزرسانی AUR — fail closed. کلید میزبان AUR هرگز به‌صورت
+      # trust-on-first-use پذیرفته نمی‌شود. نگهدارنده باید خطوط known_hosts
+      # تأییدشدهٔ aur.archlinux.org را در secret ی AUR_KNOWN_HOSTS بگذارد:
+      #   ssh-keyscan aur.archlinux.org >> known_hosts   (سپس اثر انگشت‌ها را
+      #   با یک کانال معتبر، مانند مستندات زیرساخت Arch، مقایسه کنید)
+      # بدون این secret، به‌روزرسانی با یک notice رد می‌شود.
+      # -----------------------------------------------------------------
       - name: Update AUR Package
         if: ${{ !contains(github.ref_name, 'alpha') && !contains(github.ref_name, 'beta') && !contains(github.ref_name, 'rc') && !contains(github.ref_name, 'dev') }}
         continue-on-error: true
         env:
           AUR_SSH_KEY: ${{ secrets.AUR_SSH_KEY }}
+          AUR_KNOWN_HOSTS: ${{ secrets.AUR_KNOWN_HOSTS }}
         run: |
           if [ -z "$AUR_SSH_KEY" ]; then
             echo "::notice::AUR_SSH_KEY not set, skipping AUR update"
+            exit 0
+          fi
+          if [ -z "$AUR_KNOWN_HOSTS" ]; then
+            echo "::warning::AUR_KNOWN_HOSTS not set; refusing trust-on-first-use SSH. Skipping AUR update."
+            echo "::warning::Generate it with: ssh-keyscan aur.archlinux.org (verify fingerprints first)"
             exit 0
           fi
 
@@ -300,12 +355,17 @@ jobs:
           fi
 
           mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
           echo "$AUR_SSH_KEY" > ~/.ssh/aur
           chmod 600 ~/.ssh/aur
+          echo "$AUR_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
           echo "Host aur.archlinux.org
             User aur
             IdentityFile ~/.ssh/aur
-            StrictHostKeyChecking accept-new" > ~/.ssh/config
+            StrictHostKeyChecking yes
+            UserKnownHostsFile ~/.ssh/known_hosts" > ~/.ssh/config
+          chmod 600 ~/.ssh/config
 
           git clone ssh://aur@aur.archlinux.org/win11-clipboard-history-bin.git /tmp/aur-pkg
           cd /tmp/aur-pkg
@@ -324,6 +384,8 @@ jobs:
 
           # Generate .SRCINFO inside a real Arch container when Docker exists,
           # otherwise fall back to a hand-written file (URLs: this repository).
+          # .SRCINFO در کانتینر واقعی Arch تولید می‌شود؛ در نبود Docker، فایل
+          # دست‌نویس با URLهای همین مخزن نوشته می‌شود.
           if command -v docker >/dev/null 2>&1; then
             docker run --rm -v "$PWD:/pkg" archlinux bash -c "
               pacman -Sy --noconfirm pacman-contrib

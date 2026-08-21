@@ -34,7 +34,13 @@ pub fn validate_open_url(raw: &str) -> Result<String, String> {
 
     let parsed = Url::parse(trimmed).map_err(|e| format!("Invalid URL: {e}"))?;
     let scheme = parsed.scheme();
-    if scheme != "https" && scheme != "http" && scheme != "mailto" {
+    // HTTPS-only for web targets: plain http:// is rejected so clipboard
+    // content can never trigger a cleartext request. The frontend upgrades
+    // http:// inputs to https:// before calling `open_safe_url`.
+    // فقط HTTPS برای مقاصد وب: http:// ساده رد می‌شود تا محتوای کلیپ‌بورد
+    // هرگز درخواست متنی‌آشکار (cleartext) ایجاد نکند. فرانت‌اند ورودی‌های
+    // http:// را پیش از فراخوانی `open_safe_url` به https:// ارتقا می‌دهد.
+    if scheme != "https" && scheme != "mailto" {
         return Err(format!("Protocol '{scheme}' is not allowed"));
     }
     if !parsed.username().is_empty() || parsed.password().is_some() {
@@ -77,6 +83,7 @@ mod tests {
     #[test]
     fn rejects_dangerous_targets() {
         assert!(validate_open_url("javascript:alert(1)").is_err());
+        assert!(validate_open_url("http://example.com/").is_err());
         assert!(validate_open_url("http://127.0.0.1/").is_err());
         assert!(validate_open_url("https://localhost/admin").is_err());
         assert!(validate_open_url("https://169.254.169.254/latest").is_err());

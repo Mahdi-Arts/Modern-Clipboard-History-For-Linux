@@ -29,6 +29,12 @@
 //! **not** protect against a process already running as the same UID.
 //! این تدابیر تصاویر دیسک و کاربران دیگر را محافظت می‌کند، نه فرآیندی
 //! که از قبل با همان UID اجرا می‌شود.
+//!
+//! Defence in depth: the `chacha20poly1305` crate is compiled with the
+//! `zeroize` feature, so key material held by the cipher is overwritten in
+//! memory when the instance is dropped (see Cargo.toml).
+//! دفاع عمقی: crate ی `chacha20poly1305` با feature ی `zeroize` کامپایل
+//! می‌شود تا کلید در حافظه هنگام drop بازنویسی شود (Cargo.toml را ببینید).
 
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
 use chacha20poly1305::aead::{Aead, KeyInit};
@@ -658,5 +664,73 @@ mod tests {
         // Only asserts the probe never panics; the boolean depends on the host.
         // فقط بررسی می‌کند که probe هرگز panic نکند؛ مقدار به میزبان وابسته است.
         let _ = HistoryCrypto::secret_service_available();
+    }
+
+    /// AEAD integrity: flipping a single ciphertext byte must fail decryption
+    /// instead of silently returning garbage (or worse, plaintext).
+    /// یکپارچگی AEAD: تغییر یک بایت ciphertext باید رمزگشایی را شکست دهد،
+    /// نه اینکه بی‌صدا دادهٔ خراب (یا بدتر، متن اصلی) برگرداند.
+    #[test]
+    fn tampered_ciphertext_is_rejected() {
+        let dir = temp_dir("tamper");
+        let crypto = HistoryCrypto::load_or_create(&dir).unwrap();
+
+        let stored = crypto.encrypt_str("top-secret clipboard").unwrap();
+        let mut raw_bytes = BASE64.decode(stored.as_bytes()).unwrap();
+
+        // Flip one bit in the middle of the ciphertext (past magic + nonce).
+        // یک بیت در میانهٔ متن رمز را برعکس کن (بعد از magic و nonce).
+        let middle = raw_bytes.len() / 2;
+        raw_bytes[middle] ^= 0x01;
+        let tampered = BASE64.encode(&raw_bytes);
+
+        let result = crypto.decrypt_str(&tampered);
+        assert!(
+            result.is_err(),
+            "tampered ciphertext must never decrypt (fail-closed)"
+        );
+
+        // The same rule applies to the raw-bytes envelope used for images.
+        // همین قانون برای پاکت بایتیِ تصاویر هم برقرار است.
+        let blob = crypto.encrypt_bytes(b"image-bytes").unwrap();
+        let mut tampered_blob = blob;
+        let middle = tampered_blob.len() / 2;
+        tampered_blob[middle] ^= 0x01;
+        assert!(crypto.decrypt_bytes(&tampered_blob).is_err());
+    }
+
+    /// Nonces must never repeat: encrypting the same plaintext many times
+    /// must yield distinct ciphertexts (ChaCha20-Poly1305 nonce reuse is
+    /// catastrophic for confidentiality).
+    /// nonce هرگز نباید تکرار شود: رمزکردن یک متن ثابت چندبار باید
+    /// ciphertextهای متمایز بدهد (تکرار nonce در ChaCha20-Poly1305
+    /// برای محرمانگی فاجعه‌بار است).
+    #[test]
+    fn nonces_are_unique_across_many_encryptions() {
+        let dir = temp_dir("nonces");
+        let crypto = HistoryCrypto::load_or_create(&dir).unwrap();
+
+        let mut seen = std::collections::HashSet::new();
+        for _ in 0..1_000 {
+            let stored = crypto.encrypt_str("identical plaintext").unwrap();
+            assert!(
+                seen.insert(stored.clone()),
+                "duplicate ciphertext detected after {} encryptions",
+                seen.len()
+            );
+        }
+    }
+
+    /// A key from another data directory must never decrypt this history.
+    /// کلیدی از دایرکتوری دادهٔ دیگر هرگز نباید این تاریخچه را باز کند.
+    #[test]
+    fn foreign_key_cannot_decrypt_history() {
+        let dir_a = temp_dir("foreign-a");
+        let dir_b = temp_dir("foreign-b");
+        let a = HistoryCrypto::load_or_create(&dir_a).unwrap();
+        let b = HistoryCrypto::load_or_create(&dir_b).unwrap();
+
+        let blob = a.encrypt_str("private clipboard text").unwrap();
+        assert!(b.decrypt_str(&blob).is_err(), "foreign key must fail closed");
     }
 }

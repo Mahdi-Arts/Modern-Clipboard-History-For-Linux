@@ -1,4 +1,10 @@
-const ALLOWED_PROTOCOLS = new Set(['http:', 'https:', 'mailto:'])
+// HTTPS-only for web targets: plain http:// is rejected so clipboard content
+// can never trigger a cleartext request. The Rust `open_safe_url` command
+// re-validates the same policy (see src-tauri/src/open_url.rs).
+// فقط HTTPS برای مقاصد وب: http:// ساده رد می‌شود تا محتوای کلیپ‌بورد هرگز
+// درخواست متنی‌آشکار ایجاد نکند. فرمان Rust ی `open_safe_url` همان سیاست را
+// دوباره اعتبارسنجی می‌کند (src-tauri/src/open_url.rs را ببینید).
+const ALLOWED_PROTOCOLS = new Set(['https:', 'mailto:'])
 
 /**
  * True when `s` contains raw control characters (incl. NUL). These must
@@ -100,8 +106,22 @@ export function sanitizeOpenUrl(raw: string): string | null {
   }
 }
 
+/**
+ * Normalize user input into an openable URL.
+ *
+ * Bare domains get the `https://` prefix; explicit `http://` input is
+ * upgraded to `https://` (HTTPS-only policy). Sites that do not serve
+ * HTTPS will simply fail to open — the security trade-off is deliberate.
+ *
+ * نرمال‌سازی ورودی کاربر به یک URL قابل باز شدن.
+ *
+ * دامنه‌های بدون پروتکل پیشوند `https://` می‌گیرند؛ ورودی صریح `http://`
+ * هم به `https://` ارتقا می‌یابد (سیاست فقط-HTTPS). سایت‌هایی که HTTPS
+ * ارائه نمی‌دهند باز نمی‌شوند — این مصالحهٔ امنیتی آگاهانه است.
+ */
 export function normalizeHttpUrl(raw: string): string {
   const trimmed = raw.trim()
-  if (/^https?:\/\//i.test(trimmed)) return trimmed
+  if (/^https:\/\//i.test(trimmed)) return trimmed
+  if (/^http:\/\//i.test(trimmed)) return trimmed.replace(/^http:/i, 'https:')
   return `https://${trimmed}`
 }

@@ -10,6 +10,54 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [Unreleased] — 2026-08-21
+
+### Security / امنیت
+
+- **Hardened CI prepared for activation.** The intended `.github/workflows/`
+  (blocking audits, coverage, `cargo test` default + `--all-features`,
+  clippy, syntax gate, CLI smoke) live in `docs/github-workflows/` with a
+  ready-to-apply patch — `git am docs/patches/hardened-ci-workflows.patch`
+  (GitHub Apps without the `workflows` permission cannot push workflow
+  files). Every action is pinned to a full commit SHA; all third-party URL
+  references were removed from the release pipeline.
+  CI سخت‌شده برای فعال‌سازی آماده شد (پچ آماده در docs/patches)؛ همهٔ actionها به SHA کامل پین و ارجاعات شخص ثالث از خط لولهٔ انتشار حذف شدند.
+- **AUR push is fail-closed.** SSH uses `StrictHostKeyChecking yes` with
+  `known_hosts` pinned via the `AUR_KNOWN_HOSTS` secret — never
+  trust-on-first-use. Optional GPG `SHA256SUMS.sig` published when
+  `RELEASE_GPG_PRIVATE_KEY` is configured.
+  اتصال AUR به‌صورت fail-closed با کلید میزبان پین‌شده انجام می‌شود؛ امضای GPG اختیاری برای SHA256SUMS اضافه شد.
+- **HTTPS-only smart actions.** `open_url.rs` and `urlSafety.ts` now accept
+  only `https`/`mailto`; frontend upgrades `http://` input to `https://`.
+  عملیات هوشمند فقط HTTPS؛ ورودی http به https ارتقا می‌یابد.
+- **Window-gated settings.** `set_user_settings` / `set_app_language` are
+  refused unless called from the `settings` window.
+  تغییر تنظیمات فقط از پنجرهٔ تنظیمات مجاز است.
+- **Key material zeroised in memory.** `chacha20poly1305` compiled with the
+  `zeroize` feature; new crypto tests (tamper detection, nonce uniqueness,
+  foreign-key rejection).
+  پاک‌سازی کلید از حافظه با `zeroize` + تست‌های مقاومت رمزنگاری جدید.
+
+### Performance / کارایی
+
+- **Event-driven clipboard monitoring** (`clipboard_events.rs`): XFixes
+  `SelectionNotify` on X11 and `wl-paste --watch` on Wayland wake the
+  watcher instantly; adaptive polling remains as fallback (with
+  `PR_SET_PDEATHSIG` child reaping).
+  نظارت کلیپ‌بورد رویدادمحور شد (XFixes / wl-paste) با polling پشتیبان.
+
+### Quality / کیفیت
+
+- ESLint upgraded to **type-aware** (`recommendedTypeChecked`); all 83
+  findings fixed (floating promises, misused async handlers, typed test
+  mocks, ref-narrowing in keyboard navigation).
+  ESLint به حالت آگاه به نوع ارتقا یافت و تمام یافته‌ها اصلاح شدند.
+- Flatpak deployment guide + one-command `packaging/flatpak/build.sh`;
+  packaging checklist extended (GPG, AUR known hosts).
+  راهنمای استقرار فلت‌پک و اسکریپت ساخت یک‌دستوری اضافه شد.
+
+---
+
 ## [2.5.0] - 2026-08-21
 
 ### Security / امنیت

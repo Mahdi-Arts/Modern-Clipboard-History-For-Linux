@@ -91,10 +91,16 @@ Tagging `vX.Y.Z` triggers `.github/workflows/release.yml`, which:
 | --- | --- |
 | Build matrix | x86_64 + aarch64 `.deb` / `.rpm` / AppImage |
 | `SHA256SUMS` | checksums of every artifact, published as a release asset |
+| GPG signature (optional) | `SHA256SUMS.sig` published when `RELEASE_GPG_PRIVATE_KEY` is set |
 | SPDX SBOM | `syft` scan **per artifact** → `<file>.spdx.json` |
 | SLSA provenance | `actions/attest-build-provenance` attestations |
-| AUR (optional) | PKGBUILD checksums updated when `AUR_SSH_KEY` is set |
+| AUR (optional) | PKGBUILD checksums updated when `AUR_SSH_KEY` **and** `AUR_KNOWN_HOSTS` are set — SSH uses `StrictHostKeyChecking yes`, never trust-on-first-use |
 | Cloudsmith (optional) | repo upload when `CLOUDSMITH_API_KEY` is set |
+
+Every `uses:` in the workflows is pinned to a full commit SHA (OpenSSF
+recommendation); tags are kept in comments for review only.
+همهٔ actionها در گردش‌کارها به SHA کامل کامیت پین شده‌اند؛ تگ‌ها فقط در
+کامنت برای بازبینی مانده‌اند.
 
 <div dir="rtl">نصاب `scripts/install.sh` تطبیق checksum با `SHA256SUMS` را **اجباری** می‌داند (`ALLOW_UNVERIFIED=1` فقط برای موارد استثنایی).</div>
 
@@ -171,5 +177,8 @@ sudo /usr/share/doc/win11-clipboard-history/apparmor/install.sh --enforce
 - [ ] `make lint && make test` green locally / سبز بودن گیت‌ها به‌صورت محلی
 - [ ] CI green on the release commit / سبز بودن CI
 - [ ] Tag pushed → release assets verified (`sha256sum -c SHA256SUMS`)
+- [ ] Optional secrets: `RELEASE_GPG_PRIVATE_KEY` (+passphrase) for signed
+      checksums, `AUR_SSH_KEY` + `AUR_KNOWN_HOSTS` (verified fingerprints!)
+      for the AUR push, `CLOUDSMITH_API_KEY` for the Cloudsmith repo
 - [ ] AUR/Cloudsmith updated (if secrets configured)
 - [ ] CHANGELOG entry + metainfo `<releases>` entry added

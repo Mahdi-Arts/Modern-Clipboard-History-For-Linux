@@ -37,3 +37,4 @@ src-tauri/WixTools/
 src-tauri/gen/
 
 temp/*
+.flatpak-builder

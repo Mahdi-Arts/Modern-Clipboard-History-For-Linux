@@ -114,10 +114,16 @@ pub fn get_user_settings() -> Result<UserSettings, AppError> {
 
 #[tauri::command]
 pub fn set_user_settings(
+    window: WebviewWindow,
     app: AppHandle,
     state: State<AppState>,
     new_settings: UserSettings,
 ) -> Result<(), AppError> {
+    // Mutating settings (privacy policy, history size, key backend) must
+    // come from the settings window — never from web content in `main`.
+    // تغییر تنظیمات (سیاست حریم خصوصی، حجم تاریخچه، بک‌اند کلید) فقط از
+    // پنجرهٔ تنظیمات مجاز است — هرگز از محتوای وب در پنجرهٔ `main`.
+    require_settings_window(&window)?;
     let manager = UserSettingsManager::new();
     manager.save(&new_settings)?;
 
@@ -162,10 +168,14 @@ pub fn get_default_settings() -> UserSettings {
 
 #[tauri::command]
 pub async fn set_app_language(
+    window: WebviewWindow,
     app: AppHandle,
     lang: String,
     _state: State<'_, AppState>,
 ) -> Result<(), AppError> {
+    // Language switching mutates persisted user settings; settings-window-only.
+    // تغییر زبان، تنظیمات ذخیره‌شده را تغییر می‌دهد؛ فقط از پنجرهٔ تنظیمات.
+    require_settings_window(&window)?;
     if lang != "en" && lang != "fa" {
         return Err(AppError::Other(
             "Invalid language. Supported: en, fa".into(),

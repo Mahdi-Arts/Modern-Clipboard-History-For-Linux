@@ -1,28 +1,34 @@
 From: Mahdi Arts <mahdi-arts@users.noreply.github.com>
-Date: 2026-08-20
-Subject: [PATCH] ci: activate hardened CI & release workflows (supply-chain gates)
+Date: 2026-08-21
+Subject: [PATCH] ci: activate hardened CI & release workflows (SHA-pinned, supply-chain gates)
 
 Applies the hardened .github/workflows/ci.yml and release.yml
-(blocking audits, tests, smoke; SHA256SUMS + per-artifact SBOM + provenance).
+(blocking audits/tests/smoke, SHA-pinned actions, AUR fail-closed, optional
+GPG SHA256SUMS.sig; SHA256SUMS + per-artifact SPDX SBOM + SLSA provenance).
 Apply with:  git am docs/patches/hardened-ci-workflows.patch
-Pushing workflow files needs a token with the 'workflows' scope.
+Pushing workflow files needs a token with the 'workflows' scope
+(a classic PAT or a direct push from a maintainer machine).
 
-diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
-index 42a9fd4..2ea0af4 100644
 --- a/.github/workflows/ci.yml
 +++ b/.github/workflows/ci.yml
-@@ -1,22 +1,45 @@
+@@ -1,36 +1,59 @@
  name: CI
  
 +# Hardened quality gate — every check in this file is BLOCKING.
 +# گیت کیفیت سخت‌گیرانه — تمام بررسی‌های این فایل «مسدودکننده» هستند.
 +#
-+# Contract (mirrored in README.md — keep both in sync):
-+#   - ESLint + tsc + Prettier-clean TS, zero warnings
++# Contract (mirrored in docs/CI.md and README.md — keep all three in sync):
++#   - ESLint (type-aware) + tsc, zero warnings
 +#   - Frontend unit tests WITH coverage thresholds
-+#   - cargo fmt + clippy -D warnings + cargo test
++#   - cargo fmt + clippy -D warnings
++#   - cargo test (default features, no HTTP) AND cargo test --all-features
 +#   - cargo audit / npm audit --audit-level=high / cargo-deny (no continue-on-error)
 +#   - Release build + CLI smoke (--version / --help) under Xvfb
++#
++# Supply chain: every action is pinned to a full commit SHA (OpenSSF
++# recommendation) — tags are listed in comments for review, not used.
++# زنجیرهٔ تأمین: هر action به SHA کامل کامیت پین شده است (توصیهٔ OpenSSF) —
++# تگ‌ها فقط در کامنت برای بازبینی آمده‌اند، نه برای اجرا.
 +
  on:
    push:
@@ -45,22 +51,20 @@ index 42a9fd4..2ea0af4 100644
 -  # Lint and format check
 -  lint:
 -    name: Lint & Format
-+  # ---------------------------------------------------------------------
-+  # Frontend + Rust quality gates (lint, format, unit tests, coverage)
-+  # گیت‌های کیفیت فرانت‌اند و Rust (لینت، فرمت، تست واحد، پوشش)
-+  # ---------------------------------------------------------------------
 +  quality:
 +    name: Lint, Test & Coverage
      runs-on: ubuntu-latest
      steps:
        - name: Checkout repository
-         uses: actions/checkout@v7
+-        uses: actions/checkout@v7
++        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 +        with:
 +          persist-credentials: false
  
        - name: Setup Node.js
-         uses: actions/setup-node@v6
-@@ -24,10 +47,8 @@ jobs:
+-        uses: actions/setup-node@v6
++        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+         with:
            node-version: '20'
            cache: 'npm'
  
@@ -69,11 +73,15 @@ index 42a9fd4..2ea0af4 100644
 -        with:
 -          components: rustfmt, clippy
 +      - name: Install Rust (from rust-toolchain.toml)
-+        uses: dtolnay/rust-toolchain@master
++        uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
  
        - name: Cache Cargo
-         uses: actions/cache@v6
-@@ -40,7 +61,7 @@ jobs:
+-        uses: actions/cache@v6
++        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+         with:
+           path: |
+             ~/.cargo/bin/
+@@ -40,7 +63,7 @@
              src-tauri/target/
            key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
  
@@ -82,16 +90,19 @@ index 42a9fd4..2ea0af4 100644
          run: |
            sudo apt-get update
            sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file \
-@@ -50,26 +71,73 @@ jobs:
+@@ -50,38 +73,83 @@
        - name: Install npm dependencies
          run: npm ci
  
 -      - name: Run ESLint
-+      - name: ESLint + TypeScript
++      - name: ESLint (type-aware) + TypeScript
          run: npm run lint
  
 -      - name: Check TypeScript
 -        run: npm run build
++      - name: Fast Rust syntax gate (tree-sitter)
++        run: node scripts/check-rust-syntax.mjs
++
 +      - name: Frontend tests with coverage gate
 +        run: npm run test:coverage
  
@@ -104,27 +115,26 @@ index 42a9fd4..2ea0af4 100644
 +      - name: Clippy (deny warnings)
 +        run: cd src-tauri && cargo clippy --all-targets -- -D warnings
 +
-+      - name: Rust unit tests
++      - name: Rust unit tests (default features — no HTTP client)
++        run: cd src-tauri && cargo test
++
++      - name: Rust unit tests (all features)
 +        run: cd src-tauri && cargo test --all-features
 +
-+  # ---------------------------------------------------------------------
-+  # Blocking supply-chain audits (no continue-on-error)
-+  # ممیزی‌های مسدودکنندهٔ زنجیرهٔ تأمین (بدون continue-on-error)
-+  # ---------------------------------------------------------------------
 +  security:
 +    name: Security Audit
 +    runs-on: ubuntu-latest
 +    steps:
 +      - name: Checkout repository
-+        uses: actions/checkout@v7
++        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 +        with:
 +          persist-credentials: false
 +
 +      - name: Install Rust
-+        uses: dtolnay/rust-toolchain@master
++        uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
 +
 +      - name: Install cargo-audit + cargo-deny
-+        uses: taiki-e/install-action@v2
++        uses: taiki-e/install-action@a2a5f6e99e1a31540baa0468acfa302cff0f359f # v2
 +        with:
 +          tool: cargo-audit,cargo-deny
 +
@@ -135,7 +145,7 @@ index 42a9fd4..2ea0af4 100644
 +        run: cd src-tauri && cargo deny check advisories bans licenses sources
 +
 +      - name: Setup Node.js
-+        uses: actions/setup-node@v6
++        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
 +        with:
 +          node-version: '20'
 +          cache: 'npm'
@@ -147,10 +157,6 @@ index 42a9fd4..2ea0af4 100644
 +        run: npm audit --audit-level=high
  
 -  # Build for Linux
-+  # ---------------------------------------------------------------------
-+  # Production Linux build + CLI smoke test
-+  # بیلد لینوکس + تست دودی CLI
-+  # ---------------------------------------------------------------------
    build-linux:
      name: Build Linux
      runs-on: ubuntu-latest
@@ -158,24 +164,30 @@ index 42a9fd4..2ea0af4 100644
 +    needs: [quality, security]
      steps:
        - name: Checkout repository
-         uses: actions/checkout@v7
+-        uses: actions/checkout@v7
++        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 +        with:
 +          persist-credentials: false
  
        - name: Setup Node.js
-         uses: actions/setup-node@v6
-@@ -77,8 +145,8 @@ jobs:
+-        uses: actions/setup-node@v6
++        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+         with:
            node-version: '20'
            cache: 'npm'
  
 -      - name: Install Rust
 -        uses: dtolnay/rust-toolchain@stable
 +      - name: Install Rust (from rust-toolchain.toml)
-+        uses: dtolnay/rust-toolchain@master
++        uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
  
        - name: Cache Cargo
-         uses: actions/cache@v6
-@@ -96,7 +164,7 @@ jobs:
+-        uses: actions/cache@v6
++        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+         with:
+           path: |
+             ~/.cargo/bin/
+@@ -96,7 +164,7 @@
            sudo apt-get update
            sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file \
              libssl-dev libayatana-appindicator3-dev librsvg2-dev libxdo-dev \
@@ -184,7 +196,7 @@ index 42a9fd4..2ea0af4 100644
  
        - name: Install npm dependencies
          run: npm ci
-@@ -104,6 +172,14 @@ jobs:
+@@ -104,8 +172,16 @@
        - name: Build Tauri app
          run: npm run tauri:build
  
@@ -197,9 +209,12 @@ index 42a9fd4..2ea0af4 100644
 +          xvfb-run --auto-servernum "$BIN" --version
 +
        - name: Upload artifacts
-         uses: actions/upload-artifact@v7
+-        uses: actions/upload-artifact@v7
++        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
          with:
-@@ -113,34 +189,3 @@ jobs:
+           name: linux-artifacts
+           path: |
+@@ -113,34 +189,3 @@
              src-tauri/target/release/bundle/appimage/*.AppImage
              src-tauri/target/release/bundle/rpm/*.rpm
            if-no-files-found: warn
@@ -234,11 +249,9 @@ index 42a9fd4..2ea0af4 100644
 -      - name: Run npm audit
 -        run: npm audit --audit-level=high
 -        continue-on-error: true
-diff --git a/.github/workflows/release.yml b/.github/workflows/release.yml
-index 6dd5d89..fc38f98 100644
 --- a/.github/workflows/release.yml
 +++ b/.github/workflows/release.yml
-@@ -1,5 +1,15 @@
+@@ -1,5 +1,21 @@
  name: Release
  
 +# Trusted release pipeline.
@@ -249,12 +262,18 @@ index 6dd5d89..fc38f98 100644
 +#   - Publishes .deb / .rpm / AppImage + SHA256SUMS + per-artifact SPDX SBOM
 +#   - SLSA build-provenance attestations via GitHub artifact attestations
 +#   - Every URL points at this repository (Mahdi-Arts/Modern-Clipboard-History-For-Linux)
-+#   - Optional channels (Cloudsmith / AUR) are opt-in via repository secrets
++#   - Optional channels (Cloudsmith / AUR / GPG signing) are opt-in via
++#     repository secrets and fail closed when unconfigured
++#
++# Supply chain: every action is pinned to a full commit SHA (OpenSSF
++# recommendation) — tags are listed in comments for review, not used.
++# زنجیرهٔ تأمین: هر action به SHA کامل کامیت پین شده است — تگ‌ها فقط در
++# کامنت برای بازبینی آمده‌اند، نه برای اجرا.
 +
  on:
    push:
      tags:
-@@ -7,11 +17,22 @@ on:
+@@ -7,11 +23,22 @@
  
  permissions:
    contents: write
@@ -277,8 +296,12 @@ index 6dd5d89..fc38f98 100644
    build:
      name: Build (${{ matrix.arch }})
      runs-on: ${{ matrix.runner }}
-@@ -32,19 +53,20 @@ jobs:
-         uses: actions/checkout@v7
+@@ -29,25 +56,26 @@
+             rpm_arch: aarch64
+     steps:
+       - name: Checkout repository
+-        uses: actions/checkout@v7
++        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
          with:
            fetch-depth: 0
 +          persist-credentials: false
@@ -289,7 +312,8 @@ index 6dd5d89..fc38f98 100644
 +        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
  
        - name: Setup Node.js
-         uses: actions/setup-node@v6
+-        uses: actions/setup-node@v6
++        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
          with:
 -          node-version: "20"
 -          cache: "npm"
@@ -299,11 +323,15 @@ index 6dd5d89..fc38f98 100644
 -      - name: Install Rust
 -        uses: dtolnay/rust-toolchain@stable
 +      - name: Install Rust (from rust-toolchain.toml)
-+        uses: dtolnay/rust-toolchain@master
++        uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
  
        - name: Cache Cargo
-         uses: actions/cache@v6
-@@ -68,7 +90,7 @@ jobs:
+-        uses: actions/cache@v6
++        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+         with:
+           path: |
+             ~/.cargo/bin/
+@@ -68,7 +96,7 @@
          run: |
            VERSION=${{ steps.get_version.outputs.VERSION }}
            echo "Syncing version to $VERSION"
@@ -312,7 +340,16 @@ index 6dd5d89..fc38f98 100644
            sed -i 's/"version": "[^"]*"/"version": "'"$VERSION"'"/' src-tauri/tauri.conf.json
            sed -i '0,/^version = "[^"]*"/s//version = "'"$VERSION"'"/' src-tauri/Cargo.toml
            echo "=== Versions after sync ==="
-@@ -92,6 +114,10 @@ jobs:
+@@ -83,7 +111,7 @@
+         run: npm run tauri:build
+ 
+       - name: Upload build artifacts
+-        uses: actions/upload-artifact@v7
++        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+         with:
+           name: build-${{ matrix.arch }}
+           path: |
+@@ -92,29 +120,94 @@
              src-tauri/target/release/bundle/rpm/*.rpm
            retention-days: 1
  
@@ -323,10 +360,11 @@ index 6dd5d89..fc38f98 100644
    release:
      name: Create Release
      needs: build
-@@ -99,10 +125,12 @@ jobs:
+     runs-on: ubuntu-latest
      steps:
        - name: Checkout repository
-         uses: actions/checkout@v7
+-        uses: actions/checkout@v7
++        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 +        with:
 +          persist-credentials: false
  
@@ -336,8 +374,9 @@ index 6dd5d89..fc38f98 100644
 +        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
  
        - name: Download all artifacts
-         uses: actions/download-artifact@v8
-@@ -110,8 +138,39 @@ jobs:
+-        uses: actions/download-artifact@v8
++        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+         with:
            path: artifacts
            merge-multiple: true
  
@@ -351,8 +390,35 @@ index 6dd5d89..fc38f98 100644
 +          sha256sum -- * > SHA256SUMS
 +          cat SHA256SUMS
 +
++      # -----------------------------------------------------------------
++      # Optional GPG signature over SHA256SUMS (opt-in via secrets).
++      # When RELEASE_GPG_PRIVATE_KEY is set, SHA256SUMS.sig is published and
++      # the installer can enforce it with WIN11_CLIPBOARD_TRUST_KEY.
++      # امضای اختیاری GPG روی SHA256SUMS (با secret فعال می‌شود). وقتی
++      # RELEASE_GPG_PRIVATE_KEY تنظیم باشد، SHA256SUMS.sig منتشر می‌شود و
++      # نصاب می‌تواند آن را با WIN11_CLIPBOARD_TRUST_KEY الزام کند.
++      # -----------------------------------------------------------------
++      - name: Sign SHA256SUMS (optional GPG)
++        env:
++          RELEASE_GPG_PRIVATE_KEY: ${{ secrets.RELEASE_GPG_PRIVATE_KEY }}
++          RELEASE_GPG_PASSPHRASE: ${{ secrets.RELEASE_GPG_PASSPHRASE }}
++        run: |
++          if [ -z "$RELEASE_GPG_PRIVATE_KEY" ]; then
++            echo "::notice::RELEASE_GPG_PRIVATE_KEY not set; publishing unsigned SHA256SUMS"
++            exit 0
++          fi
++          export GNUPGHOME="$(mktemp -d)"
++          printf '%s' "$RELEASE_GPG_PRIVATE_KEY" | gpg --batch --import
++          passphrase_args=()
++          if [ -n "$RELEASE_GPG_PASSPHRASE" ]; then
++            passphrase_args=(--pinentry-mode loopback --passphrase "$RELEASE_GPG_PASSPHRASE")
++          fi
++          gpg --batch --yes "${passphrase_args[@]}" \
++            --armor --detach-sign --output dist/SHA256SUMS.sig dist/SHA256SUMS
++          echo "::notice::SHA256SUMS.sig published; verify with WIN11_CLIPBOARD_TRUST_KEY"
++
 +      - name: Install syft (SBOM generator)
-+        uses: anchore/sbom-action/download-syft@v0
++        uses: anchore/sbom-action/download-syft@e22c389904149dbc22b58101806040fa8d37a610 # v0
 +
 +      - name: Generate per-artifact SPDX SBOM
 +        run: |
@@ -368,18 +434,23 @@ index 6dd5d89..fc38f98 100644
 +          ls -la dist/
 +
 +      - name: Attest build provenance (SLSA)
-+        uses: actions/attest-build-provenance@v2
++        uses: actions/attest-build-provenance@96b4a1ef7235a096b17240c259729fdd70c83d45 # v2
 +        with:
 +          subject-path: |
 +            dist/*.deb
 +            dist/*.rpm
 +            dist/*.AppImage
 +            dist/SHA256SUMS
++            dist/SHA256SUMS.sig
 +            dist/*.spdx.json
  
        - name: Create Release and Upload Assets
-         uses: softprops/action-gh-release@v3
-@@ -123,96 +182,73 @@ jobs:
+-        uses: softprops/action-gh-release@v3
++        uses: softprops/action-gh-release@c12583777ecdfd3be55c69cf75464299dc01057e # v3
+         if: startsWith(github.ref, 'refs/tags/')
+         with:
+           tag_name: ${{ github.ref_name }}
+@@ -123,96 +216,73 @@
            draft: false
            prerelease: ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') || contains(github.ref_name, 'dev') }}
            files: |
@@ -409,46 +480,46 @@ index 6dd5d89..fc38f98 100644
              ```
  
 -            This script auto-detects your distro and architecture, then sets up everything including paste permissions.
+-
+-            </div>
+-
+-            ---
 +            Prefer your package manager over piping scripts to bash. Review
 +            `scripts/install.sh` before running it.
 +            ترجیحاً از مدیر بستهٔ خود استفاده کنید؛ پیش از اجرای اسکریپت، آن را بازبینی کنید.
  
--            </div>
+-            ### 📦 Manual Installation
 +            ## 📦 Install / نصب
  
--            ---
--
--            ### 📦 Manual Installation
--
 -            <details>
 -            <summary>Ubuntu/Debian (APT Repository - enables auto-updates)</summary>
 +            ### Debian / Ubuntu
  
--            ```bash
+             ```bash
 -            curl -1sLf 'https://dl.cloudsmith.io/public/gustavosett/clipboard-manager/setup.deb.sh' | sudo -E bash
 -            sudo apt update && sudo apt install win11-clipboard-history
 -            sudo setfacl -m u:$USER:rw /dev/uinput  # For immediate paste access
 -            ```
 -
 -            Or download the `.deb` directly (amd64 for x86_64, arm64 for ARM64):
-             ```bash
+-            ```bash
              sudo apt install ./win11-clipboard-history_${{ steps.get_version.outputs.VERSION }}_amd64.deb
              sudo setfacl -m u:$USER:rw /dev/uinput
              ```
 -            </details>
--
+ 
 -            <details>
 -            <summary>Fedora/RHEL (DNF Repository - enables auto-updates)</summary
++            ### Fedora
  
--            ```bash
+             ```bash
 -            curl -1sLf 'https://dl.cloudsmith.io/public/gustavosett/clipboard-manager/setup.rpm.sh' | sudo -E bash
 -            sudo dnf install win11-clipboard-history
 -            sudo setfacl -m u:$USER:rw /dev/uinput  # For immediate paste access
 -            ```
-+            ### Fedora
- 
+-
 -            Or download the `.rpm` directly (x86_64 for Intel/AMD, aarch64 for ARM64):
-             ```bash
+-            ```bash
              sudo dnf install ./win11-clipboard-history-${{ steps.get_version.outputs.VERSION }}-1.x86_64.rpm
              sudo setfacl -m u:$USER:rw /dev/uinput
              ```
@@ -475,25 +546,27 @@ index 6dd5d89..fc38f98 100644
 -            ./win11-clipboard-history_${{ steps.get_version.outputs.VERSION }}_amd64.AppImage
 -            ```
 -            then register the command that you want in your system to open the AppImage
+-            ```
+-            KEYBOARD SETTINGS -> SHORTCUTS -> NEW SHORTCUT -> Super+V -> ./my_awesome_folder/win11-clipboard-history_${{ steps.get_version.outputs.VERSION }}_amd64.AppImage
 +            curl -fsSL https://raw.githubusercontent.com/Mahdi-Arts/Modern-Clipboard-History-For-Linux/master/scripts/install.sh -o install-clipboard.sh
 +            less install-clipboard.sh
 +            bash install-clipboard.sh
              ```
--            KEYBOARD SETTINGS -> SHORTCUTS -> NEW SHORTCUT -> Super+V -> ./my_awesome_folder/win11-clipboard-history_${{ steps.get_version.outputs.VERSION }}_amd64.AppImage
--            ```
--
+ 
 -            > **Note:** The `setfacl` command is temporary (resets on reboot). For permanent setup, see the [README](https://github.com/gustavosett/Windows-11-Clipboard-History-For-Linux#appimage-universal).
 -            </details>
- 
+-
 -            ---
+-
+-            ### ⌨️ Usage
+-
+-            Press **Super+V** to open the clipboard history. The app will show a Setup Wizard on first run to configure shortcuts and permissions.
 +            The installer **requires** a matching `SHA256SUMS` entry
 +            (`ALLOW_UNVERIFIED=1` to skip — not recommended).
 +            نصاب **الزاماً** checksum را با `SHA256SUMS` تطبیق می‌دهد.
- 
--            ### ⌨️ Usage
++
 +            ### Flatpak
- 
--            Press **Super+V** to open the clipboard history. The app will show a Setup Wizard on first run to configure shortcuts and permissions.
++
 +            See [`packaging/README.md`](https://github.com/Mahdi-Arts/Modern-Clipboard-History-For-Linux/blob/master/packaging/README.md).
 +            The sandbox does not grant `/dev/uinput`; use `.deb`/`.rpm` for paste
 +            simulation, or `flatpak override --user --device=all io.github.mahdi-arts.clipboard-history`.
@@ -507,7 +580,7 @@ index 6dd5d89..fc38f98 100644
        - name: Upload to Cloudsmith (stable releases only)
          if: ${{ !contains(github.ref_name, 'alpha') && !contains(github.ref_name, 'beta') && !contains(github.ref_name, 'rc') && !contains(github.ref_name, 'dev') }}
          continue-on-error: true
-@@ -220,37 +256,22 @@ jobs:
+@@ -220,57 +290,61 @@
            CLOUDSMITH_API_KEY: ${{ secrets.CLOUDSMITH_API_KEY }}
          run: |
            if [ -z "$CLOUDSMITH_API_KEY" ]; then
@@ -543,6 +616,7 @@ index 6dd5d89..fc38f98 100644
 -          else
 -            echo "No .rpm files found to upload"
 -          fi
+-
 +          for deb in dist/*.deb; do
 +            [ -f "$deb" ] || continue
 +            cloudsmith push deb mahdi-arts/clipboard-manager/any-distro/any-version \
@@ -553,15 +627,37 @@ index 6dd5d89..fc38f98 100644
 +            cloudsmith push rpm mahdi-arts/clipboard-manager/any-distro/any-version \
 +              "$rpm" --api-key "$CLOUDSMITH_API_KEY" || echo "::warning::Cloudsmith .rpm upload failed for $rpm"
 +          done
- 
++
++      # -----------------------------------------------------------------
++      # AUR update — fail closed.
++      # The AUR SSH host key is NEVER trusted on first use. The maintainer
++      # must store verified known_hosts lines for aur.archlinux.org in the
++      # AUR_KNOWN_HOSTS secret:
++      #   ssh-keyscan aur.archlinux.org >> known_hosts   (then verify the
++      #   fingerprints against a trusted channel, e.g. the Arch infra docs)
++      # Without that secret the update is skipped with a notice.
++      # به‌روزرسانی AUR — fail closed. کلید میزبان AUR هرگز به‌صورت
++      # trust-on-first-use پذیرفته نمی‌شود. نگهدارنده باید خطوط known_hosts
++      # تأییدشدهٔ aur.archlinux.org را در secret ی AUR_KNOWN_HOSTS بگذارد:
++      #   ssh-keyscan aur.archlinux.org >> known_hosts   (سپس اثر انگشت‌ها را
++      #   با یک کانال معتبر، مانند مستندات زیرساخت Arch، مقایسه کنید)
++      # بدون این secret، به‌روزرسانی با یک notice رد می‌شود.
++      # -----------------------------------------------------------------
        - name: Update AUR Package
          if: ${{ !contains(github.ref_name, 'alpha') && !contains(github.ref_name, 'beta') && !contains(github.ref_name, 'rc') && !contains(github.ref_name, 'dev') }}
-@@ -259,18 +280,16 @@ jobs:
+         continue-on-error: true
+         env:
            AUR_SSH_KEY: ${{ secrets.AUR_SSH_KEY }}
++          AUR_KNOWN_HOSTS: ${{ secrets.AUR_KNOWN_HOSTS }}
          run: |
            if [ -z "$AUR_SSH_KEY" ]; then
 -            echo "AUR_SSH_KEY not set, skipping AUR update"
 +            echo "::notice::AUR_SSH_KEY not set, skipping AUR update"
++            exit 0
++          fi
++          if [ -z "$AUR_KNOWN_HOSTS" ]; then
++            echo "::warning::AUR_KNOWN_HOSTS not set; refusing trust-on-first-use SSH. Skipping AUR update."
++            echo "::warning::Generate it with: ssh-keyscan aur.archlinux.org (verify fingerprints first)"
              exit 0
            fi
  
@@ -579,7 +675,7 @@ index 6dd5d89..fc38f98 100644
              exit 0
            fi
  
-@@ -280,28 +299,20 @@ jobs:
+@@ -280,28 +354,25 @@
              SHA256_ARM64=$(sha256sum "$DEB_ARM64" | cut -d' ' -f1)
            fi
  
@@ -589,13 +685,18 @@ index 6dd5d89..fc38f98 100644
 -
 -          # Setup SSH for AUR
            mkdir -p ~/.ssh
++          chmod 700 ~/.ssh
            echo "$AUR_SSH_KEY" > ~/.ssh/aur
            chmod 600 ~/.ssh/aur
++          echo "$AUR_KNOWN_HOSTS" > ~/.ssh/known_hosts
++          chmod 600 ~/.ssh/known_hosts
            echo "Host aur.archlinux.org
              User aur
              IdentityFile ~/.ssh/aur
 -            StrictHostKeyChecking no" > ~/.ssh/config
-+            StrictHostKeyChecking accept-new" > ~/.ssh/config
++            StrictHostKeyChecking yes
++            UserKnownHostsFile ~/.ssh/known_hosts" > ~/.ssh/config
++          chmod 600 ~/.ssh/config
  
 -          # Clone AUR repo
            git clone ssh://aur@aur.archlinux.org/win11-clipboard-history-bin.git /tmp/aur-pkg
@@ -609,7 +710,7 @@ index 6dd5d89..fc38f98 100644
            sed -i "s/^pkgver=.*/pkgver=$VERSION/" PKGBUILD
            sed -i "s/^pkgrel=.*/pkgrel=1/" PKGBUILD
            sed -i "s/sha256sums_x86_64=.*/sha256sums_x86_64=('$SHA256_X86_64')/" PKGBUILD
-@@ -311,20 +322,23 @@ jobs:
+@@ -311,20 +382,25 @@
              sed -i "s/sha256sums_aarch64=.*/sha256sums_aarch64=('SKIP')/" PKGBUILD
            fi
  
@@ -622,6 +723,8 @@ index 6dd5d89..fc38f98 100644
 -            echo "Docker failed, generating .SRCINFO manually"
 +          # Generate .SRCINFO inside a real Arch container when Docker exists,
 +          # otherwise fall back to a hand-written file (URLs: this repository).
++          # .SRCINFO در کانتینر واقعی Arch تولید می‌شود؛ در نبود Docker، فایل
++          # دست‌نویس با URLهای همین مخزن نوشته می‌شود.
 +          if command -v docker >/dev/null 2>&1; then
 +            docker run --rm -v "$PWD:/pkg" archlinux bash -c "
 +              pacman -Sy --noconfirm pacman-contrib
@@ -641,7 +744,7 @@ index 6dd5d89..fc38f98 100644
            ${TAB}install = win11-clipboard-history-bin.install
            ${TAB}arch = x86_64
            ${TAB}arch = aarch64
-@@ -342,19 +356,18 @@ jobs:
+@@ -342,19 +418,18 @@
            ${TAB}conflicts = win11-clipboard-history
            ${TAB}options = !strip
            ${TAB}options = !debug

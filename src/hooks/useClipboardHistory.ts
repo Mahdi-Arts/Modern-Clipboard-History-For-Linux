@@ -152,7 +152,7 @@ export function useClipboardHistory(options: UseClipboardHistoryOptions = {}) {
 
   useEffect(() => {
     const initialFetchTimer = globalThis.setTimeout(() => {
-      fetchHistory()
+      void fetchHistory()
     }, 0)
 
     let isMounted = true
@@ -180,12 +180,12 @@ export function useClipboardHistory(options: UseClipboardHistoryOptions = {}) {
         unlistenChanged = uChanged
       }
 
-      const uCleared = await listen('history-cleared', async () => {
-        try {
-          await fetchHistory()
-        } catch (e) {
+      const uCleared = await listen('history-cleared', () => {
+        // The listener callback is sync; the refresh is fire-and-forget.
+        // کال‌بک شنونده همگام است؛ به‌روزرسانی به‌صورت fire-and-forget اجرا می‌شود.
+        fetchHistory().catch((e) => {
           console.warn('[useClipboardHistory] Failed to refresh history on history-cleared', e)
-        }
+        })
       })
       if (!isMounted) {
         uCleared()
@@ -214,7 +214,7 @@ export function useClipboardHistory(options: UseClipboardHistoryOptions = {}) {
       }
     }
 
-    setupListeners()
+    void setupListeners()
 
     return () => {
       globalThis.clearTimeout(initialFetchTimer)

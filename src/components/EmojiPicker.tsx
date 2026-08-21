@@ -184,7 +184,7 @@ export function EmojiPicker({ isDark, opacity }: EmojiPickerProps) {
   // Handle emoji selection
   const handleSelect = useCallback(
     (emoji: Emoji) => {
-      pasteEmoji(emoji)
+      void pasteEmoji(emoji)
     },
     [pasteEmoji]
   )

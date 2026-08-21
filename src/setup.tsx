@@ -21,7 +21,7 @@ export function SetupApp() {
     <div className="h-screen w-screen overflow-hidden bg-transparent">
       {/* Pass handleComplete which invokes the backend finish_setup command 
             to mark setup as done, close this window, and show the main app. */}
-      <SetupWizard onComplete={handleComplete} />
+      <SetupWizard onComplete={() => void handleComplete()} />
     </div>
   )
 }

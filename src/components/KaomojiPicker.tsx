@@ -64,7 +64,7 @@ export function KaomojiPicker({ isDark, opacity, customKaomojis = [] }: KaomojiP
   const handleGridKeyDown = useKeyboardNavigation({
     items: kaomojis,
     columnCount,
-    onSelect: (item) => handlePaste(item.text),
+    onSelect: (item) => void handlePaste(item.text),
     setFocusedIndex: setGridFocusedIndex,
     containerRef: gridContainerRef,
     dataAttributeName: 'data-kaomoji-index',
@@ -125,7 +125,7 @@ export function KaomojiPicker({ isDark, opacity, customKaomojis = [] }: KaomojiP
               key={item.id}
               data-kaomoji-index={index}
               tabIndex={index === gridFocusedIndex ? 0 : -1}
-              onClick={() => handlePaste(item.text)}
+              onClick={() => void handlePaste(item.text)}
               onFocus={() => {
                 setGridFocusedIndex(index)
                 setHoveredKaomoji({ text: item.text, category: item.category })

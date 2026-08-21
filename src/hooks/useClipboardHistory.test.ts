@@ -3,7 +3,7 @@ import { renderHook, act, waitFor } from '@testing-library/react'
 
 // Mock Tauri APIs before importing the hook
 const listeners: Record<string, (payload: unknown) => void> = {}
-const invokeMock = vi.fn()
+const invokeMock = vi.fn<(...args: unknown[]) => Promise<unknown>>()
 
 vi.mock('@tauri-apps/api/core', () => ({
   invoke: (...args: unknown[]) => invokeMock(...args),
@@ -139,7 +139,7 @@ describe('useClipboardHistory', () => {
     const { result } = renderHook(() => useClipboardHistory())
     await waitFor(() => expect(result.current.history).toHaveLength(0))
 
-    await act(async () => {
+    act(() => {
       listeners['clipboard-changed']?.({ payload: makeItem('fresh') })
     })
 

@@ -67,7 +67,7 @@ This project needs `/dev/uinput` (or XTest) to simulate Ctrl+V. That is a powerf
 
 Tiling window managers (i3 / Sway / Hyprland) are **not** rewritten unless you enable *Allow rewriting tiling WM configs* in Settings.
 
-**Supply chain:** the installer **mandatorily verifies** every download against the release's `SHA256SUMS` (set `ALLOW_UNVERIFIED=1` to skip — not recommended). CI **blocks** on `cargo audit`, `cargo deny` (advisories/bans/licenses/sources), `npm audit --audit-level=high`, frontend coverage, `cargo test`, and a release-binary smoke test. Each release publishes `SHA256SUMS`, a **per-artifact** SPDX SBOM (syft), and SLSA build-provenance attestations. See [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md) and [docs/adr/](docs/adr/).
+**Supply chain:** the installer **mandatorily verifies** every download against the release's `SHA256SUMS` (set `ALLOW_UNVERIFIED=1` to skip — not recommended); optional GPG verification of the checksum file via `WIN11_CLIPBOARD_TRUST_KEY`. The hardened CI contract ([`docs/CI.md`](docs/CI.md)) **blocks** on `cargo audit`, `cargo deny` (advisories/bans/licenses/sources), `npm audit --audit-level=high`, type-aware ESLint + `tsc`, frontend coverage thresholds, a tree-sitter Rust syntax gate, `cargo test` (default and `--all-features`), `clippy -D warnings`, and a release-binary smoke test. Every GitHub Action is pinned to a full commit SHA (OpenSSF recommendation). Each release publishes `SHA256SUMS`, an optional GPG `SHA256SUMS.sig`, a **per-artifact** SPDX SBOM (syft), and SLSA build-provenance attestations. The AUR push fails closed unless verified SSH host keys are configured (`AUR_KNOWN_HOSTS`). Activation of the hardened `.github/workflows/` is a one-command maintainer step (`git am docs/patches/hardened-ci-workflows.patch` — GitHub Apps without the `workflows` permission cannot push workflow files). See [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md) and [docs/adr/](docs/adr/).
 
 ---
 
@@ -78,7 +78,7 @@ Prefer your package manager over piping scripts to `bash`. Verify `SHA256SUMS` f
 ### Debian / Ubuntu
 
 ```bash
-sudo apt install ./win11-clipboard-history_2.4.0_amd64.deb
+sudo apt install ./win11-clipboard-history_2.5.0_amd64.deb
 sudo setfacl -m u:$USER:rw /dev/uinput
 ```
 
@@ -139,6 +139,7 @@ Full diagram: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 | UI | React 19, TypeScript, Tailwind CSS 4, lazy-loaded pickers |
 | Backend | Rust, Tauri v2 (shortcut backends split per-DE) |
 | Clipboard I/O | arboard + `wl-copy` / `xclip` |
+| Monitoring | Event-driven wakeups (XFixes on X11, `wl-paste --watch` on Wayland) with adaptive polling fallback |
 | Persistence | SQLite (WAL) + ChaCha20-Poly1305 field **and image** encryption, atomic JSON |
 | Key storage | `history.key` (0600) or Secret Service keyring — marker-verified, fail-closed ([ADR-0006](docs/adr/0006-secret-service-key-storage.md)) |
 | IPC | Default paged reads (`get_history_page`, [ADR-0007](docs/adr/0007-ipc-pagination.md)); `get_history` is a clamped first page |
@@ -180,17 +181,24 @@ npm run test:coverage   # coverage thresholds enforced
 node scripts/check-rust-syntax.mjs  # fast syntax gate (tree-sitter)
 ```
 
-CI contract: [`docs/CI.md`](docs/CI.md). Hardened workflows live in
-[`docs/github-workflows/`](docs/github-workflows/) (apply onto
-`.github/workflows/` with a `workflows`-scoped token). The gate **blocks** on:
+CI contract: [`docs/CI.md`](docs/CI.md). The hardened workflows (SHA-pinned
+actions) live in [`docs/github-workflows/`](docs/github-workflows/) with a
+ready-to-apply patch — activate with `git am
+docs/patches/hardened-ci-workflows.patch` (a GitHub App without the
+`workflows` permission cannot push `.github/workflows/` directly). The gate
+**blocks** on:
 
-- `npm run lint` (tsc + ESLint, zero warnings)
+- `npm run lint` (type-aware ESLint + tsc, zero warnings)
 - `npm run test:coverage` (Vitest + coverage thresholds)
-- `cargo test`, `cargo clippy --all-targets -- -D warnings`, `cargo fmt --check`
+- `node scripts/check-rust-syntax.mjs` (fast tree-sitter syntax gate)
+- `cargo test` (default and `--all-features`), `cargo clippy --all-targets -- -D warnings`, `cargo fmt --check`
 - `cargo audit`, `cargo deny check` (advisories/bans/licenses/sources — see `src-tauri/deny.toml`), and `npm audit --audit-level=high` (no `continue-on-error`)
 - CLI smoke: `--version` / `--help` on the release binary (bare and under `xvfb-run`)
 
-Tagged releases publish `.deb` / `.rpm` / AppImage plus `SHA256SUMS`, a per-artifact SPDX SBOM, and SLSA build-provenance attestations. All URLs point at this repository (`Mahdi-Arts/Modern-Clipboard-History-For-Linux`).
+Tagged releases publish `.deb` / `.rpm` / AppImage plus `SHA256SUMS` (with an
+optional GPG `SHA256SUMS.sig`), a per-artifact SPDX SBOM, and SLSA
+build-provenance attestations. All URLs point at this repository
+(`Mahdi-Arts/Modern-Clipboard-History-For-Linux`).
 
 ### Environment
 

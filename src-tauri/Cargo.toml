@@ -61,7 +61,9 @@ whoami = "2.1.2"
 percent-encoding = "2.3"
 
 # X11 Simulation for paste injection
-x11rb = { version = "0.14", features = ["allow-unsafe-code", "xtest"] }
+# The `xfixes` feature enables event-driven clipboard wakeups (SelectionNotify).
+# فعال‌سازی `xfixes` برای بیدارباش رویدادمحور کلیپ‌بورد (SelectionNotify).
+x11rb = { version = "0.14", features = ["allow-unsafe-code", "xtest", "xfixes"] }
 libc = "0.2"
 gtk = "0.18"
 # D-Bus for XDG Desktop Portal (theme detection for COSMIC and other DEs)
@@ -83,7 +85,9 @@ url = "2"
 rusqlite = { version = "0.32", features = ["bundled"] }
 
 # Field-level at-rest encryption for history text columns
-chacha20poly1305 = "0.10"
+# The `zeroize` feature zeroises key material in memory on drop (defence in depth).
+# فعال‌سازی `zeroize` برای پاک‌سازی کلید از حافظه هنگام drop (دفاع عمقی).
+chacha20poly1305 = { version = "0.10", features = ["zeroize"] }
 rand = "0.8"
 
 [features]

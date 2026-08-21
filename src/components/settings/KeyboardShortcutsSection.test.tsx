@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { KeyboardShortcutsSection } from './KeyboardShortcutsSection'
 
-const invokeMock = vi.fn()
+const invokeMock = vi.fn<(...args: unknown[]) => Promise<unknown>>()
 
 vi.mock('@tauri-apps/api/core', () => ({
   invoke: (...args: unknown[]) => invokeMock(...args),

@@ -14,11 +14,17 @@ const HEX_COLOR_REGEX = /^#([0-9A-F]{3}){1,2}$/i
 const RGB_COLOR_REGEX =
   /^rgb\(\s*(25[0-5]|2[0-4]\d|1?\d?\d)\s*,\s*(25[0-5]|2[0-4]\d|1?\d?\d)\s*,\s*(25[0-5]|2[0-4]\d|1?\d?\d)\s*\)$/i
 
+/**
+ * True when `value` is a web URL. `normalizeHttpUrl` upgrades http → https
+ * (HTTPS-only policy), so the normalized protocol is always `https:`.
+ * وقتی `value` یک URL وب باشد «درست» است. `normalizeHttpUrl` ورودی http را
+ * به https ارتقا می‌دهد (سیاست فقط-HTTPS)؛ پس پروتکل نرمال‌شده همیشه https است.
+ */
 function looksLikeHttpUrl(value: string): boolean {
   if (value.length > 2048) return false
   try {
     const url = new URL(normalizeHttpUrl(value))
-    return url.protocol === 'http:' || url.protocol === 'https:'
+    return url.protocol === 'https:'
   } catch {
     return false
   }

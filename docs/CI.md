@@ -4,10 +4,16 @@
 
 <div dir="rtl">
 
-این سند قرارداد گیت‌های کیفیت است. منبع گردش‌کارهای سخت‌شده
-[`docs/github-workflows/`](github-workflows/) است. فعال‌سازی روی
-`.github/workflows/` به توکن با مجوز `workflows` نیاز دارد
-([راهنما](github-workflows/README.md)).
+این سند قرارداد گیت‌های کیفیت است. نسخهٔ اجراییِ مورد نظر در
+[`docs/github-workflows/`](github-workflows/) نگهداری می‌شود و فعال‌سازی آن
+یک گام دستی است (GitHub App بدون مجوز `workflows` نمی‌تواند
+`.github/workflows/` را پوش کند):
+
+```bash
+git am docs/patches/hardened-ci-workflows.patch && git push
+```
+
+همهٔ actionها به SHA کامل کامیت پین شده‌اند (توصیهٔ OpenSSF).
 
 ## گیت‌های مسدودکننده (`docs/github-workflows/ci.yml`)
 
@@ -31,21 +37,29 @@
 با تگ `v*` ساخته می‌شود:
 
 - `.deb` / `.rpm` / AppImage برای x86_64 و aarch64
-- `SHA256SUMS`
+- `SHA256SUMS` (+ امضای اختیاری GPG با secret ی `RELEASE_GPG_PRIVATE_KEY`)
 - SPDX SBOM به ازای هر آرتیفکت (`syft`)
 - گواهی SLSA build-provenance
 - همهٔ URLها به `Mahdi-Arts/Modern-Clipboard-History-For-Linux`
 
-Cloudsmith و AUR فقط وقتی secret مخزن تنظیم شده باشد فعال می‌شوند.
+Cloudsmith و AUR فقط وقتی secretهای مخزن تنظیم شده باشند فعال می‌شوند.
+اتصال AUR با `StrictHostKeyChecking yes` و `known_hosts` پین‌شده از secret ی
+`AUR_KNOWN_HOSTS` انجام می‌شود — هرگز trust-on-first-use.
 
 </div>
 
 ---
 
-This document is the quality-gate contract. The hardened workflow **source**
-is [`docs/github-workflows/`](github-workflows/). Copying it onto
-`.github/workflows/` requires a token with the `workflows` scope
-([instructions](github-workflows/README.md)).
+This document is the quality-gate contract. The intended blocking
+workflows live in [`docs/github-workflows/`](github-workflows/) with a
+ready-to-apply patch (`.github/workflows/*` cannot be pushed by GitHub Apps
+without the `workflows` permission):
+
+```bash
+git am docs/patches/hardened-ci-workflows.patch && git push
+```
+
+All actions are pinned to full commit SHAs (OpenSSF recommendation).
 
 ## Blocking gates (`docs/github-workflows/ci.yml`)
 
@@ -55,6 +69,10 @@ binary compiles **without** our optional `reqwest` / GIF search feature.
 
 ## Releases (`docs/github-workflows/release.yml`)
 
-Tag `v*` publishes checksums, per-artifact SPDX SBOMs, and SLSA
+Tag `v*` publishes checksums (plus an optional GPG `SHA256SUMS.sig` driven
+by `RELEASE_GPG_PRIVATE_KEY`), per-artifact SPDX SBOMs, and SLSA
 attestations. Optional channels (Cloudsmith, AUR) require repository
-secrets; they never silently point at a third-party fork.
+secrets; they never silently point at a third-party fork. The AUR SSH
+connection is fail-closed: `StrictHostKeyChecking yes` with `known_hosts`
+pinned via the `AUR_KNOWN_HOSTS` secret — trust-on-first-use is never
+accepted.
