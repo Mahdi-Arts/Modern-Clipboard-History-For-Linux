@@ -1,6 +1,6 @@
 # گزارش بازبینی فنی، امنیتی و دوزبانگی مخزن
 
-**پروژه:** Modern Clipboard History for Linux  
+**پروژه:** Windows 11 Style Clipboard History Manager  
 **نسخه:** 2.5.0  
 **تاریخ بازبینی:** 2026-08-21  
 **دامنه:** کد React/TypeScript، هستهٔ Rust/Tauri، بسته‌بندی، CI/CD، امنیت، شبکه، رابط دوزبانه و مستندات
@@ -29,10 +29,10 @@
 
 ### ضعف‌ها و ریسک‌ها
 
-1. **ناسازگاری نام باینری — زیاد:** `Cargo.toml` باینری `modern-clipboard-history-for-linux-bin` می‌سازد، ولی CI، Debian rules، Flatpak و بخش‌هایی از AppArmor انتظار `modern-clipboard-history-for-linux-bin` دارند؛ Makefile و wrapper نیز نام سومی با حروف بزرگ دارند. این مسئله می‌تواند smoke test یا بسته‌بندی را بشکند.
+1. **ناسازگاری نام باینری — زیاد:** `Cargo.toml` باینری `windows-11-style-clipboard-history-manager-bin` می‌سازد، و CI، Debian rules، Flatpak و بخش‌هایی از AppArmor با نام `windows-11-style-clipboard-history-manager-bin` یکپارچه شده‌اند.
 2. فایل‌های بزرگ باقی‌مانده‌اند: `input_simulator.rs`، `history_crypto.rs`، `SetupWizard.tsx` و `commands.rs` هر کدام چندصد خط‌اند. شکستن آن‌ها به adapter/service/policy/test module نگهداری را بهتر می‌کند.
 3. دو پیاده‌سازی SymbolPicker در `components/SymbolPicker.tsx` و `components/common/SymbolPicker.tsx` دیده می‌شود؛ نسخهٔ بلااستفاده خطر drift دارد.
-4. نام‌های تاریخی پروژه (`modern-clipboard-history-for-linux`، `Modern-Clipboard-History-For-Linux` و identifier جدید) در مسیرها و بسته‌ها یکنواخت نیستند.
+4. نام‌های تاریخی پروژه در مسیرها و بسته‌ها به `windows-11-style-clipboard-history-manager` یکنواخت شدند.
 5. محصول دسکتاپ است و «مقیاس‌پذیری» آن بیشتر به حجم تاریخچه، مصرف حافظه و latency IPC مربوط است، نه horizontal scaling. صفحه‌بندی خوب است ولی benchmark و budget عملکردی ثبت نشده است.
 
 ### جمع‌بندی معماری

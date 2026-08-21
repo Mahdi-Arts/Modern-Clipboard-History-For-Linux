@@ -40,7 +40,7 @@ packaging/
 ├── README.md                 # Canonical binary & build instructions (دوزبانه)
 ├── DEPLOYMENT.md             # ← این سند / this document
 ├── apparmor/
-│   ├── modern-clipboard-history-for-linux   # AppArmor profile (complain default)
+│   ├── windows-11-style-clipboard-history-manager   # AppArmor profile (complain default)
 │   └── install.sh            # installs profile; `--enforce` to harden
 ├── debian/
 │   ├── control               # package metadata (Source/Package/Depends/Description)
@@ -59,23 +59,23 @@ Key installation paths produced by the `.deb` (see `debian/rules`):
 
 | Path | Purpose |
 | --- | --- |
-| `/usr/bin/modern-clipboard-history-for-linux` | launcher wrapper |
-| `/usr/lib/modern-clipboard-history-for-linux/…-bin` | host-linked binary |
-| `/etc/udev/rules.d/99-modern-clipboard-history-input.rules` | uinput permissions |
-| `/etc/modules-load.d/modern-clipboard-history-for-linux.conf` | load `uinput` module |
+| `/usr/bin/windows-11-style-clipboard-history-manager` | launcher wrapper |
+| `/usr/lib/windows-11-style-clipboard-history-manager/…-bin` | host-linked binary |
+| `/etc/udev/rules.d/99-windows-11-style-clipboard-history-input.rules` | uinput permissions |
+| `/etc/modules-load.d/windows-11-style-clipboard-history-manager.conf` | load `uinput` module |
 | `/usr/share/applications/io.github.mahdi-arts.clipboard-history.desktop` | menu entry |
-| `/usr/share/doc/modern-clipboard-history-for-linux/apparmor/…` | AppArmor profile + installer |
+| `/usr/share/doc/windows-11-style-clipboard-history-manager/apparmor/…` | AppArmor profile + installer |
 
 مسیرهای کلیدی تولیدشده توسط `.deb` (نگاه کنید به `debian/rules`):
 
 | مسیر | کاربرد |
 | --- | --- |
-| `/usr/bin/modern-clipboard-history-for-linux` | راه‌انداز wrapper |
-| `/usr/lib/modern-clipboard-history-for-linux/…-bin` | باینری متصل به میزبان |
-| `/etc/udev/rules.d/99-modern-clipboard-history-input.rules` | مجوزهای uinput |
-| `/etc/modules-load.d/modern-clipboard-history-for-linux.conf` | بارگذاری ماژول `uinput` |
+| `/usr/bin/windows-11-style-clipboard-history-manager` | راه‌انداز wrapper |
+| `/usr/lib/windows-11-style-clipboard-history-manager/…-bin` | باینری متصل به میزبان |
+| `/etc/udev/rules.d/99-windows-11-style-clipboard-history-input.rules` | مجوزهای uinput |
+| `/etc/modules-load.d/windows-11-style-clipboard-history-manager.conf` | بارگذاری ماژول `uinput` |
 | `/usr/share/applications/io.github.mahdi-arts.clipboard-history.desktop` | ورودی منو |
-| `/usr/share/doc/modern-clipboard-history-for-linux/apparmor/…` | پروفایل AppArmor + نصب‌کننده |
+| `/usr/share/doc/windows-11-style-clipboard-history-manager/apparmor/…` | پروفایل AppArmor + نصب‌کننده |
 
 ---
 
@@ -104,12 +104,12 @@ The release is produced by `.github/workflows/release.yml`:
 ## ۴. داده‌ها و کلید رمزنگاری (بازیابی و پشتیبان‌گیری) / Data & encryption key
 
 > **Enterprise-critical.** The clipboard history is encrypted at rest with a key
-> that lives either in a **key file** (`~/.local/share/modern-clipboard-history-for-linux/history.key`)
+> that lives either in a **key file** (`~/.local/share/windows-11-style-clipboard-history-manager/history.key`)
 > or in the **Secret Service keyring**. **Losing the key means losing the
 > history** — there is no backdoor and no master password reset.
 >
 > **حیاتی.** تاریخچهٔ کلیپ‌بورد با کلیدی رمز می‌شود که یا در **فایل کلید**
-> (`~/.local/share/modern-clipboard-history-for-linux/history.key`) یا در
+> (`~/.local/share/windows-11-style-clipboard-history-manager/history.key`) یا در
 > **کلید-ring دسکتاپ** است. **از دست دادن کلید یعنی از دست دادن تاریخچه**؛ هیچ
 > درِ پشتی و هیچ ریست master password وجود ندارد.
 
@@ -130,7 +130,7 @@ The release is produced by `.github/workflows/release.yml`:
   دسکتاپ‌های پشتیبانی‌شده؛ چون کلید روی دیسک نمی‌ماند.
 
 **Quarantine / قرنطینه:** undecryptable history rows are recorded in
-`~/.local/share/modern-clipboard-history-for-linux/quarantine.log` (ids + reasons)
+`~/.local/share/windows-11-style-clipboard-history-manager/quarantine.log` (ids + reasons)
 instead of being silently dropped. Rows that fail to decrypt are **never**
 surfaced as partial items.
 
@@ -146,7 +146,7 @@ mode by default (logs violations, blocks nothing). To harden:
 
 ```bash
 sudo ./packaging/apparmor/install.sh --enforce
-sudo aa-status | grep modern   # confirm it is loaded
+sudo aa-status | grep windows   # confirm it is loaded
 ```
 
 Because `/dev/uinput` is a powerful capability, **enforce mode should be
@@ -157,7 +157,7 @@ validated** on your desktop before rolling it out widely.
 
 ```bash
 sudo ./packaging/apparmor/install.sh --enforce
-sudo aa-status | grep modern   # تأیید بارگذاری
+sudo aa-status | grep windows   # تأیید بارگذاری
 ```
 
 چون `/dev/uinput` قابلیت قدرتمندی است، **پیش از گسترش، حالت enforce باید** روی
@@ -170,9 +170,9 @@ sudo aa-status | grep modern   # تأیید بارگذاری
 After building, verify the `.deb` installs and runs (see `scripts/verify-deb.sh`):
 
 ```bash
-sudo apt install ./modern-clipboard-history-for-linux_2.5.0_amd64.deb
-command -v modern-clipboard-history-for-linux          # launcher on PATH
-/usr/lib/modern-clipboard-history-for-linux/modern-clipboard-history-for-linux-bin --version
+sudo apt install ./windows-11-style-clipboard-history-manager_2.5.0_amd64.deb
+command -v windows-11-style-clipboard-history-manager          # launcher on PATH
+/usr/lib/windows-11-style-clipboard-history-manager/windows-11-style-clipboard-history-manager-bin --version
 ```
 
 And the Flatpak build:

@@ -1,16 +1,16 @@
-# بررسی فنی، امنیتی و معماری مخزن Modern-Clipboard-History-For-Linux
+# بررسی فنی، امنیتی و معماری مخزن Windows-11-Style-Clipboard-History-Manager
 
 **بسم الله الرحمن الرحیم**
 
 | | |
 |---|---|
-| **پروژه** | Modern Clipboard History for Linux |
+| **پروژه** | Windows 11 Style Clipboard History Manager |
 | **نسخه** | 2.5.0 |
 | **تاریخ بازبینی** | 2026-08-21 |
 | **روش** | بازبینی ایستا (Static Review) از روی کد، پیکربندی، بسته‌بندی و مستندات |
 | **محدودهٔ تحلیل** | ~۱۱٬۷۰۰ خط Rust، ~۹٬۳۰۰ خط TypeScript/TSX، بسته‌بندی Debian/RPM/AppImage/Flatpak/AUR، CI/CD و ۸ سند ADR |
 
-> نکته: این گزارش به‌صورت مستقل و از روی **کد واقعی** تهیه شده، نه فقط از گزارش‌های قبلی. در همین نشست، نام‌گذاری ناسازگار باینری (`win11-clipboard-history-bin`) به `modern-clipboard-history-for-linux-bin` یکپارچه شد که یکی از یافته‌های گزارش پیشین را برطرف می‌کند.
+> نکته: این گزارش به‌صورت مستقل و از روی **کد واقعی** تهیه شده، نه فقط از گزارش‌های قبلی. در همین نشست، نام‌گذاری باینری و بسته‌ها به `windows-11-style-clipboard-history-manager-bin` و `windows-11-style-clipboard-history-manager` یکپارچه شد که یافته‌های گزارش پیشین را برطرف می‌کند.
 
 ---
 
@@ -35,7 +35,7 @@
 
 1. **فایل‌های بزرگ (God objects):** `input_simulator.rs` (~۷۵۰ خط)، `history_crypto.rs` (~۷۴۰ خط)، `SetupWizard.tsx` (~۷۵۰ خط)، `commands.rs` (~۵۶۰ خط). نگهداری و تست این فایل‌ها را دشوار می‌کند.
 2. **تکرار کد:** دو پیاده‌سازی `SymbolPicker` در `components/SymbolPicker.tsx` و `components/common/SymbolPicker.tsx` وجود دارد؛ نسخهٔ بلااستفاده ریسک drift دارد.
-3. **ناسازگاری تاریخی نام‌ها** — که در همین نشست اصلاح شد (باینری، بسته‌ها، مسیرهای داده و اسکریپت‌ها به نام یکسان `modern-clipboard-history-for-linux` رسیدند).
+3. **ناسازگاری تاریخی نام‌ها** — که در همین نشست اصلاح شد (باینری، بسته‌ها، مسیرهای داده و اسکریپت‌ها به نام یکسان `windows-11-style-clipboard-history-manager` رسیدند).
 4. **وابستگی مستقیم به فرمان‌های سیستم** (Command, fs, global state) در بسیاری از ماژول‌ها؛ تست integration را سخت می‌کند.
 
 ---
@@ -74,7 +74,7 @@
 7. **Safe URL opener:** محدود به `https`/`mailto`، رد credential، کنترل کاراکتر، طول ۲۰۴۸، رد میزبان‌های داخلی — هم در Rust هم در TS.
 8. **تزریق paste محافظت‌شده:** پنجرهٔ `main`، تأیید نوشتن اخیر کلیپ‌بورد در ۵ ثانیه اخیر، serialize با paste_gate و مکانیزم ticket برای GIF.
 9. **Supply-chain:** اکشن‌های CI به **full commit SHA پین** شده‌اند، `npm audit`/`cargo audit`/`cargo deny`، SBOM (syft) و attest-build-provenance (SLSA) در release فعال است.
-10. **Lint قراردادی اسرار در بسته** و بررسی دستورالعمل (README آپشنال GPG با `MODERN_CLIPBOARD_HISTORY_TRUST_KEY`).
+10. **Lint قراردادی اسرار در بسته** و بررسی دستورالعمل (README آپشنال GPG با `WINDOWS_11_CLIPBOARD_TRUST_KEY`).
 
 ### یافته‌های مهم امنیتی
 

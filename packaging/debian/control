@@ -1,4 +1,4 @@
-Source: modern-clipboard-history-for-linux
+Source: windows-11-style-clipboard-history-manager
 Section: utils
 Priority: optional
 Maintainer: Mahdi Arts <mahdi-arts@users.noreply.github.com>
@@ -16,12 +16,12 @@ Build-Depends: debhelper-compat (= 13),
                libglib2.0-dev,
                pkg-config
 Standards-Version: 4.6.2
-Homepage: https://github.com/Mahdi-Arts/Modern-Clipboard-History-For-Linux
-Vcs-Git: https://github.com/Mahdi-Arts/Modern-Clipboard-History-For-Linux.git
-Vcs-Browser: https://github.com/Mahdi-Arts/Modern-Clipboard-History-For-Linux
+Homepage: https://github.com/Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager
+Vcs-Git: https://github.com/Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager.git
+Vcs-Browser: https://github.com/Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager
 Rules-Requires-Root: no
 
-Package: modern-clipboard-history-for-linux
+Package: windows-11-style-clipboard-history-manager
 Architecture: any
 Depends: ${shlibs:Depends},
          ${misc:Depends},

@@ -44,7 +44,7 @@ pub use types::{ClipboardContent, ClipboardItem};
 pub const DEFAULT_MAX_HISTORY_SIZE: usize = 50;
 pub const MAX_HISTORY_HARD_CAP: usize = 2_000;
 const PREVIEW_TEXT_MAX_LEN: usize = 100;
-const GIF_CACHE_MARKER: &str = "modern-clipboard-history-for-linux/gifs/";
+const GIF_CACHE_MARKER: &str = "windows-11-style-clipboard-history-manager/gifs/";
 const FILE_URI_PREFIX: &str = "file://";
 const CLIPBOARD_HELPER_READY_TIMEOUT: Duration = Duration::from_secs(2);
 const CLIPBOARD_HELPER_POLL_INTERVAL: Duration = Duration::from_millis(2);
@@ -54,7 +54,7 @@ const CLIPBOARD_HELPER_POLL_INTERVAL: Duration = Duration::from_millis(2);
 pub fn data_dir() -> PathBuf {
     dirs::data_local_dir()
         .unwrap_or_else(|| PathBuf::from("."))
-        .join("modern-clipboard-history-for-linux")
+        .join("windows-11-style-clipboard-history-manager")
 }
 
 fn truncate_chars(s: &str, max: usize) -> String {
@@ -154,7 +154,7 @@ impl ClipboardManager {
                     // Process-local key that is NEVER written next to the real DB.
                     // کلید موقت جلسه که هرگز کنار دیتابیس واقعی نوشته نمی‌شود.
                     let ephemeral_dir = std::env::temp_dir()
-                        .join(format!("modern-clipboard-history-unusable-{}", Uuid::new_v4()));
+                        .join(format!("windows-11-style-clipboard-history-unusable-{}", Uuid::new_v4()));
                     let _ = fs::create_dir_all(&ephemeral_dir);
                     (
                         HistoryCrypto::load_or_create(&ephemeral_dir)

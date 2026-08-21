@@ -1,5 +1,5 @@
 # =============================================================================
-# Modern Clipboard History for Linux — Docker Build Environment
+# Windows 11 Style Clipboard History Manager — Docker Build Environment
 # =============================================================================
 # Reproducible environment for CI builds and tests.
 # Not for distribution — use native DEB/RPM/AppImage for that.

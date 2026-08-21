@@ -1,11 +1,11 @@
 #!/bin/bash
-# Post-removal script for modern-clipboard-history-for-linux
+# Post-removal script for windows-11-style-clipboard-history-manager
 set -e
 
 case "$1" in
     purge)
         # Remove module configuration (handle both possible filenames for compatibility)
-        rm -f /etc/modules-load.d/modern-clipboard-history-for-linux.conf
+        rm -f /etc/modules-load.d/windows-11-style-clipboard-history-manager.conf
         rm -f /etc/modules-load.d/uinput.conf
         
         # Update caches

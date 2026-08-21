@@ -103,7 +103,7 @@ pub fn init_tracing() {
 
     let log_dir = dirs::data_local_dir()
         .unwrap_or_else(|| std::path::PathBuf::from("."))
-        .join("modern-clipboard-history-for-linux/logs");
+        .join("windows-11-style-clipboard-history-manager/logs");
     let _ = std::fs::create_dir_all(&log_dir);
     crate::fs_atomic::restrict_permissions(&log_dir);
 
@@ -114,7 +114,7 @@ pub fn init_tracing() {
     let _ = tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::filter::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-                tracing_subscriber::filter::EnvFilter::new("info,modern_clipboard_history_for_linux=debug")
+                tracing_subscriber::filter::EnvFilter::new("info,windows_11_style_clipboard_history_manager=debug")
             }),
         )
         .with_writer(non_blocking)

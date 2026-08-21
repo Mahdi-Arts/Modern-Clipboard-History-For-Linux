@@ -2785,7 +2785,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "modern-clipboard-history-for-linux"
+name = "windows-11-style-clipboard-history-manager"
 version = "2.5.0"
 dependencies = [
  "arboard",

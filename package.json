@@ -1,5 +1,5 @@
 {
-  "name": "Modern-Clipboard-History-For-Linux",
+  "name": "windows-11-style-clipboard-history-manager",
   "private": true,
   "version": "2.5.0",
   "type": "module",
@@ -8,7 +8,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Mahdi-Arts/Modern-Clipboard-History-For-Linux"
+    "url": "https://github.com/Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager"
   },
   "keywords": [
     "clipboard",

@@ -20,7 +20,7 @@ pub fn detect_kde_conflicts() -> Vec<ShortcutConflict> {
         for line in content.lines() {
             if line.contains("Meta+V") || line.contains("Meta+v") {
                 if let Some(action) = extract_kde_action(&content, line) {
-                    if action.contains("clipboard-history") || action.contains("modern-clipboard-history") {
+                    if action.contains("clipboard-history") || action.contains("windows-11-style-clipboard-history") || action.contains("modern-clipboard-history") {
                         continue;
                     }
 

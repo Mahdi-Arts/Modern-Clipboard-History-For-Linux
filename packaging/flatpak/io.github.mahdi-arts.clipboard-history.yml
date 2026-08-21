@@ -5,7 +5,7 @@ sdk: org.gnome.Sdk
 sdk-extensions:
   - org.freedesktop.Sdk.Extension.rust-stable
   - org.freedesktop.Sdk.Extension.node20
-command: modern-clipboard-history-for-linux
+command: windows-11-style-clipboard-history-manager
 
 finish-args:
   - --share=ipc
@@ -14,8 +14,8 @@ finish-args:
   - --talk-name=org.freedesktop.portal.Desktop
   - --talk-name=org.freedesktop.portal.Settings
   - --talk-name=org.kde.StatusNotifierWatcher
-  - --filesystem=xdg-data/modern-clipboard-history-for-linux:create
-  - --filesystem=xdg-config/modern-clipboard-history-for-linux:create
+  - --filesystem=xdg-data/windows-11-style-clipboard-history-manager:create
+  - --filesystem=xdg-config/windows-11-style-clipboard-history-manager:create
   - --env=NO_AT_BRIDGE=1
   # Paste via /dev/uinput is unavailable under Flathub's device policy.
   # For full paste simulation, use the native .deb/.rpm package.
@@ -38,22 +38,22 @@ modules:
         url: https://github.com/bugaevc/wl-clipboard.git
         tag: v2.2.1
 
-  - name: modern-clipboard-history-for-linux
+  - name: windows-11-style-clipboard-history-manager
     buildsystem: simple
     build-options:
       append-path: /usr/lib/sdk/rust-stable/bin:/usr/lib/sdk/node20/bin
       env:
-        CARGO_HOME: /run/build/modern-clipboard-history-for-linux/cargo
-        npm_config_cache: /run/build/modern-clipboard-history-for-linux/npm-cache
+        CARGO_HOME: /run/build/windows-11-style-clipboard-history-manager/cargo
+        npm_config_cache: /run/build/windows-11-style-clipboard-history-manager/npm-cache
     build-commands:
       - npm ci --no-audit --no-fund
       - npm run build
       - cd src-tauri && cargo build --release --features custom-protocol
-      - install -Dm755 src-tauri/target/release/modern-clipboard-history-for-linux-bin
-        ${FLATPAK_DEST}/lib/modern-clipboard-history-for-linux/modern-clipboard-history-for-linux-bin
+      - install -Dm755 src-tauri/target/release/windows-11-style-clipboard-history-manager-bin
+        ${FLATPAK_DEST}/lib/windows-11-style-clipboard-history-manager/windows-11-style-clipboard-history-manager-bin
       - install -Dm755 src-tauri/bundle/linux/wrapper.sh
-        ${FLATPAK_DEST}/bin/modern-clipboard-history-for-linux
-      - install -Dm644 src-tauri/bundle/linux/modern-clipboard-history-for-linux.desktop
+        ${FLATPAK_DEST}/bin/windows-11-style-clipboard-history-manager
+      - install -Dm644 src-tauri/bundle/linux/windows-11-style-clipboard-history-manager.desktop
         ${FLATPAK_DEST}/share/applications/${FLATPAK_ID}.desktop
       - sed -i "s/^Exec=.*/Exec=${FLATPAK_ID}/" ${FLATPAK_DEST}/share/applications/${FLATPAK_ID}.desktop
       - install -Dm644 src-tauri/icons/128x128.png

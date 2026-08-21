@@ -1,15 +1,15 @@
 #!/bin/bash
-# Wrapper for Modern Clipboard History for Linux / راه‌انداز تاریخچهٔ کلیپ‌بورد
+# Wrapper for Windows 11 Style Clipboard History Manager / راه‌انداز تاریخچهٔ کلیپ‌بورد
 # Cleans inherited sandbox variables before launching the host-linked binary.
 # متغیرهای به‌ارث‌رسیدهٔ sandbox را پیش از اجرای باینری میزبان پاک می‌کند.
 
 set -e
 
 BINARY_LOCATIONS=(
-    "/app/lib/modern-clipboard-history-for-linux/modern-clipboard-history-for-linux-bin"
-    "/usr/lib/modern-clipboard-history-for-linux/modern-clipboard-history-for-linux-bin"
-    "/usr/local/lib/modern-clipboard-history-for-linux/modern-clipboard-history-for-linux-bin"
-    "/usr/bin/modern-clipboard-history-for-linux-bin"
+    "/app/lib/windows-11-style-clipboard-history-manager/windows-11-style-clipboard-history-manager-bin"
+    "/usr/lib/windows-11-style-clipboard-history-manager/windows-11-style-clipboard-history-manager-bin"
+    "/usr/local/lib/windows-11-style-clipboard-history-manager/windows-11-style-clipboard-history-manager-bin"
+    "/usr/bin/windows-11-style-clipboard-history-manager-bin"
 )
 
 # Find the binary
@@ -23,7 +23,7 @@ done
 
 # Verify binary was found
 if [ -z "$BINARY" ]; then
-    echo "Error: modern-clipboard-history-for-linux-bin was not found." >&2
+    echo "Error: windows-11-style-clipboard-history-manager-bin was not found." >&2
     echo "The wrapper searched for an executable in the following locations (in order):" >&2
     for loc in "${BINARY_LOCATIONS[@]}"; do
         echo "  - $loc" >&2

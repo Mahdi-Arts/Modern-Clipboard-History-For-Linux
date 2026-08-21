@@ -11,7 +11,7 @@ case "$1" in
         gtk-update-icon-cache -f -t /usr/share/icons/hicolor 2>/dev/null || true
         if [ -n "$SUDO_USER" ]; then
             user_home=$(getent passwd "$SUDO_USER" | cut -d: -f6)
-            rm -f "$user_home/.config/autostart/modern-clipboard-history-for-linux.desktop" 2>/dev/null || true
+            rm -f "$user_home/.config/autostart/windows-11-style-clipboard-history-manager.desktop" 2>/dev/null || true
         fi
         ;;
 esac

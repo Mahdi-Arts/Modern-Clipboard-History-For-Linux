@@ -4,16 +4,16 @@ Type=Application
 Name=Clipboard History
 GenericName=Clipboard Manager
 Comment=Windows 11-style Clipboard History Manager for Linux
-Exec=modern-clipboard-history-for-linux
+Exec=windows-11-style-clipboard-history-manager
 Icon=io.github.mahdi-arts.clipboard-history
 Terminal=false
 Categories=Utility;GTK;System;
 Keywords=clipboard;history;paste;copy;emoji;manager;
-StartupWMClass=modern-clipboard-history-for-linux
+StartupWMClass=windows-11-style-clipboard-history-manager
 StartupNotify=true
 
 # Persian (Farsi) localization
 Name[fa]=تاریخچه کلیپ‌بورد
 GenericName[fa]=مدیر کلیپ‌بورد
-Comment[fa]=مدیر تاریخچه کلیپ‌بورد مدرن برای لینوکس با الهام از ویندوز ۱۱
+Comment[fa]=مدیر تاریخچه کلیپ‌بورد به سبک ویندوز ۱۱ برای لینوکس
 Keywords[fa]=کلیپ‌بورد;تاریخچه;کپی;پیست;ایموجی;

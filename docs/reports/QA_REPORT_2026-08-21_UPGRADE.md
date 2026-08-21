@@ -14,9 +14,9 @@
 | --- | --- | --- |
 | 1 | Hardened CI/release workflows **prepared for activation** (blocking audits, coverage, `cargo test` default + all-features, clippy, syntax gate, CLI smoke) — shipped as `docs/github-workflows/` mirrors + a validated `git am` patch | `docs/github-workflows/`, `docs/patches/hardened-ci-workflows.patch` |
 | 2 | Every GitHub Action pinned to a **full commit SHA** (OpenSSF); tags kept in comments only | both workflows + `docs/github-workflows/` mirrors |
-| 3 | All `gustavosett` references removed; every URL points at `Mahdi-Arts/Modern-Clipboard-History-For-Linux`; Cloudsmith/AUR are secret-gated and fail closed | `release.yml` |
+| 3 | All `gustavosett` references removed; every URL points at `Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager`; Cloudsmith/AUR are secret-gated and fail closed | `release.yml` |
 | 4 | AUR SSH is **fail-closed**: `StrictHostKeyChecking yes` + `known_hosts` from the `AUR_KNOWN_HOSTS` secret — trust-on-first-use never accepted | `docs/github-workflows/release.yml`, `docs/CI.md`, `packaging/README.md` |
-| — | Optional GPG `SHA256SUMS.sig` (`RELEASE_GPG_PRIVATE_KEY`) wired into the release + installer (`MODERN_CLIPBOARD_HISTORY_TRUST_KEY`) | `docs/github-workflows/release.yml`, docs |
+| — | Optional GPG `SHA256SUMS.sig` (`RELEASE_GPG_PRIVATE_KEY`) wired into the release + installer (`WINDOWS_11_CLIPBOARD_TRUST_KEY`) | `docs/github-workflows/release.yml`, docs |
 
 ### 🟠 Core security & performance (recommendations 5–7, 12)
 

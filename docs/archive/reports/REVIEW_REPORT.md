@@ -1,6 +1,6 @@
-# 🔍 گزارش بررسی فنی و امنیتی — Modern Clipboard History for Linux
+# 🔍 گزارش بررسی فنی و امنیتی — Windows 11 Style Clipboard History Manager
 
-> **مخزن:** `github.com/Mahdi-Arts/Modern-Clipboard-History-For-Linux`
+> **مخزن:** `github.com/Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager`
 > **نسخه:** 2.0.0 | **تاریخ بررسی:** 2026-08-20
 > **روش بررسی:** تحلیل استاتیک کامل کد (Rust + TypeScript/React)، اجرای تست‌ها و لینت‌ها، بررسی CI/CD، پیکربندی بسته‌بندی و مستندات.
 
@@ -128,7 +128,7 @@
 ## ۶. پیشنهادات کلیدی برای ارتقاء به سطح Enterprise
 
 ### پیشنهاد ۱ — بهداشت زنجیره تأمین (Supply Chain) — *اولویت: بحرانی*
-- `release.yml` را کامل بازنویسی کنید تا همه URLها به `Mahdi-Arts/Modern-Clipboard-History-For-Linux` اشاره کنند (متن Release، Cloudsmith، `.SRCINFO`). انتشار از مخزن اشتباه برای کاربران = ریسک اعتماد جدی.
+- `release.yml` را کامل بازنویسی کنید تا همه URLها به `Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager` اشاره کنند (متن Release، Cloudsmith، `.SRCINFO`). انتشار از مخزن اشتباه برای کاربران = ریسک اعتماد جدی.
 - `cargo audit` و `npm audit` را **الزامی** کنید (حذف `continue-on-error` یا ساخت job جداگانه با آستانه fail)، و `cargo-audit` را در CI کش کنید.
 - به هر Release **مهر Provenance** اضافه کنید: `actions/attest-build-provenance` (یا حداقل همیشه-الزامی `SHA256SUMS` + امضای GPG)، و در `install.sh` بررسی checksum را اجباری کنید نه مشروط.
 - در `aur/PKGBUILD` به‌جای `SKIP` از checksum واقعی استفاده کنید و `rust-toolchain.toml` برای پین نسخه Rust اضافه کنید.

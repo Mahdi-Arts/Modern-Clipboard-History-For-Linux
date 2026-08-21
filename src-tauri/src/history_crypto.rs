@@ -57,17 +57,17 @@ const KEY_CHECK_FILE: &str = "history.key.check";
 /// Backup name for the file key after a Secret Service migration.
 /// نام پشتیبان کلید فایل پس از مهاجرت به Secret Service.
 const KEY_FILE_MIGRATED: &str = "history.key.migrated";
-const KEY_CHECK_PLAIN: &str = "modern-clipboard-history-for-linux:key-check:v1";
+const KEY_CHECK_PLAIN: &str = "windows-11-style-clipboard-history-manager:key-check:v1";
 
 /// Attribute pair identifying our item in the Secret Service.
 /// جفت attribute که آیتم ما را در Secret Service شناسایی می‌کند.
 const SS_ATTRIBUTES: [&str; 4] = [
     "application",
-    "modern-clipboard-history-for-linux",
+    "windows-11-style-clipboard-history-manager",
     "purpose",
     "history.key",
 ];
-const SS_LABEL: &str = "Modern Clipboard History for Linux — history encryption key";
+const SS_LABEL: &str = "Windows 11 Style Clipboard History Manager — history encryption key";
 
 /// Where the history encryption key is stored.
 /// محل ذخیرهٔ کلید رمزنگاری تاریخچه.

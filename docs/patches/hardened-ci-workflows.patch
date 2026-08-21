@@ -202,7 +202,7 @@ Pushing workflow files needs a token with the 'workflows' scope
  
 +      - name: CLI smoke (--version / --help)
 +        run: |
-+          BIN=src-tauri/target/release/modern-clipboard-history-for-linux-bin
++          BIN=src-tauri/target/release/windows-11-style-clipboard-history-manager-bin
 +          test -x "$BIN"
 +          "$BIN" --version
 +          "$BIN" --help
@@ -261,7 +261,7 @@ Pushing workflow files needs a token with the 'workflows' scope
 +#   - Multi-arch builds (x86_64 + aarch64)
 +#   - Publishes .deb / .rpm / AppImage + SHA256SUMS + per-artifact SPDX SBOM
 +#   - SLSA build-provenance attestations via GitHub artifact attestations
-+#   - Every URL points at this repository (Mahdi-Arts/Modern-Clipboard-History-For-Linux)
++#   - Every URL points at this repository (Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager)
 +#   - Optional channels (Cloudsmith / AUR / GPG signing) are opt-in via
 +#     repository secrets and fail closed when unconfigured
 +#
@@ -286,7 +286,7 @@ Pushing workflow files needs a token with the 'workflows' scope
  
  env:
    CARGO_TERM_COLOR: always
-+  REPO: Mahdi-Arts/Modern-Clipboard-History-For-Linux
++  REPO: Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager
  
  jobs:
 +  # ---------------------------------------------------------------------
@@ -393,10 +393,10 @@ Pushing workflow files needs a token with the 'workflows' scope
 +      # -----------------------------------------------------------------
 +      # Optional GPG signature over SHA256SUMS (opt-in via secrets).
 +      # When RELEASE_GPG_PRIVATE_KEY is set, SHA256SUMS.sig is published and
-+      # the installer can enforce it with MODERN_CLIPBOARD_HISTORY_TRUST_KEY.
++      # the installer can enforce it with WINDOWS_11_CLIPBOARD_TRUST_KEY.
 +      # امضای اختیاری GPG روی SHA256SUMS (با secret فعال می‌شود). وقتی
 +      # RELEASE_GPG_PRIVATE_KEY تنظیم باشد، SHA256SUMS.sig منتشر می‌شود و
-+      # نصاب می‌تواند آن را با MODERN_CLIPBOARD_HISTORY_TRUST_KEY الزام کند.
++      # نصاب می‌تواند آن را با WINDOWS_11_CLIPBOARD_TRUST_KEY الزام کند.
 +      # -----------------------------------------------------------------
 +      - name: Sign SHA256SUMS (optional GPG)
 +        env:
@@ -415,7 +415,7 @@ Pushing workflow files needs a token with the 'workflows' scope
 +          fi
 +          gpg --batch --yes "${passphrase_args[@]}" \
 +            --armor --detach-sign --output dist/SHA256SUMS.sig dist/SHA256SUMS
-+          echo "::notice::SHA256SUMS.sig published; verify with MODERN_CLIPBOARD_HISTORY_TRUST_KEY"
++          echo "::notice::SHA256SUMS.sig published; verify with WINDOWS_11_CLIPBOARD_TRUST_KEY"
 +
 +      - name: Install syft (SBOM generator)
 +        uses: anchore/sbom-action/download-syft@e22c389904149dbc22b58101806040fa8d37a610 # v0
@@ -497,13 +497,13 @@ Pushing workflow files needs a token with the 'workflows' scope
  
              ```bash
 -            curl -1sLf 'https://dl.cloudsmith.io/public/gustavosett/clipboard-manager/setup.deb.sh' | sudo -E bash
--            sudo apt update && sudo apt install modern-clipboard-history-for-linux
+-            sudo apt update && sudo apt install windows-11-style-clipboard-history-manager
 -            sudo setfacl -m u:$USER:rw /dev/uinput  # For immediate paste access
 -            ```
 -
 -            Or download the `.deb` directly (amd64 for x86_64, arm64 for ARM64):
 -            ```bash
-             sudo apt install ./modern-clipboard-history-for-linux_${{ steps.get_version.outputs.VERSION }}_amd64.deb
+             sudo apt install ./windows-11-style-clipboard-history-manager_${{ steps.get_version.outputs.VERSION }}_amd64.deb
              sudo setfacl -m u:$USER:rw /dev/uinput
              ```
 -            </details>
@@ -514,13 +514,13 @@ Pushing workflow files needs a token with the 'workflows' scope
  
              ```bash
 -            curl -1sLf 'https://dl.cloudsmith.io/public/gustavosett/clipboard-manager/setup.rpm.sh' | sudo -E bash
--            sudo dnf install modern-clipboard-history-for-linux
+-            sudo dnf install windows-11-style-clipboard-history-manager
 -            sudo setfacl -m u:$USER:rw /dev/uinput  # For immediate paste access
 -            ```
 -
 -            Or download the `.rpm` directly (x86_64 for Intel/AMD, aarch64 for ARM64):
 -            ```bash
-             sudo dnf install ./modern-clipboard-history-for-linux-${{ steps.get_version.outputs.VERSION }}-1.x86_64.rpm
+             sudo dnf install ./windows-11-style-clipboard-history-manager-${{ steps.get_version.outputs.VERSION }}-1.x86_64.rpm
              sudo setfacl -m u:$USER:rw /dev/uinput
              ```
 -            </details>
@@ -530,7 +530,7 @@ Pushing workflow files needs a token with the 'workflows' scope
 +            ### Arch Linux (AUR)
  
              ```bash
-             yay -S modern-clipboard-history-for-linux-bin
+             yay -S windows-11-style-clipboard-history-manager-bin
              ```
 -            </details>
  
@@ -541,14 +541,14 @@ Pushing workflow files needs a token with the 'workflows' scope
 -            > ## Some features are disabled; we strongly recommend the complete installation.
              ```bash
 -            # Download the correct AppImage for your architecture
--            chmod +x modern-clipboard-history-for-linux_${{ steps.get_version.outputs.VERSION }}_amd64.AppImage
+-            chmod +x windows-11-style-clipboard-history-manager_${{ steps.get_version.outputs.VERSION }}_amd64.AppImage
 -            sudo setfacl -m u:$USER:rw /dev/uinput  # Required for paste simulation
--            ./modern-clipboard-history-for-linux_${{ steps.get_version.outputs.VERSION }}_amd64.AppImage
+-            ./windows-11-style-clipboard-history-manager_${{ steps.get_version.outputs.VERSION }}_amd64.AppImage
 -            ```
 -            then register the command that you want in your system to open the AppImage
 -            ```
--            KEYBOARD SETTINGS -> SHORTCUTS -> NEW SHORTCUT -> Super+V -> ./my_awesome_folder/modern-clipboard-history-for-linux_${{ steps.get_version.outputs.VERSION }}_amd64.AppImage
-+            curl -fsSL https://raw.githubusercontent.com/Mahdi-Arts/Modern-Clipboard-History-For-Linux/master/scripts/install.sh -o install-clipboard.sh
+-            KEYBOARD SETTINGS -> SHORTCUTS -> NEW SHORTCUT -> Super+V -> ./my_awesome_folder/windows-11-style-clipboard-history-manager_${{ steps.get_version.outputs.VERSION }}_amd64.AppImage
++            curl -fsSL https://raw.githubusercontent.com/Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager/master/scripts/install.sh -o install-clipboard.sh
 +            less install-clipboard.sh
 +            bash install-clipboard.sh
              ```
@@ -567,7 +567,7 @@ Pushing workflow files needs a token with the 'workflows' scope
 +
 +            ### Flatpak
 +
-+            See [`packaging/README.md`](https://github.com/Mahdi-Arts/Modern-Clipboard-History-For-Linux/blob/master/packaging/README.md).
++            See [`packaging/README.md`](https://github.com/Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager/blob/master/packaging/README.md).
 +            The sandbox does not grant `/dev/uinput`; use `.deb`/`.rpm` for paste
 +            simulation, or `flatpak override --user --device=all io.github.mahdi-arts.clipboard-history`.
          env:
@@ -699,12 +699,12 @@ Pushing workflow files needs a token with the 'workflows' scope
 +          chmod 600 ~/.ssh/config
  
 -          # Clone AUR repo
-           git clone ssh://aur@aur.archlinux.org/modern-clipboard-history-for-linux-bin.git /tmp/aur-pkg
+           git clone ssh://aur@aur.archlinux.org/windows-11-style-clipboard-history-manager-bin.git /tmp/aur-pkg
            cd /tmp/aur-pkg
  
 -          # Use aur/PKGBUILD from the repo as the single source of truth
            cp "$GITHUB_WORKSPACE/aur/PKGBUILD" PKGBUILD
-           cp "$GITHUB_WORKSPACE/aur/modern-clipboard-history-for-linux-bin.install" . 2>/dev/null || true
+           cp "$GITHUB_WORKSPACE/aur/windows-11-style-clipboard-history-manager-bin.install" . 2>/dev/null || true
  
 -          # Update version and checksums via sed
            sed -i "s/^pkgver=.*/pkgver=$VERSION/" PKGBUILD
@@ -735,27 +735,27 @@ Pushing workflow files needs a token with the 'workflows' scope
 +            echo "::warning::Docker unavailable; writing .SRCINFO manually"
              TAB=$'\t'
              cat > .SRCINFO << SRCINFO_EOF
-           pkgbase = modern-clipboard-history-for-linux-bin
+           pkgbase = windows-11-style-clipboard-history-manager-bin
            ${TAB}pkgdesc = Windows 11-style Clipboard History Manager for Linux
            ${TAB}pkgver = $VERSION
            ${TAB}pkgrel = 1
 -          ${TAB}url = https://github.com/gustavosett/Windows-11-Clipboard-History-For-Linux
-+          ${TAB}url = https://github.com/Mahdi-Arts/Modern-Clipboard-History-For-Linux
-           ${TAB}install = modern-clipboard-history-for-linux-bin.install
++          ${TAB}url = https://github.com/Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager
+           ${TAB}install = windows-11-style-clipboard-history-manager-bin.install
            ${TAB}arch = x86_64
            ${TAB}arch = aarch64
 @@ -342,19 +418,18 @@
-           ${TAB}conflicts = modern-clipboard-history-for-linux
+           ${TAB}conflicts = windows-11-style-clipboard-history-manager
            ${TAB}options = !strip
            ${TAB}options = !debug
--          ${TAB}source_x86_64 = https://github.com/gustavosett/Windows-11-Clipboard-History-For-Linux/releases/download/v$VERSION/modern-clipboard-history-for-linux_${VERSION}_amd64.deb
-+          ${TAB}source_x86_64 = https://github.com/Mahdi-Arts/Modern-Clipboard-History-For-Linux/releases/download/v$VERSION/modern-clipboard-history-for-linux_${VERSION}_amd64.deb
+-          ${TAB}source_x86_64 = https://github.com/gustavosett/Windows-11-Clipboard-History-For-Linux/releases/download/v$VERSION/windows-11-style-clipboard-history-manager_${VERSION}_amd64.deb
++          ${TAB}source_x86_64 = https://github.com/Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager/releases/download/v$VERSION/windows-11-style-clipboard-history-manager_${VERSION}_amd64.deb
            ${TAB}sha256sums_x86_64 = $SHA256_X86_64
--          ${TAB}source_aarch64 = https://github.com/gustavosett/Windows-11-Clipboard-History-For-Linux/releases/download/v$VERSION/modern-clipboard-history-for-linux_${VERSION}_arm64.deb
-+          ${TAB}source_aarch64 = https://github.com/Mahdi-Arts/Modern-Clipboard-History-For-Linux/releases/download/v$VERSION/modern-clipboard-history-for-linux_${VERSION}_arm64.deb
+-          ${TAB}source_aarch64 = https://github.com/gustavosett/Windows-11-Clipboard-History-For-Linux/releases/download/v$VERSION/windows-11-style-clipboard-history-manager_${VERSION}_arm64.deb
++          ${TAB}source_aarch64 = https://github.com/Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager/releases/download/v$VERSION/windows-11-style-clipboard-history-manager_${VERSION}_arm64.deb
            ${TAB}sha256sums_aarch64 = ${SHA256_ARM64:-SKIP}
  
-           pkgname = modern-clipboard-history-for-linux-bin
+           pkgname = windows-11-style-clipboard-history-manager-bin
            SRCINFO_EOF
              sed -i 's/^          //' .SRCINFO
 -          }

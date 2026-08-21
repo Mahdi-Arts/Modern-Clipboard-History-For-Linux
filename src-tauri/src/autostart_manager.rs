@@ -37,7 +37,7 @@ fn get_autostart_dir() -> Option<PathBuf> {
 
 /// Get the path to the autostart desktop file
 fn get_autostart_file() -> Option<PathBuf> {
-    get_autostart_dir().map(|p| p.join("modern-clipboard-history-for-linux.desktop"))
+    get_autostart_dir().map(|p| p.join("windows-11-style-clipboard-history-manager.desktop"))
 }
 
 /// Read the content of the autostart desktop file
@@ -50,10 +50,10 @@ fn read_autostart_content() -> Option<String> {
 fn get_exec_path() -> String {
     // Priority order for the wrapper/binary
     let possible_paths = [
-        "/usr/bin/modern-clipboard-history-for-linux", // Wrapper installed by .deb/.rpm
-        "/usr/local/bin/modern-clipboard-history-for-linux", // Manual install with PREFIX=/usr/local
-        "/usr/bin/modern-clipboard-history-for-linux-bin", // Direct binary (fallback)
-        "/usr/local/bin/modern-clipboard-history-for-linux-bin", // Direct binary local (fallback)
+        "/usr/bin/windows-11-style-clipboard-history-manager", // Wrapper installed by .deb/.rpm
+        "/usr/local/bin/windows-11-style-clipboard-history-manager", // Manual install with PREFIX=/usr/local
+        "/usr/bin/windows-11-style-clipboard-history-manager-bin", // Direct binary (fallback)
+        "/usr/local/bin/windows-11-style-clipboard-history-manager-bin", // Direct binary local (fallback)
     ];
 
     for path in &possible_paths {
@@ -65,7 +65,7 @@ fn get_exec_path() -> String {
     // Last resort: use current executable
     std::env::current_exe()
         .map(|p| p.display().to_string())
-        .unwrap_or_else(|_| "modern-clipboard-history-for-linux".to_string())
+        .unwrap_or_else(|_| "windows-11-style-clipboard-history-manager".to_string())
 }
 
 /// Enable autostart by creating a .desktop file in ~/.config/autostart/
@@ -148,7 +148,11 @@ pub fn migrate_native() -> Result<bool, String> {
     let uses_old_binary = content
         .lines()
         .find(|line| line.trim_start().starts_with("Exec="))
-        .is_some_and(|line| line.contains("modern-clipboard-history-for-linux-bin"));
+        .is_some_and(|line| {
+            line.contains("windows-11-style-clipboard-history-manager-bin")
+                || line.contains("modern-clipboard-history-for-linux-bin")
+                || line.contains("win11-clipboard-history-bin")
+        });
 
     // Legacy entries used `sh -c "sleep 5 && …"` — migrate them off the shell.
     let uses_shell = content
