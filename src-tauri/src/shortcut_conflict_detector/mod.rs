@@ -201,12 +201,10 @@ fn parse_resolution_argv(cmd: &str) -> Result<Vec<String>, String> {
     Ok(args)
 }
 
+/// In-process `PATH` probe — no `which` subprocess (see `crate::exec_lookup`).
+/// بررسی درون‌فرآیندی PATH — بدون subprocess ی `which` (`crate::exec_lookup`).
 pub(super) fn command_exists(cmd: &str) -> bool {
-    Command::new("which")
-        .arg(cmd)
-        .output()
-        .map(|o| o.status.success())
-        .unwrap_or(false)
+    crate::exec_lookup::command_exists(cmd)
 }
 
 pub(super) fn gsettings_get(schema: &str, key: &str) -> Option<String> {

@@ -106,13 +106,19 @@ impl ClipboardManager {
     }
 
     /// Create with the classic file-backed encryption key.
+    /// `data_dir` holds `history.db`, the images directory and the key files.
     /// ساخت با کلید رمزنگاری کلاسیک مبتنی بر فایل.
-    pub fn new(persistence_path: PathBuf, max_history_size: usize) -> Self {
-        Self::new_with_key_backend(persistence_path, max_history_size, KeyBackend::File)
+    /// `data_dir` جای `history.db`، پوشهٔ تصاویر و فایل‌های کلید است.
+    pub fn new(data_dir: PathBuf, max_history_size: usize) -> Self {
+        Self::new_with_key_backend(data_dir, max_history_size, KeyBackend::File)
     }
 
     /// Create with an explicit encryption-key backend (file or Secret Service).
+    /// `data_dir` holds `history.db`, the images directory and the key files;
+    /// a legacy pre-SQLite `history.json` inside it is migrated on load.
     /// ساخت با بک‌اند صریح کلید رمزنگاری (فایل یا Secret Service).
+    /// `data_dir` جای `history.db`، پوشهٔ تصاویر و فایل‌های کلید است؛
+    /// `history.json` قدیمیِ پیش از SQLite در آن هنگام بارگذاری مهاجرت می‌کند.
     ///
     /// If the requested backend is unavailable the loader falls back to the
     /// file key whenever it can prove — via the `history.key.check` marker —
@@ -121,19 +127,19 @@ impl ClipboardManager {
     /// `history.key.check` ثابت کند دادهٔ موجود را رمزگشایی می‌کند، به
     /// کلید فایل بازمی‌گردد. برای جزئیات `history_crypto.rs` را ببینید.
     pub fn new_with_key_backend(
-        persistence_path: PathBuf,
+        data_dir: PathBuf,
         max_history_size: usize,
         key_backend: KeyBackend,
     ) -> Self {
         let max_size = Self::clamp_max_history_size(max_history_size);
-        let base_dir = persistence_path
-            .parent()
-            .map(PathBuf::from)
-            .unwrap_or_else(|| PathBuf::from("."));
+        let base_dir = data_dir;
         let _ = fs::create_dir_all(&base_dir);
         crate::fs_atomic::restrict_permissions(&base_dir);
 
         let db_path = base_dir.join("history.db");
+        // Pre-SQLite store: only read as a one-time migration source.
+        // مخزن پیش از SQLite: فقط به‌عنوان منبع مهاجرت یک‌باره خوانده می‌شود.
+        let json_legacy_path = base_dir.join("history.json");
         let images_dir = base_dir.join("images");
         let _ = fs::create_dir_all(&images_dir);
         crate::fs_atomic::restrict_permissions(&images_dir);
@@ -171,7 +177,7 @@ impl ClipboardManager {
             last_pasted_image_hash: None,
             last_added_text_hash: None,
             db_path,
-            json_legacy_path: persistence_path,
+            json_legacy_path,
             images_dir,
             conn,
             crypto,
@@ -255,18 +261,17 @@ mod tests {
     fn temp_manager(name: &str) -> ClipboardManager {
         let dir = temp_dir().join(format!("clip-hist-{name}-{}", Uuid::new_v4()));
         let _ = fs::create_dir_all(&dir);
-        ClipboardManager::new(dir.join("history.json"), 10)
+        ClipboardManager::new(dir, 10)
     }
 
     #[test]
     fn persists_text_across_reload() {
         let dir = temp_dir().join(format!("clip-reload-{}", Uuid::new_v4()));
-        let path = dir.join("history.json");
         {
-            let mut mgr = ClipboardManager::new(path.clone(), 10);
+            let mut mgr = ClipboardManager::new(dir.clone(), 10);
             assert!(mgr.add_text("hello persistence".into(), None).is_some());
         }
-        let mgr2 = ClipboardManager::new(path, 10);
+        let mgr2 = ClipboardManager::new(dir, 10);
         let hist = mgr2.get_history();
         assert_eq!(hist.len(), 1);
         match &hist[0].content {
@@ -295,9 +300,8 @@ mod tests {
     #[test]
     fn secrets_and_disk_are_encrypted() {
         let dir = temp_dir().join(format!("clip-enc-{}", Uuid::new_v4()));
-        let path = dir.join("history.json");
         {
-            let mut mgr = ClipboardManager::new(path.clone(), 10);
+            let mut mgr = ClipboardManager::new(dir.clone(), 10);
             assert!(mgr.add_text("encrypt-me-please".into(), None).is_some());
         }
         let db = dir.join("history.db");
@@ -306,7 +310,7 @@ mod tests {
             .query_row("SELECT text FROM items LIMIT 1", [], |r| r.get(0))
             .unwrap();
         assert_ne!(stored, "encrypt-me-please");
-        let mgr2 = ClipboardManager::new(path, 10);
+        let mgr2 = ClipboardManager::new(dir, 10);
         match &mgr2.get_history()[0].content {
             ClipboardContent::Text(t) => assert_eq!(t, "encrypt-me-please"),
             _ => panic!("expected text"),
@@ -316,14 +320,13 @@ mod tests {
     #[test]
     fn incremental_persist_keeps_order() {
         let dir = temp_dir().join(format!("clip-inc-{}", Uuid::new_v4()));
-        let path = dir.join("history.json");
         {
-            let mut mgr = ClipboardManager::new(path.clone(), 10);
+            let mut mgr = ClipboardManager::new(dir.clone(), 10);
             assert!(mgr.add_text("one".into(), None).is_some());
             assert!(mgr.add_text("two".into(), None).is_some());
             mgr.remove_item(&mgr.get_history()[1].id.clone());
         }
-        let mgr2 = ClipboardManager::new(path, 10);
+        let mgr2 = ClipboardManager::new(dir, 10);
         let hist = mgr2.get_history();
         assert_eq!(hist.len(), 1);
         match &hist[0].content {

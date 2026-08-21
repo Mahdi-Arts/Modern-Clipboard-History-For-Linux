@@ -4,26 +4,29 @@
 
 <div dir="rtl">
 
-این سند قرارداد گیت‌های کیفیت است. `.github/workflows/` زنده همین
-خط‌لوله‌های سخت‌شده را اجرا می‌کنند و [`docs/github-workflows/`](github-workflows/)
-کپی مرجع هم‌سو نگهداری می‌شود. برای همگام‌سازی در محیطی که GitHub App شما
-مجوز `workflows` ندارد (و نمی‌تواند `.github/workflows/` را پوش کند)، patch
-آماده است:
+این سند قرارداد گیت‌های کیفیت است. ورک‌فلوهای سخت‌شده و نام‌گذاری‌شدهٔ
+رسمی در این PR نهایی شده‌اند؛ چون توکن ربات نمی‌تواند
+`.github/workflows/` را پوش کند (مجوز `workflows`)، فایل‌های ورک‌فلو با
+[`docs/patches/hardened-ci-workflows.patch`](patches/hardened-ci-workflows.patch)
+حمل می‌شوند و فعال‌سازی نهایی تک‌گام است:
 
 ```bash
 git am docs/patches/hardened-ci-workflows.patch && git push
 ```
 
+پس از اعمال، [`.github/workflows/`](../.github/workflows/) **منبع حقیقت
+واحد** است و پچ به [`docs/archive/patches/`](archive/patches/) منتقل
+می‌شود (کپی آینه‌ای `docs/github-workflows/` برای همیشه حذف شده است).
+
 همهٔ actionها به SHA کامل کامیت پین شده‌اند (توصیهٔ OpenSSF). نصب Rust با
 rustup خودِ رانر و از `rust-toolchain.toml` مخزن انجام می‌شود (بدون اکشن
 شخص ثالث، با تلاش مجدد روی خطای گذرای شبکه).
 
-## گیت‌های مسدودکننده (`docs/github-workflows/ci.yml`)
+## گیت‌های مسدودکننده (`.github/workflows/ci.yml`)
 
 | Job | بررسی | مسدودکننده؟ |
 | --- | --- | --- |
 | quality | `npm run lint` (tsc + ESLint، صفر هشدار) | بله |
-| quality | `node scripts/check-rust-syntax.mjs` (گیت سینتکس سریع Rust) | بله |
 | quality | `npm run test:coverage` (آستانه‌های Vitest) | بله |
 | quality | `cargo fmt --all -- --check` | بله |
 | quality | `cargo clippy --all-targets -- -D warnings` | بله |
@@ -33,11 +36,18 @@ rustup خودِ رانر و از `rust-toolchain.toml` مخزن انجام می�
 | security | `cargo deny check advisories bans licenses sources` | بله |
 | security | `npm audit --audit-level=high` | بله |
 | packaging | `scripts/check-packaging.sh` (نام‌های رسمی، همگامی نسخه‌ها، برابری deb/rpm، اعتبارسنجی desktop/metainfo) | بله |
+| packaging | `flatpak-builder-lint` روی manifest و metainfo فلت‌پک | بله |
 | build-linux | بیلد Tauri + نرمال‌سازی نام آرتیفکت‌ها (`scripts/normalize-artifacts.sh`) + `--version` / `--help` روی باینری (با و بدون xvfb) | بله |
 
 `continue-on-error` روی هیچ گیت امنیتی نیست.
 
-## انتشار (`docs/github-workflows/release.yml`)
+## تست‌های E2E (`.github/workflows/e2e.yml`)
+
+ورک‌فلوی `E2E Tests` فقط با `workflow_dispatch` اجرا می‌شود (سنگین است:
+برنامه را واقعاً می‌سازد و با Playwright در webkit/chromium/firefox
+میماند). برای انتشار عمده، اجرای دستی آن روی حداقل webkit توصیه می‌شود.
+
+## انتشار (`.github/workflows/release.yml`)
 
 با تگ `v*` ساخته می‌شود:
 
@@ -55,28 +65,42 @@ Cloudsmith و AUR فقط وقتی secretهای مخزن تنظیم شده باش
 
 ---
 
-This document is the quality-gate contract. The live `.github/workflows/`
-already run these hardened pipelines; [`docs/github-workflows/`](github-workflows/)
-is kept in sync as the reference copy. The patch below is the fallback for
-contributors whose GitHub App lacks the `workflows` permission to push
-`.github/workflows/` directly:
+This document is the quality-gate contract. The hardened, canonical-named
+workflows are finalised in this PR; because the bot token cannot push
+`.github/workflows/` (no `workflows` permission), the workflow files travel
+as [`docs/patches/hardened-ci-workflows.patch`](patches/hardened-ci-workflows.patch)
+and activation is a single maintainer step:
 
 ```bash
 git am docs/patches/hardened-ci-workflows.patch && git push
 ```
+
+Once applied, [`.github/workflows/`](../.github/workflows/) is the **single
+source of truth** and the patch moves to
+[`docs/archive/patches/`](archive/patches/) (the `docs/github-workflows/`
+mirror is gone for good).
 
 All actions are pinned to full commit SHAs (OpenSSF recommendation).
 Rust is installed with the runner's own rustup from the repository's
 `rust-toolchain.toml` (no third-party action; transient network failures
 are retried).
 
-## Blocking gates (`docs/github-workflows/ci.yml`)
+## Blocking gates (`.github/workflows/ci.yml`)
 
 Every row in the table above is a hard failure. Audits do **not** use
 `continue-on-error`. Default-feature `cargo test` proves the release
 binary compiles **without** our optional `reqwest` / GIF search feature.
+The `packaging` job additionally runs `flatpak-builder-lint` over the
+Flatpak manifest and AppStream metainfo so the Flatpak story cannot drift.
 
-## Releases (`docs/github-workflows/release.yml`)
+## E2E tests (`.github/workflows/e2e.yml`)
+
+The `E2E Tests` workflow runs on `workflow_dispatch` only (it is heavy:
+it builds the real app and drives it with Playwright across
+webkit/chromium/firefox). For major releases, run it manually on at least
+webkit before tagging.
+
+## Releases (`.github/workflows/release.yml`)
 
 Tag `v*` publishes checksums (plus an optional GPG `SHA256SUMS.sig` driven
 by `RELEASE_GPG_PRIVATE_KEY`), per-artifact SPDX SBOMs, and SLSA

@@ -22,7 +22,7 @@
 # 1) Install the runtime + extensions (once)
 #     نصب runtime و افزونه‌ها (یک‌بار)
 flatpak install --user flathub \
-  org.gnome.Sdk//46 org.gnome.Platform//46 \
+  org.gnome.Sdk//48 org.gnome.Platform//48 \
   org.freedesktop.Sdk.Extension.rust-stable \
   org.freedesktop.Sdk.Extension.node20
 
@@ -64,14 +64,19 @@ flatpak override --user --share=network io.github.mahdi-arts.clipboard-history
 
 1. Replace the local `type: dir` source with a pinned Git commit/tag and generate offline npm/Cargo source modules (for example with `flatpak-node-generator` and `flatpak-cargo-generator`). Never submit a network-dependent build. / منبع محلی `type: dir` را با commit/tag پین‌شده جایگزین و ماژول‌های آفلاین npm/Cargo را با generatorهای Flatpak تولید کنید؛ build وابسته به شبکه را ارسال نکنید.
 2. Fork/PR the `flathub/io.github.mahdi-arts.clipboard-history` repository with that immutable manifest. / مانیفست immutable را به مخزن Flathub پروژه ارسال کنید.
-2. Bump the `<releases>` entry in the metainfo for every version (date +
+3. Bump the `<releases>` entry in the metainfo for every version (date +
    version). / در هر نسخه رکورد `<releases>` متادیتا را به‌روز کنید.
-3. Attach screenshots (1280×800 or larger) and a 128×128 icon.
+4. Attach screenshots (1280×800 or larger) and a 128×128 icon.
    / اسکرین‌شات (۱۲۸۰×۸۰۰ یا بزرگ‌تر) و آیکون ۱۲۸×۱۲۸ پیوست کنید.
-4. Flathub's CI will build against the pinned runtime; the manifest must
-   stay reproducible (no network in the sandbox at runtime).
-   / CI فلت‌هاب با runtime پین‌شده بیلد می‌گیرد؛ مانیفست باید قابل بازتولید
-   بماند (بدون شبکه در زمان اجرا).
+5. Flathub's CI will build against the pinned runtime (GNOME 48); the
+   manifest must stay reproducible (no network in the sandbox at runtime).
+   / CI فلت‌هاب با runtime پین‌شده (GNOME 48) بیلد می‌گیرد؛ مانیفست باید
+   قابل بازتولید بماند (بدون شبکه در زمان اجرا).
+6. CI in this repository already validates the manifest and metainfo with
+   `flatpak-builder-lint` (Flathub rules) on every push — keep it green
+   before submitting. / CI همین مخزن مانیفست و متادیتا را با
+   `flatpak-builder-lint` (قواعد فلت‌هاب) در هر پوش اعتبارسنجی می‌کند —
+   پیش از ارسال، سبزش نگه دارید.
 
 ### Version bump checklist / چک‌لیست نسخه
 

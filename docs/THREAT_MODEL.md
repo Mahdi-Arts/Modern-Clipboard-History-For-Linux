@@ -98,15 +98,13 @@ Key boundaries:
 
 ### 4.5 Supply chain (T5)
 - Installer verifies artifacts against release `SHA256SUMS` (**mandatory**; `ALLOW_UNVERIFIED=1` required to skip) and optionally verifies a detached GPG signature.
-- The hardened CI contract (`.github/workflows/` after `git am
-  docs/patches/hardened-ci-workflows.patch`; GitHub Apps cannot push
-  workflow files without the `workflows` permission) runs `cargo audit` +
-  `cargo deny` (advisories/bans/licenses/sources) + `npm audit` as
-  **blocking** gates (no `continue-on-error`); type-aware ESLint + `tsc`;
-  `cargo clippy -D warnings`; frontend coverage thresholds; a tree-sitter
-  Rust syntax gate; release-binary smoke (`--version`/`--help`, bare and
-  under `xvfb-run`). Every workflow action is pinned to a full commit SHA
-  (OpenSSF recommendation).
+- The hardened CI contract (`.github/workflows/` — the SHA-pinned,
+  canonical-named pipelines) runs `cargo audit` + `cargo deny`
+  (advisories/bans/licenses/sources) + `npm audit` as **blocking** gates
+  (no `continue-on-error`); type-aware ESLint + `tsc`; `cargo clippy -D
+  warnings`; frontend coverage thresholds; release-binary smoke
+  (`--version`/`--help`, bare and under `xvfb-run`). Every workflow action
+  is pinned to a full commit SHA (OpenSSF recommendation).
 - Releases publish: SHA256SUMS (plus an optional GPG `SHA256SUMS.sig` when
   `RELEASE_GPG_PRIVATE_KEY` is configured), **per-artifact** SPDX SBOM
   (syft), SLSA build-provenance attestations.

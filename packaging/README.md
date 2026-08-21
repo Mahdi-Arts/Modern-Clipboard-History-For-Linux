@@ -41,7 +41,6 @@ npm ci
 npm run lint
 npm run test:coverage
 npm run build
-node scripts/check-rust-syntax.mjs
 scripts/check-packaging.sh
 npm audit --audit-level=high
 ```
@@ -165,7 +164,6 @@ npm ci
 npm run lint
 npm run test:coverage
 npm run build
-node scripts/check-rust-syntax.mjs
 scripts/check-packaging.sh
 npm audit --audit-level=high
 

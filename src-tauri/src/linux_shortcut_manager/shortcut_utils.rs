@@ -15,12 +15,12 @@ use tracing::info;
 pub struct Utils;
 
 impl Utils {
+    /// True when `cmd` is executable through `PATH` (in-process probe,
+    /// no `which` subprocess). See `crate::exec_lookup`.
+    /// وقتی `cmd` از طریق `PATH` اجرایی است «درست» است (بررسی
+    /// درون‌فرآیندی، بدون subprocess ی `which`). `crate::exec_lookup` را ببینید.
     pub fn command_exists(cmd: &str) -> bool {
-        Command::new("which")
-            .arg(cmd)
-            .output()
-            .map(|o| o.status.success())
-            .unwrap_or(false)
+        crate::exec_lookup::command_exists(cmd)
     }
 
     pub fn run(cmd: &str, args: &[&str]) -> Result<String> {
