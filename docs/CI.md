@@ -5,11 +5,17 @@
 <div dir="rtl">
 
 این سند قرارداد گیت‌های کیفیت است. ورک‌فلوهای سخت‌شده و نام‌گذاری‌شدهٔ
-رسمی **هم‌اکنون در مخزن فعال‌اند**: [`.github/workflows/`](../.github/workflows/)
-منبع حقیقت واحد است (`ci.yml`، `release.yml`، `e2e.yml` دستی، `stale.yml`).
-پچ فعال‌سازی که آن‌ها را حمل می‌کرد تاریخی است (اعمال نکنید) و در
-[`docs/archive/patches/`](archive/patches/) آرشیو شده است؛ کپی آینه‌ای
-`docs/github-workflows/` برای همیشه حذف شده است.
+رسمی **آمادهٔ فعال‌سازی با یک گام نگهدارنده‌اند** — پچ فعال‌سازی نهایی در
+[`docs/archive/patches/hardened-ci-workflows.patch`](archive/patches/hardened-ci-workflows.patch)
+بایگانی شده است:
+
+```bash
+git am docs/archive/patches/hardened-ci-workflows.patch && git push
+```
+
+پس از اعمال، [`.github/workflows/`](../.github/workflows/) **منبع حقیقت
+واحد** می‌شود (`ci.yml`، `release.yml`، `e2e.yml` دستی، `stale.yml`)؛ کپی
+آینه‌ای `docs/github-workflows/` برای همیشه حذف شده است.
 
 همهٔ actionها به SHA کامل کامیت پین شده‌اند (توصیهٔ OpenSSF). نصب Rust با
 rustup خودِ رانر و از `rust-toolchain.toml` مخزن انجام می‌شود (بدون اکشن
@@ -59,12 +65,17 @@ Cloudsmith و AUR فقط وقتی secretهای مخزن تنظیم شده باش
 ---
 
 This document is the quality-gate contract. The hardened, canonical-named
-workflows are **active in-repo**: [`.github/workflows/`](../.github/workflows/)
-is the single source of truth (`ci.yml`, `release.yml`, a manual `e2e.yml`
-Playwright workflow, `stale.yml`). The activation patch that shipped them is
-archived (historical — do not apply) in
-[`docs/archive/patches/`](archive/patches/); the `docs/github-workflows/`
-mirror is gone for good.
+workflows are **ready to activate with one maintainer step** — the final
+activation patch is archived at
+[`docs/archive/patches/hardened-ci-workflows.patch`](archive/patches/hardened-ci-workflows.patch):
+
+```bash
+git am docs/archive/patches/hardened-ci-workflows.patch && git push
+```
+
+After that, [`.github/workflows/`](../.github/workflows/) is the **single
+source of truth** (`ci.yml`, `release.yml`, a manual `e2e.yml` Playwright
+workflow, `stale.yml`); the `docs/github-workflows/` mirror is gone for good.
 
 All actions are pinned to full commit SHAs (OpenSSF recommendation).
 Rust is installed with the runner's own rustup from the repository's
