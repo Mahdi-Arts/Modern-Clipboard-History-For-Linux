@@ -34,6 +34,33 @@ All notable changes to this project will be documented in this file.
 
 ### Packaging and QA / بسته‌بندی و کنترل کیفیت
 
+- **Rename completed in the release pipeline (audit follow-up).** The live
+  `.github/workflows/release.yml` now references only the canonical repository
+  (`${{ github.repository }}` in release-notes URLs), canonical artifact names
+  (`windows-11-style-clipboard-history-manager_{version}_amd64.deb`,
+  `windows-11-style-clipboard-history-manager-{version}-1.x86_64.rpm`) and the
+  canonical AUR package `windows-11-style-clipboard-history-manager-bin`
+  (clone target, install file, hand-written `.SRCINFO` fallback). The CI smoke
+  test now runs `windows-11-style-clipboard-history-manager-bin`, and the
+  Cloudsmith/AUR steps are truly fail-closed (`set -euo pipefail`, no
+  `continue-on-error`, unmasked `git push`).
+  **تکمیل تغییر نام در خط لولهٔ انتشار (پیرو ممیزی):** workflow های زنده اکنون
+  فقط به مخزن، نام artefact و بستهٔ AUR رسمی ارجاع می‌دهند؛ تست smoke ی CI باینری
+  رسمی را اجرا می‌کند و کانال‌های Cloudsmith/AUR واقعاً fail-closed شدند.
+- **RPM bundle at parity with Debian.** `bundle.linux.rpm.files` now installs
+  the same system files as the `.deb` — launcher wrapper, `/dev/uinput` udev
+  rule, desktop entry, icon set, and AppArmor profile — so Fedora installs get
+  the NVIDIA/DMA-BUF wrapper and input ACLs automatically.
+  **برابری بستهٔ RPM با Debian:** بستهٔ rpm نیز wrapper، قانون udev، دسکتاپ‌فایل،
+  آیکون‌ها و پروفایل AppArmor را نصب می‌کند.
+- **Regression guards added.** `scripts/check-packaging.sh` now fails on any
+  legacy identifier in `.github/workflows/`, verifies the CI smoke binary,
+  cross-checks the AUR package name between `aur/PKGBUILD` and `release.yml`,
+  and enforces structural deb/rpm `files` parity via Node. New contract tests
+  cover every Settings-window SVG icon.
+  **گاردهای بازگشت:** اسکریپت کنترل بسته‌بندی هر شناسهٔ قدیمی در workflowها،
+  ناهماهنگی نام AUR و عدم برابری deb/rpm را شکست می‌دهد؛ تست‌های قراردادی برای
+  همهٔ آیکون‌های پنجرهٔ تنظیمات افزوده شد.
 - **Product named `Windows 11 Style Clipboard History Manager`.** The binary is
   `windows-11-style-clipboard-history-manager-bin`, the launcher/command is
   `windows-11-style-clipboard-history-manager`, and all packaging (Debian, RPM, AppImage,

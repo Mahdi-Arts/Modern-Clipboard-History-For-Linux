@@ -32,7 +32,10 @@ concurrency:
 
 env:
   CARGO_TERM_COLOR: always
-  REPO: Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager
+  # Self-referencing URLs below use `${{ github.repository }}` so a future
+  # repository rename can never leave stale links behind.
+  # / URLهای خودارجاع از `${{ github.repository }}` استفاده می‌کنند تا تغییر نام
+  # آیندهٔ مخزن هرگز لینک قدیمی باقی نگذارد.
 
 jobs:
   # ---------------------------------------------------------------------
@@ -218,7 +221,7 @@ jobs:
           files: |
             dist/**
           body: |
-            # 📋 Windows 11 Style Clipboard History Manager ${{ github.ref_name }}
+            # 📋 Clipboard History for Linux ${{ github.ref_name }}
 
             A fast, bilingual clipboard manager for Linux (Wayland & X11).
             مدیر کلیپ‌بورد سریع و دوزبانه برای لینوکس (Wayland و X11).
@@ -262,7 +265,7 @@ jobs:
             ### Convenience installer (review first / اول بازبینی کنید)
 
             ```bash
-            curl -fsSL https://raw.githubusercontent.com/Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager/master/scripts/install.sh -o install-clipboard.sh
+            curl -fsSL https://raw.githubusercontent.com/${{ github.repository }}/master/scripts/install.sh -o install-clipboard.sh
             less install-clipboard.sh
             bash install-clipboard.sh
             ```
@@ -273,7 +276,7 @@ jobs:
 
             ### Flatpak
 
-            See [`packaging/README.md`](https://github.com/Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager/blob/master/packaging/README.md).
+            See [`packaging/README.md`](https://github.com/${{ github.repository }}/blob/master/packaging/README.md).
             The sandbox does not grant `/dev/uinput`; use `.deb`/`.rpm` for paste
             simulation, or `flatpak override --user --device=all io.github.mahdi-arts.clipboard-history`.
         env:
@@ -285,10 +288,14 @@ jobs:
       # -----------------------------------------------------------------
       - name: Upload to Cloudsmith (stable releases only)
         if: ${{ !contains(github.ref_name, 'alpha') && !contains(github.ref_name, 'beta') && !contains(github.ref_name, 'rc') && !contains(github.ref_name, 'dev') }}
-        continue-on-error: true
+        # Fail closed: no `continue-on-error`. The step exits 0 ONLY when the
+        # secret is unset (skip). A real upload failure fails the job.
+        # fail-closed: بدون continue-on-error. این مرحله فقط وقتی بدون خطاست
+        # که secret تنظیم نشده باشد (skip). خطای واقعی upload، job را می‌شکند.
         env:
           CLOUDSMITH_API_KEY: ${{ secrets.CLOUDSMITH_API_KEY }}
         run: |
+          set -euo pipefail
           if [ -z "$CLOUDSMITH_API_KEY" ]; then
             echo "::notice::CLOUDSMITH_API_KEY not set, skipping Cloudsmith upload"
             exit 0
@@ -299,12 +306,12 @@ jobs:
           for deb in dist/*.deb; do
             [ -f "$deb" ] || continue
             cloudsmith push deb mahdi-arts/clipboard-manager/any-distro/any-version \
-              "$deb" --api-key "$CLOUDSMITH_API_KEY" || echo "::warning::Cloudsmith .deb upload failed for $deb"
+              "$deb" --api-key "$CLOUDSMITH_API_KEY"
           done
           for rpm in dist/*.rpm; do
             [ -f "$rpm" ] || continue
             cloudsmith push rpm mahdi-arts/clipboard-manager/any-distro/any-version \
-              "$rpm" --api-key "$CLOUDSMITH_API_KEY" || echo "::warning::Cloudsmith .rpm upload failed for $rpm"
+              "$rpm" --api-key "$CLOUDSMITH_API_KEY"
           done
 
       # -----------------------------------------------------------------
@@ -324,11 +331,15 @@ jobs:
       # -----------------------------------------------------------------
       - name: Update AUR Package
         if: ${{ !contains(github.ref_name, 'alpha') && !contains(github.ref_name, 'beta') && !contains(github.ref_name, 'rc') && !contains(github.ref_name, 'dev') }}
-        continue-on-error: true
+        # Fail closed: no `continue-on-error`. Skips safely only when the SSH
+        # secret is unset; any real AUR failure fails the job.
+        # fail-closed: بدون continue-on-error. فقط با نبود secret، skip امن
+        # اتفاق می‌افتد؛ هر خطای واقعی AUR، job را می‌شکند.
         env:
           AUR_SSH_KEY: ${{ secrets.AUR_SSH_KEY }}
           AUR_KNOWN_HOSTS: ${{ secrets.AUR_KNOWN_HOSTS }}
         run: |
+          set -euo pipefail
           if [ -z "$AUR_SSH_KEY" ]; then
             echo "::notice::AUR_SSH_KEY not set, skipping AUR update"
             exit 0
@@ -344,8 +355,12 @@ jobs:
           DEB_ARM64=$(find dist -name "*_arm64.deb" | head -1)
 
           if [ -z "$DEB_X86_64" ]; then
-            echo "::error::x86_64 .deb not found, skipping AUR update"
-            exit 0
+            # Fail closed: a configured AUR channel without a built artifact
+            # is a real release error, not a skip.
+            # fail-closed: نبود artefact برای کانال AUR پیکربندی‌شده خطای واقعی
+            # انتشار است، نه یک skip.
+            echo "::error::x86_64 .deb not found — failing the AUR update"
+            exit 1
           fi
 
           SHA256_X86_64=$(sha256sum "$DEB_X86_64" | cut -d' ' -f1)
@@ -371,7 +386,7 @@ jobs:
           cd /tmp/aur-pkg
 
           cp "$GITHUB_WORKSPACE/aur/PKGBUILD" PKGBUILD
-          cp "$GITHUB_WORKSPACE/aur/windows-11-style-clipboard-history-manager-bin.install" . 2>/dev/null || true
+          cp "$GITHUB_WORKSPACE/aur/windows-11-style-clipboard-history-manager-bin.install" .
 
           sed -i "s/^pkgver=.*/pkgver=$VERSION/" PKGBUILD
           sed -i "s/^pkgrel=.*/pkgrel=1/" PKGBUILD
@@ -431,5 +446,9 @@ jobs:
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           git add PKGBUILD .SRCINFO
+          # "No changes to commit" is benign; a push failure is NOT — it must
+          # fail the release (fail-closed contract).
+          # «بدون تغییر» بی‌خطر است؛ اما شکست push باید انتشار را شکست دهد
+          # (قرارداد fail-closed).
           git commit -m "Update to version $VERSION" || echo "No changes to commit"
-          git push || echo "::warning::AUR push failed - may need manual intervention"
+          git push
