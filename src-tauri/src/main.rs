@@ -20,26 +20,26 @@ use tauri::{
     AppHandle, Emitter, Manager,
 };
 
-use win11_clipboard_history_lib::autostart_manager;
-use win11_clipboard_history_lib::clipboard_manager::ClipboardManager;
-use win11_clipboard_history_lib::commands;
-use win11_clipboard_history_lib::config_manager::ConfigManager;
-use win11_clipboard_history_lib::emoji_manager::EmojiManager;
-use win11_clipboard_history_lib::permission_checker;
-use win11_clipboard_history_lib::rendering_env;
-use win11_clipboard_history_lib::session;
-use win11_clipboard_history_lib::shortcut_setup;
+use modern_clipboard_history_for_linux::autostart_manager;
+use modern_clipboard_history_for_linux::clipboard_manager::ClipboardManager;
+use modern_clipboard_history_for_linux::commands;
+use modern_clipboard_history_for_linux::config_manager::ConfigManager;
+use modern_clipboard_history_for_linux::emoji_manager::EmojiManager;
+use modern_clipboard_history_for_linux::permission_checker;
+use modern_clipboard_history_for_linux::rendering_env;
+use modern_clipboard_history_for_linux::session;
+use modern_clipboard_history_for_linux::shortcut_setup;
 
-use win11_clipboard_history_lib::user_settings::UserSettingsManager;
-use win11_clipboard_history_lib::window_controller::{
+use modern_clipboard_history_for_linux::user_settings::UserSettingsManager;
+use modern_clipboard_history_for_linux::window_controller::{
     SettingsController, WindowController, STARTED_IN_BACKGROUND,
 };
-use win11_clipboard_history_lib::AppState;
+use modern_clipboard_history_for_linux::AppState;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 fn main() {
-    win11_clipboard_history_lib::init_tracing();
+    modern_clipboard_history_for_linux::init_tracing();
 
     let args: Vec<String> = std::env::args().collect();
 
@@ -67,10 +67,10 @@ fn main() {
     let open_settings_on_start = args.iter().any(|arg| arg == "--settings");
     let open_emoji_on_start = args.iter().any(|arg| arg == "--emoji");
 
-    win11_clipboard_history_lib::session::init();
+    modern_clipboard_history_for_linux::session::init();
 
     let is_mouse_inside = Arc::new(AtomicBool::new(false));
-    let base_dir = win11_clipboard_history_lib::clipboard_manager::data_dir();
+    let base_dir = modern_clipboard_history_for_linux::clipboard_manager::data_dir();
 
     if let Err(e) = std::fs::create_dir_all(&base_dir) {
         tracing::error!("Failed to create base directory: {e}");
@@ -82,7 +82,7 @@ fn main() {
     // Construct the manager with the user's preferred encryption-key
     // backend (file | Secret Service). See ADR-0006.
     // ساخت مدیر با بک‌اند کلید ترجیحی کاربر (فایل | Secret Service). ADR-0006.
-    let key_backend = win11_clipboard_history_lib::history_crypto::KeyBackend::from_setting(
+    let key_backend = modern_clipboard_history_for_linux::history_crypto::KeyBackend::from_setting(
         &user_settings.history_key_backend,
     );
     tracing::info!(
@@ -99,7 +99,7 @@ fn main() {
         manager.set_privacy_policy(user_settings.privacy_policy());
         manager.set_auto_delete_interval_minutes(user_settings.auto_delete_interval_in_minutes());
     }
-    win11_clipboard_history_lib::linux_shortcut_manager::set_allow_wm_config_rewrite(
+    modern_clipboard_history_for_linux::linux_shortcut_manager::set_allow_wm_config_rewrite(
         user_settings.allow_wm_config_rewrite,
     );
 
@@ -131,7 +131,7 @@ fn main() {
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::Destroyed = event {
                 if window.label() == "setup" {
-                    if win11_clipboard_history_lib::permission_checker::is_first_run() {
+                    if modern_clipboard_history_for_linux::permission_checker::is_first_run() {
                         tracing::info!("[Setup] Setup window closed without completion. Exiting.");
                         window.app_handle().exit(0);
                     }
@@ -141,8 +141,8 @@ fn main() {
         .setup(move |app| {
             let app_handle = app.handle().clone();
 
-            win11_clipboard_history_lib::input_simulator::init();
-            win11_clipboard_history_lib::paste_sync::init();
+            modern_clipboard_history_for_linux::input_simulator::init();
+            modern_clipboard_history_for_linux::paste_sync::init();
 
             // Background mode: immediately hide the main window
             if start_in_background {
@@ -171,13 +171,13 @@ fn main() {
 
             // Register window event handlers
             if let Some(main_window) = app.get_webview_window("main") {
-                win11_clipboard_history_lib::window_controller::register_window_events(
+                modern_clipboard_history_for_linux::window_controller::register_window_events(
                     &main_window,
                     &app_handle,
                 );
 
                 // Start clipboard watcher
-                win11_clipboard_history_lib::clipboard_watcher::start(
+                modern_clipboard_history_for_linux::clipboard_watcher::start(
                     app_handle.clone(),
                     clipboard_manager.clone(),
                 );
@@ -186,7 +186,7 @@ fn main() {
                 let app_handle_for_theme = app_handle.clone();
                 tauri::async_runtime::spawn(async move {
                     if let Err(e) =
-                        win11_clipboard_history_lib::theme_manager::start_theme_listener(
+                        modern_clipboard_history_for_linux::theme_manager::start_theme_listener(
                             app_handle_for_theme,
                         )
                         .await
@@ -211,7 +211,7 @@ fn main() {
 
                 // Background mode enforcer
                 if start_in_background {
-                    win11_clipboard_history_lib::window_controller::spawn_background_enforcer(
+                    modern_clipboard_history_for_linux::window_controller::spawn_background_enforcer(
                         &main_window,
                     );
                 }
@@ -297,12 +297,12 @@ fn build_tray(app: &tauri::App, app_handle: &AppHandle) -> Result<(), Box<dyn st
     let temp_dir = std::env::temp_dir().join("win11-clipboard-history");
     std::fs::create_dir_all(&temp_dir).ok();
 
-    win11_clipboard_history_lib::theme_manager::update_dynamic_tray_flag(
+    modern_clipboard_history_for_linux::theme_manager::update_dynamic_tray_flag(
         settings.enable_dynamic_tray_icon,
     );
 
     let (icon, use_template_icon) =
-        win11_clipboard_history_lib::theme_manager::initial_tray_icon(&settings);
+        modern_clipboard_history_for_linux::theme_manager::initial_tray_icon(&settings);
 
     let _tray = TrayIconBuilder::with_id("main-tray")
         .icon(icon)
@@ -332,7 +332,7 @@ fn build_tray(app: &tauri::App, app_handle: &AppHandle) -> Result<(), Box<dyn st
         let app_handle_bg = app_handle.clone();
         let settings_bg = settings.clone();
         tauri::async_runtime::spawn(async move {
-            win11_clipboard_history_lib::theme_manager::refresh_tray_icon(
+            modern_clipboard_history_for_linux::theme_manager::refresh_tray_icon(
                 &app_handle_bg,
                 &settings_bg,
             )

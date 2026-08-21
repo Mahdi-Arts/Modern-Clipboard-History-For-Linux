@@ -69,6 +69,26 @@ pub fn init() {
     get_session_type();
 }
 
+/// Tauri command: return session info for the frontend privacy section.
+/// فرمان Tauri: اطلاعات نشست را برای بخش حریم خصوصی فرانت‌اند برمی‌گرداند.
+#[tauri::command]
+pub fn get_session_info() -> crate::error::AppResult<SessionInfo> {
+    let session = get_session_type();
+    // Wayland compositors generally do not expose focused-app identity;
+    // X11 can use WM_CLASS/title heuristics.
+    let app_identity_available = session != SessionType::Wayland;
+    Ok(SessionInfo {
+        is_wayland: session == SessionType::Wayland,
+        app_identity_available,
+    })
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct SessionInfo {
+    pub is_wayland: bool,
+    pub app_identity_available: bool,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

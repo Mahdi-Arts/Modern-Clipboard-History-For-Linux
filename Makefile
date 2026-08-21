@@ -1,4 +1,4 @@
-# Windows 11 Clipboard History For Linux - Makefile
+# Modern Clipboard History For Linux - Makefile
 # Cross-distro build and install for Ubuntu, Debian, Fedora, and Arch Linux
 #
 # Note: PREFIX defaults to /usr/local for manual installs (Linux convention).
@@ -6,7 +6,7 @@
 #       To install system-wide like a package: sudo make install PREFIX=/usr
 
 SHELL := /bin/bash
-APP_NAME := win11-clipboard-history
+APP_NAME := Modern-Clipboard-History-For-Linux
 PREFIX ?= /usr/local
 LIBDIR := $(PREFIX)/lib
 BINDIR := $(PREFIX)/bin
@@ -49,7 +49,7 @@ endif
 
 help:
 	@echo -e "$(CYAN)╔════════════════════════════════════════════════════════════════╗$(RESET)"
-	@echo -e "$(CYAN)║     Windows 11 Clipboard History For Linux - Build Commands                   ║$(RESET)"
+	@echo -e "$(CYAN)║     Modern Clipboard History For Linux - Build Commands                   ║$(RESET)"
 	@echo -e "$(CYAN)╚════════════════════════════════════════════════════════════════╝$(RESET)"
 	@echo ""
 	@echo -e "$(GREEN)Setup:$(RESET)"
@@ -241,7 +241,7 @@ install:
 	@echo -e "$(CYAN)Installing $(APP_NAME)...$(RESET)"
 	@# Install binary to lib directory
 	@mkdir -p $(DESTDIR)$(LIBDIR)/$(APP_NAME)
-	install -Dm755 src-tauri/target/release/$(APP_NAME)-bin $(DESTDIR)$(LIBDIR)/$(APP_NAME)/$(APP_NAME)-bin
+	install -Dm755 src-tauri/target/release/Modern-Clipboard-History-For-Linux-bin $(DESTDIR)$(LIBDIR)/$(APP_NAME)/Modern-Clipboard-History-For-Linux-bin
 	@# Install wrapper script to bin
 	install -Dm755 src-tauri/bundle/linux/wrapper.sh $(DESTDIR)$(BINDIR)/$(APP_NAME)
 	@# Install icons
@@ -249,10 +249,10 @@ install:
 	install -Dm644 src-tauri/icons/icon.png $(DESTDIR)$(DATADIR)/icons/hicolor/256x256/apps/$(APP_NAME).png
 	@# Create udev rules for input devices and uinput
 	@mkdir -p $(DESTDIR)/etc/udev/rules.d
-	install -Dm644 src-tauri/bundle/linux/99-win11-clipboard-input.rules $(DESTDIR)/etc/udev/rules.d/
+	install -Dm644 src-tauri/bundle/linux/99-modern-clipboard-history-input.rules $(DESTDIR)/etc/udev/rules.d/
 	@# Ensure uinput loads on boot (use same filename as postinst/postrm)
 	@mkdir -p $(DESTDIR)/etc/modules-load.d
-	@echo "uinput" > $(DESTDIR)/etc/modules-load.d/win11-clipboard.conf
+	@echo "uinput" > $(DESTDIR)/etc/modules-load.d/modern-clipboard-history.conf
 	@# Load module and reload udev only when installing on live system (not in DESTDIR/fakeroot)
 	@if [ -z "$$(printf '%s' "$(DESTDIR)")" ]; then \
 		modprobe uinput 2>/dev/null || true; \
@@ -291,9 +291,9 @@ uninstall:
 	@echo -e "$(CYAN)Uninstalling $(APP_NAME)...$(RESET)"
 	@# Stop any running instances first
 	@if [ -n "$$SUDO_USER" ]; then \
-		pkill -u $$SUDO_USER -x "$(APP_NAME)-bin" 2>/dev/null || true; \
+		pkill -u $$SUDO_USER -x "Modern-Clipboard-History-For-Linux-bin" 2>/dev/null || true; \
 	fi
-	@pkill -x "$(APP_NAME)-bin" 2>/dev/null || true
+	@pkill -x "Modern-Clipboard-History-For-Linux-bin" 2>/dev/null || true
 	@# Remove from specified PREFIX path
 	rm -f $(DESTDIR)$(BINDIR)/$(APP_NAME)
 	rm -rf $(DESTDIR)$(LIBDIR)/$(APP_NAME)
@@ -317,9 +317,9 @@ uninstall:
 	@# Clean desktop entries from all common paths
 	rm -f $(DESTDIR)/usr/local/share/applications/$(APP_NAME).desktop 2>/dev/null || true
 	rm -f $(DESTDIR)/usr/share/applications/$(APP_NAME).desktop 2>/dev/null || true
-	rm -f $(DESTDIR)/etc/udev/rules.d/99-win11-clipboard-input.rules
+	rm -f $(DESTDIR)/etc/udev/rules.d/99-modern-clipboard-history-input.rules
 	rm -f $(DESTDIR)/etc/modules-load.d/uinput.conf
-	rm -f $(DESTDIR)/etc/modules-load.d/win11-clipboard.conf
+	rm -f $(DESTDIR)/etc/modules-load.d/modern-clipboard-history.conf
 	@# Remove autostart entry for the user
 	@if [ -n "$$SUDO_USER" ]; then \
 		AUTOSTART_FILE=$$(getent passwd $$SUDO_USER | cut -d: -f6)/.config/autostart/$(APP_NAME).desktop; \
@@ -373,7 +373,7 @@ format:
 
 clean-first-run:
 	@echo -e "$(CYAN)Cleaning first-run config...$(RESET)"
-	@rm -f ~/.config/win11-clipboard-history/setup.json
+	@rm -f ~/.config/Modern-Clipboard-History-For-Linux/setup.json
 	@echo -e "$(GREEN)✓ First-run config cleaned (Setup Wizard will show on next launch)$(RESET)"
 
 clean: clean-first-run
