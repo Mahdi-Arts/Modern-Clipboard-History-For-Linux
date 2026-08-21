@@ -26,6 +26,7 @@
 - [درگاه مستندات فنی فارسی](docs/fa/README.md)
 - [Complete English guide](docs/USER_GUIDE.en.md)
 - [گزارش بازبینی فنی و امنیتی ۲۰۲۶](docs/reports/REPOSITORY_REVIEW_2026-08-21.fa.md)
+- [بازبینی مستقل کد (Arena) / Independent code review](docs/reports/ARENA_CODE_REVIEW_2026-08-21.fa.md)
 - [Enterprise upgrade final report / گزارش نهایی ارتقا](docs/reports/ENTERPRISE_UPGRADE_FINAL_2026-08-21.md)
 - [Performance budget / بودجهٔ عملکرد](docs/PERFORMANCE.md)
 - [Packaging and release / بسته‌بندی و انتشار](packaging/README.md)
@@ -79,7 +80,7 @@ This project needs `/dev/uinput` (or XTest) to simulate Ctrl+V. That is a powerf
 
 Tiling window managers (i3 / Sway / Hyprland) are **not** rewritten unless you enable *Allow rewriting tiling WM configs* in Settings.
 
-**Supply chain:** the installer **mandatorily verifies** every download against the release's `SHA256SUMS` (set `ALLOW_UNVERIFIED=1` to skip — not recommended); optional GPG verification of the checksum file via `WINDOWS_11_CLIPBOARD_TRUST_KEY`. The hardened CI contract ([`docs/CI.md`](docs/CI.md)) **blocks** on `cargo audit`, `cargo deny` (advisories/bans/licenses/sources), `npm audit --audit-level=high`, type-aware ESLint + `tsc`, frontend coverage thresholds, a tree-sitter Rust syntax gate, `cargo test` (default and `--all-features`), `clippy -D warnings`, and a release-binary smoke test. Every GitHub Action is pinned to a full commit SHA (OpenSSF recommendation). Each release publishes `SHA256SUMS`, an optional GPG `SHA256SUMS.sig`, a **per-artifact** SPDX SBOM (syft), and SLSA build-provenance attestations. The AUR push fails closed unless verified SSH host keys are configured (`AUR_KNOWN_HOSTS`). Activation of the hardened `.github/workflows/` is a one-command maintainer step (`git am docs/patches/hardened-ci-workflows.patch` — GitHub Apps without the `workflows` permission cannot push workflow files). See [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md) and [docs/adr/](docs/adr/).
+**Supply chain:** the installer **mandatorily verifies** every download against the release's `SHA256SUMS` (set `ALLOW_UNVERIFIED=1` to skip — not recommended); optional GPG verification of the checksum file via `WINDOWS_11_CLIPBOARD_TRUST_KEY`. The hardened CI contract ([`docs/CI.md`](docs/CI.md)) **blocks** on `cargo audit`, `cargo deny` (advisories/bans/licenses/sources), `npm audit --audit-level=high`, type-aware ESLint + `tsc`, frontend coverage thresholds, a tree-sitter Rust syntax gate, `cargo test` (default and `--all-features`), `clippy -D warnings`, a release-binary smoke test, and the packaging contract (`scripts/check-packaging.sh`). Every GitHub Action is pinned to a full commit SHA (OpenSSF recommendation). Each release publishes `SHA256SUMS`, an optional GPG `SHA256SUMS.sig`, a **per-artifact** SPDX SBOM (syft), and SLSA build-provenance attestations. The AUR push fails closed unless verified SSH host keys are configured (`AUR_KNOWN_HOSTS`). The live `.github/workflows/` **already run the hardened, canonical-named pipelines**; `docs/github-workflows/` mirrors them as the reference copy and `docs/patches/hardened-ci-workflows.patch` is the fallback for contributors whose GitHub App lacks the `workflows` permission to push those files directly. See [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md) and [docs/adr/](docs/adr/).
 
 ---
 
@@ -228,18 +229,17 @@ E2E test suites cover:
 
 See [`tests/e2e/playwright/`](tests/e2e/playwright/) for test files and configuration.
 
-CI contract: [`docs/CI.md`](docs/CI.md). The hardened workflows (SHA-pinned
-actions) live in [`docs/github-workflows/`](docs/github-workflows/) with a
-ready-to-apply patch — activate with `git am
-docs/patches/hardened-ci-workflows.patch` (a GitHub App without the
-`workflows` permission cannot push `.github/workflows/` directly). The gate
+CI contract: [`docs/CI.md`](docs/CI.md). The live `.github/workflows/` run the
+hardened, canonical-named pipelines (SHA-pinned actions) directly, with
+`docs/github-workflows/` kept in sync as the reference copy. The gate
 **blocks** on:
 
-- `npm run lint` (type-aware ESLint + tsc, zero warnings)
+- `npm run lint` (type-aware ESLint + tsc, zero warnings) — including the Playwright E2E specs
 - `npm run test:coverage` (Vitest + coverage thresholds)
 - `node scripts/check-rust-syntax.mjs` (fast tree-sitter syntax gate)
 - `cargo test` (default and `--all-features`), `cargo clippy --all-targets -- -D warnings`, `cargo fmt --check`
 - `cargo audit`, `cargo deny check` (advisories/bans/licenses/sources — see `src-tauri/deny.toml`), and `npm audit --audit-level=high` (no `continue-on-error`)
+- `scripts/check-packaging.sh` (canonical names, deb/rpm parity, version drift, udev/AUR contract)
 - CLI smoke: `--version` / `--help` on the release binary (bare and under `xvfb-run`)
 
 Tagged releases publish `.deb` / `.rpm` / AppImage plus `SHA256SUMS` (with an

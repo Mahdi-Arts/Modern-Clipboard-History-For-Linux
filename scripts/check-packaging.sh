@@ -9,6 +9,9 @@ cd "$ROOT"
 readonly BINARY="windows-11-style-clipboard-history-manager-bin"
 readonly WRAPPER="windows-11-style-clipboard-history-manager"
 readonly APP_ID="io.github.mahdi-arts.clipboard-history"
+# Exported so the version-drift guard (node) can resolve the metainfo path.
+# Export می‌شود تا گارد رانش نسخه (node) بتواند مسیر metainfo را بیابد.
+export APP_ID
 
 fail() {
     printf 'packaging check failed: %s\n' "$*" >&2
@@ -100,6 +103,55 @@ for (const required of ['deb', 'rpm', 'appimage']) {
   }
 }
 PKG_NODE_EOF
+
+# ---------------------------------------------------------------------------
+# Single-source version drift guard / گارد رانش نسخه از منبع واحد
+# ---------------------------------------------------------------------------
+# The version must be identical across the Cargo manifest, the frontend
+# package manifest, the Tauri bundle config, the Debian changelog, the Cargo
+# lockfile, and the AppStream metainfo `<releases>` tag. A mismatch here means
+# a release would publish with an internally inconsistent version.
+# نسخه باید در manifest Cargo، manifest فرانت‌اند، کانفیگ bundle تائوری،
+# changelog دبیان، lockfile کارگو و تگ `<releases>` متادیتای AppStream یکسان
+# باشد. ناهماهنگی یعنی انتشار با نسخهٔ ناسازگار درونی منتشر می‌شود.
+node --input-type=module - <<'VER_NODE_EOF'
+import { readFileSync } from 'node:fs'
+
+const pkg = JSON.parse(readFileSync('package.json', 'utf8')).version
+const cargo = /^version = "([^"]+)"/m.exec(readFileSync('src-tauri/Cargo.toml', 'utf8'))?.[1]
+const tauri = JSON.parse(readFileSync('src-tauri/tauri.conf.json', 'utf8')).version
+const lock = (() => {
+  const text = readFileSync('src-tauri/Cargo.lock', 'utf8')
+  const m = text.match(
+    /name = "windows-11-style-clipboard-history-manager"\nversion = "([^"]+)"/
+  )
+  return m?.[1]
+})()
+// The Debian version carries an upstream revision suffix (`2.5.0-1`);
+// compare only the upstream portion for consistency.
+// نسخهٔ دبیان سافیکس تجدیدنظر دارد (`2.5.0-1`)؛ فقط بخش بالادستی مقایسه می‌شود.
+const changelog = /\(([^)]+)\)/
+  .exec(readFileSync('packaging/debian/changelog', 'utf8'))?.[1]
+  ?.split('-')[0]
+const metainfo = /<release version="([^"]+)"/.exec(
+  readFileSync(`packaging/flatpak/${process.env.APP_ID}.metainfo.xml`, 'utf8')
+)?.[1]
+
+const versionSources = { 'package.json': pkg, 'Cargo.toml': cargo, 'tauri.conf.json': tauri, 'Cargo.lock': lock, 'debian/changelog': changelog, 'metainfo': metainfo }
+const values = Object.entries(versionSources)
+const canonical = values[0][1]
+for (const [label, value] of values) {
+  if (!value) {
+    console.error(`packaging check failed: version not found in ${label}`)
+    process.exit(1)
+  }
+  if (value !== canonical) {
+    console.error(`packaging check failed: version drift — ${canonical} in ${values[0][0]} but ${value} in ${label}`)
+    process.exit(1)
+  }
+}
+console.log(`Version consistent at ${canonical}. / نسخه در ${canonical} سازگار است.`)
+VER_NODE_EOF
 
 if command -v desktop-file-validate >/dev/null 2>&1; then
     desktop-file-validate src-tauri/bundle/linux/windows-11-style-clipboard-history-manager.desktop

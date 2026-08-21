@@ -19,7 +19,6 @@
  * - تأیید وابستگی‌های سیستم (Xvfb، WebKit)
  */
 
-import { chromium, type Browser, type BrowserContext } from '@playwright/test';
 import * as fs from 'fs';
 import * as path from 'path';
 import { execSync } from 'child_process';
@@ -171,7 +170,13 @@ function createDirectories(): void {
  * Main setup function
  * تابع اصلی راه‌اندازی
  */
-async function globalSetup(): Promise<void> {
+/**
+ * Playwright runs this as a synchronous setup hook — no work here is
+ * asynchronous, so the function is intentionally not `async`.
+ * Playwright این را به‌عنوان هوک setup هم‌زمان اجرا می‌کند؛ هیچ عملیاتی در
+ * این‌جا ناهمگام نیست، بنابراین تابع عمداً `async` نیست.
+ */
+function globalSetup(): void {
   console.log('='.repeat(60));
   console.log('[setup] Starting E2E test environment setup...');
   console.log('='.repeat(60));

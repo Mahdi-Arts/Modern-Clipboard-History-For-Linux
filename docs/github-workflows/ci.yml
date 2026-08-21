@@ -73,6 +73,9 @@ jobs:
       - name: Install npm dependencies
         run: npm ci
 
+      - name: Packaging contract (names, deb/rpm parity, version drift)
+        run: bash scripts/check-packaging.sh
+
       - name: ESLint (type-aware) + TypeScript
         run: npm run lint
 

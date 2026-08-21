@@ -7,7 +7,7 @@
  * تست‌های مدیریت تنظیمات، کنترل‌های حریم خصوصی و ترجیحات کاربر.
  */
 
-import { test, expect, type Page } from '@playwright/test';
+import { test } from '@playwright/test';
 
 /**
  * Test group: Settings Access

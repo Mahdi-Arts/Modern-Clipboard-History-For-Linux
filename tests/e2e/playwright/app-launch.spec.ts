@@ -7,7 +7,7 @@
  * رفتار راه‌اندازی برنامه، مدیریت پنجره و رندر اولیه UI را تست می‌کند.
  */
 
-import { test, expect, type Page, type BrowserContext } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 
 /**
  * Test group: Application Launch
@@ -92,11 +92,11 @@ test.describe('Application Launch', () => {
   test('should have frameless window with custom decorations', async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
-    
-    /** Look for the drag handle which indicates custom title bar */
+
+    /** The drag handle indicates a custom (frameless) title bar. */
     const dragHandle = page.locator('[data-tauri-drag-region], [class*="cursor-move"]');
-    
-    /** The drag handle should exist for frameless window */
+    await expect(dragHandle.first()).toBeVisible({ timeout: 10000 });
+
     console.log('[launch] Frameless window configuration verified');
   });
 

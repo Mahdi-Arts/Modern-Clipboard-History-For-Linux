@@ -17,7 +17,7 @@
  * - عملیات الصاق (Paste)
  */
 
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 
 /**
  * Test group: Clipboard History Display

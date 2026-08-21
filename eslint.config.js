@@ -33,11 +33,14 @@ export default tseslint.config(
       js.configs.recommended,
       ...tseslint.configs.recommendedTypeChecked,
     ],
-    // Build config lives outside the `tsconfig.json` project; it is linted
-    // by the dedicated non-type-aware block above.
-    // کانفیگ بیلد خارج از پروژهٔ `tsconfig.json` است و در بلاک غیر
-    // type-aware بالا لینت می‌شود.
-    ignores: ['vite.config.ts'],
+    // Build config and Playwright E2E specs live outside the `tsconfig.json`
+    // project. `vite.config.ts` is linted by the dedicated non-type-aware
+    // block above; the E2E specs get their own project + block below so they
+    // never leak into the app's type-aware graph.
+    // کانفیگ بیلد و specهای E2E خارج از پروژهٔ `tsconfig.json` هستند.
+    // `vite.config.ts` در بلاک غیر type-aware بالا لینت می‌شود؛ specهای E2E
+    // نیز پروژه و بلوک مخصوص خود را دارند تا هرگز وارد گراف آگاه به نوع برنامه نشوند.
+    ignores: ['vite.config.ts', 'tests/e2e/**'],
     files: ['**/*.{ts,tsx}'],
     languageOptions: {
       ecmaVersion: 2020,
@@ -62,6 +65,41 @@ export default tseslint.config(
       // banning them globally would only add noise to already-covered code.
       // فایل‌های تست آگاهانه از assertion غیر-null روی آرگومان‌های mock
       // استفاده می‌کنند؛ ممنوعیت سراسری فقط نویز اضافه می‌کند.
+      '@typescript-eslint/no-non-null-assertion': 'off',
+    },
+  },
+  {
+    // Playwright E2E specs run against the release binary in a Node context,
+    // so they use a dedicated tsconfig project and Node-aware globals. This
+    // block is type-aware within that project only.
+    // specهای E2E در بافت Node و علیه باینری انتشار اجرا می‌شوند؛ بنابراین از
+    // پروژهٔ tsconfig اختصاصی و globals مخصوص Node استفاده می‌کنند. این بلوک
+    // فقط در محدودهٔ همان پروژه، آگاه به نوع است.
+    files: ['tests/e2e/**/*.{ts,tsx}'],
+    extends: [js.configs.recommended, ...tseslint.configs.recommendedTypeChecked],
+    languageOptions: {
+      ecmaVersion: 2022,
+      globals: { ...globals.browser, ...globals.node },
+      parserOptions: {
+        project: ['./tests/e2e/tsconfig.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+    rules: {
+      // Playwright idioms: test callbacks commonly declare `async` and
+      // destructure a fixture (e.g. `{ page }`) even when the body needs
+      // neither — e.g. to assert on globals or skip. `args: 'none'` stops
+      // the unused-arg check from flagging these, and `require-await` is
+      // off because a callback may intentionally be sync-shaped.
+      // الگوهای Playwright: callback تست معمولاً `async` است و fixture
+      // (مثلاً `{ page }`) را باز می‌کند حتی وقتی بدنه به آن‌ها نیاز ندارد —
+      // مثلاً برای assert روی globals یا skip. `args: 'none'` بررسی آرگومان
+      // استفاده‌نشده را خاموش می‌کند و `require-await` هم آفلاین است چون
+      // ممکن است callback عمداً sync‌شکل باشد.
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', args: 'none' }],
+      '@typescript-eslint/require-await': 'off',
+      // E2E helpers intentionally assert on the just-spawned process handle.
+      // عدم بکارگیری assertion غیر-null صرفاً برای این فایل‌ها مجاز است.
       '@typescript-eslint/no-non-null-assertion': 'off',
     },
   }

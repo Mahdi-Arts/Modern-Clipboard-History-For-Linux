@@ -4,10 +4,11 @@
 
 <div dir="rtl">
 
-این سند قرارداد گیت‌های کیفیت است. نسخهٔ اجراییِ مورد نظر در
-[`docs/github-workflows/`](github-workflows/) نگهداری می‌شود و فعال‌سازی آن
-یک گام دستی است (GitHub App بدون مجوز `workflows` نمی‌تواند
-`.github/workflows/` را پوش کند):
+این سند قرارداد گیت‌های کیفیت است. `.github/workflows/` زنده همین
+خط‌لوله‌های سخت‌شده را اجرا می‌کنند و [`docs/github-workflows/`](github-workflows/)
+کپی مرجع هم‌سو نگهداری می‌شود. برای همگام‌سازی در محیطی که GitHub App شما
+مجوز `workflows` ندارد (و نمی‌تواند `.github/workflows/` را پوش کند)، patch
+آماده است:
 
 ```bash
 git am docs/patches/hardened-ci-workflows.patch && git push
@@ -50,10 +51,11 @@ Cloudsmith و AUR فقط وقتی secretهای مخزن تنظیم شده باش
 
 ---
 
-This document is the quality-gate contract. The intended blocking
-workflows live in [`docs/github-workflows/`](github-workflows/) with a
-ready-to-apply patch (`.github/workflows/*` cannot be pushed by GitHub Apps
-without the `workflows` permission):
+This document is the quality-gate contract. The live `.github/workflows/`
+already run these hardened pipelines; [`docs/github-workflows/`](github-workflows/)
+is kept in sync as the reference copy. The patch below is the fallback for
+contributors whose GitHub App lacks the `workflows` permission to push
+`.github/workflows/` directly:
 
 ```bash
 git am docs/patches/hardened-ci-workflows.patch && git push

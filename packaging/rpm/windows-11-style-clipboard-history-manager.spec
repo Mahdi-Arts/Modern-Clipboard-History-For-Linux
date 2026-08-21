@@ -143,7 +143,7 @@ fi
 %{_datadir}/doc/%{name}/apparmor/%{app_name}
 
 %changelog
-* Thu Aug 21 2026 Mahdi Arts <mahdi@example.com> - 2.5.0
+* Thu Aug 21 2026 Mahdi Arts <mahdi-arts@users.noreply.github.com> - 2.5.0
 - Initial RPM release
 - Full feature parity with Debian package
 - Support for Fedora, RHEL, and derivatives
