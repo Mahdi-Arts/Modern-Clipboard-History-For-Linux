@@ -174,6 +174,10 @@ jobs:
 
       - name: CLI smoke (--version / --help)
         run: |
+          # Canonical binary name from Cargo.toml [[bin]] — keep in sync with
+          # scripts/check-packaging.sh.
+          # نام رسمی باینری از [[bin]] در Cargo.toml — همگام با
+          # scripts/check-packaging.sh.
           BIN=src-tauri/target/release/windows-11-style-clipboard-history-manager-bin
           test -x "$BIN"
           "$BIN" --version

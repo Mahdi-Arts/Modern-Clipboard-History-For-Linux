@@ -116,6 +116,15 @@
           "gtk3",
           "libayatana-appindicator-gtk3"
         ],
+        "files": {
+          "/usr/bin/windows-11-style-clipboard-history-manager": "bundle/linux/wrapper.sh",
+          "/etc/udev/rules.d/99-windows-11-style-clipboard-history-input.rules": "bundle/linux/99-windows-11-style-clipboard-history-input.rules",
+          "/usr/share/applications/io.github.mahdi-arts.clipboard-history.desktop": "bundle/linux/windows-11-style-clipboard-history-manager.desktop",
+          "/usr/share/icons/hicolor/128x128/apps/io.github.mahdi-arts.clipboard-history.png": "icons/128x128.png",
+          "/usr/share/icons/hicolor/256x256/apps/io.github.mahdi-arts.clipboard-history.png": "icons/icon.png",
+          "/usr/share/icons/hicolor/scalable/apps/io.github.mahdi-arts.clipboard-history.svg": "icons/icon.svg",
+          "/usr/share/doc/windows-11-style-clipboard-history-manager/apparmor/windows-11-style-clipboard-history-manager": "apparmor/windows-11-style-clipboard-history-manager"
+        },
         "postInstallScript": "bundle/linux/postinst.sh",
         "preRemoveScript": "bundle/linux/postrm.sh"
       }

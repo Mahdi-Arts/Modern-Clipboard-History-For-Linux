@@ -91,6 +91,17 @@ The release is produced by `.github/workflows/release.yml`:
 4. **Optional channels** — Cloudsmith and AUR are opt-in via secrets and
    **fail closed** on real errors.
 
+**Bundle parity / برابری محتوای بسته‌ها:** the `.deb` and `.rpm` bundles
+install the identical set of system files — launcher wrapper, `/dev/uinput`
+udev rule, desktop entry, icon set, and the AppArmor profile (see
+`bundle.linux.deb.files` / `bundle.linux.rpm.files` in `tauri.conf.json`).
+`scripts/check-packaging.sh` enforces this parity on every QA run, so the two
+formats can never drift silently again.
+بسته‌های `.deb` و `.rpm` مجموعهٔ یکسانی از فایل‌های سیستمی را نصب می‌کنند —
+wrapper، قانون udev برای `/dev/uinput`، desktop entry، آیکون‌ها و پروفایل
+AppArmor. اسکریپت `scripts/check-packaging.sh` این برابری را در هر اجرای QA
+الزامی می‌کند تا دو قالب دیگر هرگز بی‌صدا از هم فاصله نگیرند.
+
 انتشار توسط `.github/workflows/release.yml` تولید می‌شود:
 
 1. **افزایش نسخه** — نسخه از برچسب خوانده و در `tauri.conf.json` + `Cargo.toml` نوشته می‌شود.
@@ -188,13 +199,23 @@ bash packaging/flatpak/build.sh
 - [ ] `git tag vX.Y.Z` and push (release workflow runs).
 - [ ] `.deb`, `.rpm`, AppImage uploaded + `SHA256SUMS` (+ `.sig`).
 - [ ] SBOM + SLSA provenance present on the release.
+- [ ] `.deb` and `.rpm` both contain wrapper + udev rule + AppArmor profile
+      (`dpkg -c *.deb`, `rpm -qpl *.rpm`).
 - [ ] AUR/Cloudsmith channels updated (or confirmed skipped safely).
+- [ ] One-time AUR prerequisite: the empty package
+      `windows-11-style-clipboard-history-manager-bin` exists on
+      aur.archlinux.org — the release job clones it fail-closed.
 - [ ] CHANGELOG updated in both languages.
 
 - [ ] برچسب `vX.Y.Z` و push (workflow انتشار اجرا شود).
 - [ ] بارگذاری `.deb`، `.rpm`، AppImage + `SHA256SUMS` (+ `.sig`).
 - [ ] وجود SBOM و provenance نوع SLSA در release.
+- [ ] هر دو بستهٔ `.deb` و `.rpm` شامل wrapper + قانون udev + پروفایل AppArmor
+      باشند (`dpkg -c *.deb`، `rpm -qpl *.rpm`).
 - [ ] به‌روزرسانی کانال‌های AUR/Cloudsmith (یا skip امن تأیید شود).
+- [ ] پیش‌نیاز یک‌بارهٔ AUR: بستهٔ خالی
+      `windows-11-style-clipboard-history-manager-bin` روی aur.archlinux.org
+      وجود داشته باشد — job انتشار آن را fail-closed کلون می‌کند.
 - [ ] به‌روزرسانی CHANGELOG به هر دو زبان.
 
 **یا علی مدد.**
