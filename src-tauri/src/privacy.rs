@@ -225,4 +225,35 @@ mod tests {
         assert!(is_sensitive_source("Code", "main.rs", &["code".into()]));
         assert!(!is_sensitive_source("firefox", "Example Domain", &[]));
     }
+
+    // Property-style edge cases: token length gates must not be bypassable by
+    // surrounding whitespace or a too-short value.
+    // موارد لبه به سبک property: شرط طول token نباید با فضای خالی یا مقدار
+    // خیلی کوتاه دور زده شود.
+    #[test]
+    fn token_length_gate_is_enforced() {
+        // Too short to be a real token → not a secret (avoid over-blocking).
+        assert!(!looks_like_secret("ghp_short"));
+        // With a real length, whitespace trimming still counts it as a secret.
+        assert!(looks_like_secret("  ghp_abcdefghijklmnopqrstuvwxyz0123456789  "));
+        // Bearer token below the length gate is not flagged.
+        assert!(!looks_like_secret("bearer ab"));
+    }
+
+    #[test]
+    fn private_key_without_full_marker_is_not_flag() {
+        // Fragments like "PRIVATE KEY" alone (without "BEGIN") are ambiguous.
+        assert!(!looks_like_secret("PRIVATE KEY"));
+        assert!(!looks_like_secret("BEGIN OPENSSH"));
+    }
+
+    #[test]
+    fn sensitive_titles_and_extra_are_or_combined() {
+        assert!(is_sensitive_source("app", "My Master Password", &[]));
+        // An extra fragment matches when it appears in the class OR the title.
+        assert!(is_sensitive_source("vault", "app", &["vault".into()]));
+        assert!(is_sensitive_source("app", "VaultApp", &["vault".into()]));
+        // Empty extra fragment never matches.
+        assert!(!is_sensitive_source("app", "app", &["   ".into()]));
+    }
 }

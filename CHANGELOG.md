@@ -44,6 +44,31 @@ All notable changes to this project will be documented in this file.
   auto-migrated; copy it manually if you want to keep it.
   محصول با نام جدید Modern Clipboard History for Linux یکپارچه شد؛ باینری، راه‌انداز،
   بسته‌ها و مسیرهای داده/تنظیمات همگی به نام جدید تغییر کردند.
+- **Security hardening (from the 2026-08-21 review).** The in-memory history
+  key is now wrapped in `zeroize::Zeroizing` and the `chacha20poly1305`
+  `zeroize` feature is enabled explicitly; `open_safe_url` now refuses hosts
+  that resolve to private/metadata IPs (post-DNS defence); undecryptable DB
+  rows are **quarantined** to `quarantine.log` instead of being silently
+  dropped; `actions/stale` is SHA-pinned; and the Cloudsmith/AUR channels are
+  now truly **fail-closed** (`set -euo pipefail`, no `continue-on-error`).
+  **سخت‌سازی امنیتی (از بازبینی ۲۰۲۶-۰۸-۲۱):** کلید حافظه در `Zeroizing`
+  پیچیده و feature ی `zeroize` در `chacha20poly1305` صریحاً فعال شد؛
+  `open_safe_url` میزبان‌هایی که به IP خصوصی/metadata رزولوشن می‌شوند را رد
+  می‌کند (دفاع پس از DNS)؛ ردیف‌های قابل‌رمزگشایی‌نشده به `quarantine.log`
+  قرنطینه می‌شوند نه حذف بی‌صدا؛ `actions/stale` به SHA پین شد؛ و کانال‌های
+  Cloudsmith/AUR واقعاً **fail-closed** شدند.
+- **Structured errors + tests.** `AppError::code()` adds a stable machine-readable
+  code for telemetry/translation; property-style edge-case tests were added to
+  the secret filter (`privacy.rs`) and the post-DNS URL check (`open_url.rs`).
+  **خطاهای ساخت‌یافته + تست‌ها:** متد `AppError::code()` کد پایدار ماشین‌خوان
+  اضافه کرد؛ تست‌های لبه به سبک property برای فیلتر اسرار و چک پس از DNS افزوده شد.
+- **Packaging & ops docs.** Added a bilingual `packaging/DEPLOYMENT.md`
+  (`.deb` → GitHub Release → Flatpak pipeline, key backup/recovery, AppArmor
+  enforce, release checklist) and updated ADR-0006 to recommend the Secret
+  Service backend with recovery guidance.
+  **مستندات بسته‌بندی و عملیات:** `packaging/DEPLOYMENT.md` دوزبانه (خط لولهٔ
+  `.deb` → GitHub Release → Flatpak، پشتیبان‌گیری/بازیابی کلید، AppArmor enforce،
+  چک‌لیست انتشار) و به‌روزرسانی ADR-0006 برای توصیهٔ Secret Service افزوده شد.
 - Canonicalized `modern-clipboard-history-for-linux-bin` across Cargo, CI, Debian, Flatpak,
   AppArmor, Make, and the launcher; added package-contract and `.deb` checks.
   نام باینری در همهٔ مسیرهای ساخت و انتشار یکسان و کنترل محتوای `.deb` افزوده شد.

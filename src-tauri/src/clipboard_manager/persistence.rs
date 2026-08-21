@@ -87,35 +87,53 @@ impl ClipboardManager {
             }
         };
 
+        // Rows whose encrypted fields fail to decrypt are quarantined instead
+        // of being silently dropped, so no history is lost without a trace.
+        // ردیف‌هایی که ستون‌های رمزشان رمزگشایی نشود به قرنطینه می‌روند تا
+        // هیچ تاریخی بدون ردپا گم نشود.
+        let mut quarantined: Vec<(String, String)> = Vec::new();
+
         for row in rows {
+            let mut row_quarantined = false;
+
             let text = match self.crypto.decrypt_optional(row.text) {
                 Ok(v) => v,
                 Err(e) => {
-                    warn!("[ClipboardManager] Skipping row {} (text decrypt): {e}", row.id);
-                    continue;
+                    quarantined.push((row.id.clone(), format!("text decrypt: {e}")));
+                    row_quarantined = true;
+                    None
                 }
             };
             let html = match self.crypto.decrypt_optional(row.html) {
                 Ok(v) => v,
                 Err(e) => {
-                    warn!("[ClipboardManager] Skipping row {} (html decrypt): {e}", row.id);
-                    continue;
+                    quarantined.push((row.id.clone(), format!("html decrypt: {e}")));
+                    row_quarantined = true;
+                    None
                 }
             };
             let mut preview = match self.crypto.decrypt_str(&row.preview) {
                 Ok(v) => v,
                 Err(e) => {
-                    warn!("[ClipboardManager] Skipping row {} (preview decrypt): {e}", row.id);
-                    continue;
+                    quarantined.push((row.id.clone(), format!("preview decrypt: {e}")));
+                    row_quarantined = true;
+                    String::new()
                 }
             };
             let thumb_base64 = match self.crypto.decrypt_optional(row.thumb_base64) {
                 Ok(v) => v,
                 Err(e) => {
-                    warn!("[ClipboardManager] Skipping row {} (thumb decrypt): {e}", row.id);
-                    continue;
+                    quarantined.push((row.id.clone(), format!("thumb decrypt: {e}")));
+                    row_quarantined = true;
+                    None
                 }
             };
+
+            if row_quarantined {
+                // Never surface a partially-decrypted item to the user.
+                // هرگز آیتم ناقص به کاربر نمایش داده نمی‌شود.
+                continue;
+            }
             let content = match row.kind.as_str() {
                 "richtext" => ClipboardContent::RichText {
                     plain: text.unwrap_or_default(),
@@ -155,6 +173,10 @@ impl ClipboardManager {
             });
         }
 
+        if !quarantined.is_empty() {
+            self.record_quarantine(&quarantined);
+        }
+
         let _ = self.enforce_history_limit();
         if let Some(first) = self.history.first() {
             match &first.content {
@@ -173,6 +195,36 @@ impl ClipboardManager {
             "[ClipboardManager] Loaded {} items from SQLite",
             self.history.len()
         );
+    }
+
+    /// Append undecryptable rows to a quarantine log so nothing is lost without
+    /// a trace. The log is plaintext (ids + reasons) and lives next to the DB.
+    /// ردیف‌های غیرقابل‌رمزگشایی را به یک لاگ قرنطینه اضافه می‌کند تا چیزی
+    /// بدون ردپا گم نشود. لاگ متن‌ساده (شناسه‌ها + دلایل) است و کنار DB می‌ماند.
+    pub(super) fn record_quarantine(&self, entries: &[(String, String)]) {
+        let Some(base_dir) = self.db_path.parent() else {
+            return;
+        };
+        let path = base_dir.join("quarantine.log");
+        let mut content = String::new();
+        content.push_str(&format!(
+            "--- {} ({} quarantined) ---\n",
+            chrono::Utc::now().to_rfc3339(),
+            entries.len()
+        ));
+        for (id, reason) in entries {
+            content.push_str(&format!("{id}\t{reason}\n"));
+        }
+        // Append without leaking the raw clipboard text (reasons are generic).
+        // الحاق بدون درز محتوای کلیپ‌بورد (دلایل عمومی‌اند).
+        if let Ok(mut file) = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&path)
+        {
+            use std::io::Write;
+            let _ = file.write_all(content.as_bytes());
+        }
     }
 
     /// Persist everything (full rewrite). Used for migrations and fallbacks.

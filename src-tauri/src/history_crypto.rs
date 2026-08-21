@@ -133,8 +133,15 @@ impl HistoryCrypto {
             None => Self::bootstrap_new_key(data_dir, requested, &marker_path)?,
         };
 
+        // Wrap the derived key in `Zeroizing` so the in-memory copy is wiped on
+        // drop (even across a panic). Combined with the `zeroize` feature on
+        // `chacha20poly1305`, the key material never lingers in heap memory.
+        // کلید استخراج‌شده در `Zeroizing` قرار می‌گیرد تا نسخهٔ حافظه هنگام
+        // drop (حتی در panic) پاک شود. همراه با feature ی `zeroize` در
+        // `chacha20poly1305`، کلید در حافظهٔ heap باقی نمی‌ماند.
+        let key_bytes = zeroize::Zeroizing::new(key_bytes);
         Ok(Self {
-            cipher: ChaCha20Poly1305::new(Key::from_slice(&key_bytes)),
+            cipher: ChaCha20Poly1305::new(Key::from_slice(&key_bytes[..])),
             backend: active,
         })
     }

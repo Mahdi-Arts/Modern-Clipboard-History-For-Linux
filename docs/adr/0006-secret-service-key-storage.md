@@ -48,3 +48,21 @@ Service (GNOME Keyring / KWallet).
 - The `secret-tool` exec happens once at startup and once per migration;
   capture/paste paths are unaffected.
 - A same-UID adversary remains out of scope (see THREAT_MODEL §3, T1).
+
+## Recommendation / توصیهٔ به‌روزشده
+
+On supported desktops (GNOME, KDE with KWallet) the **Secret Service backend is
+the recommended default**: it keeps the key off the filesystem entirely. Because
+no master password exists, **key backup/recovery is an operator concern** — see
+[`packaging/DEPLOYMENT.md`](../../packaging/DEPLOYMENT.md#4-%D8%AF%D8%A7%D8%AF%D9%87-%D9%87%D8%A7-%D9%88-%DA%A9%D9%84%DB%8C%D8%AF-%D8%B1%D9%85%D8%B2%D9%86%DA%AF%D8%A7%D8%B1%DB%8C-%D8%A8%D8%A7%D8%B2%DB%8C%D8%A7%D8%A8%DB%8C-%D9%88-%D9%BE%D8%B4%D8%AA%DB%8C%D8%A8%D8%A7%D9%86-%DA%AF%DB%8C%D8%B1%DB%8C):
+back up the keyring or export the key (switch to the file backend) before the
+keyring is lost. Undecryptable rows are quarantined to
+`quarantine.log`, never surfaced as partial items.
+
+در دسکتاپ‌های پشتیبانی‌شده (GNOME، KDE با KWallet) **Secret Service بک‌اند
+پیشنهادی است** چون کلید را کاملاً از فایل‌سیستم دور نگه می‌دارد. چون master
+password وجود ندارد، **پشتیبان‌گیری/بازیابی کلید وظیفهٔ اپراتور است** — به
+[`packaging/DEPLOYMENT.md`](../../packaging/DEPLOYMENT.md) مراجعه کنید: از کلید-ring
+پشتیبان بگیرید یا پیش از از دست دادن آن کلید را خروجی بگیرید. ردیف‌های
+غیرقابل‌رمزگشایی به `quarantine.log` می‌روند و هرگز به‌صورت آیتم ناقص نمایش داده
+نمی‌شوند.

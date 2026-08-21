@@ -285,10 +285,14 @@ jobs:
       # -----------------------------------------------------------------
       - name: Upload to Cloudsmith (stable releases only)
         if: ${{ !contains(github.ref_name, 'alpha') && !contains(github.ref_name, 'beta') && !contains(github.ref_name, 'rc') && !contains(github.ref_name, 'dev') }}
-        continue-on-error: true
+        # Fail closed: no `continue-on-error`. The step exits 0 ONLY when the
+        # secret is unset (skip). A real upload failure fails the job.
+        # fail-closed: بدون continue-on-error. این مرحله فقط وقتی بدون خطاست
+        # که secret تنظیم نشده باشد (skip). خطای واقعی upload، job را می‌شکند.
         env:
           CLOUDSMITH_API_KEY: ${{ secrets.CLOUDSMITH_API_KEY }}
         run: |
+          set -euo pipefail
           if [ -z "$CLOUDSMITH_API_KEY" ]; then
             echo "::notice::CLOUDSMITH_API_KEY not set, skipping Cloudsmith upload"
             exit 0
@@ -299,12 +303,12 @@ jobs:
           for deb in dist/*.deb; do
             [ -f "$deb" ] || continue
             cloudsmith push deb mahdi-arts/clipboard-manager/any-distro/any-version \
-              "$deb" --api-key "$CLOUDSMITH_API_KEY" || echo "::warning::Cloudsmith .deb upload failed for $deb"
+              "$deb" --api-key "$CLOUDSMITH_API_KEY"
           done
           for rpm in dist/*.rpm; do
             [ -f "$rpm" ] || continue
             cloudsmith push rpm mahdi-arts/clipboard-manager/any-distro/any-version \
-              "$rpm" --api-key "$CLOUDSMITH_API_KEY" || echo "::warning::Cloudsmith .rpm upload failed for $rpm"
+              "$rpm" --api-key "$CLOUDSMITH_API_KEY"
           done
 
       # -----------------------------------------------------------------
@@ -324,11 +328,15 @@ jobs:
       # -----------------------------------------------------------------
       - name: Update AUR Package
         if: ${{ !contains(github.ref_name, 'alpha') && !contains(github.ref_name, 'beta') && !contains(github.ref_name, 'rc') && !contains(github.ref_name, 'dev') }}
-        continue-on-error: true
+        # Fail closed: no `continue-on-error`. Skips safely only when the SSH
+        # secret is unset; any real AUR failure fails the job.
+        # fail-closed: بدون continue-on-error. فقط با نبود secret، skip امن
+        # اتفاق می‌افتد؛ هر خطای واقعی AUR، job را می‌شکند.
         env:
           AUR_SSH_KEY: ${{ secrets.AUR_SSH_KEY }}
           AUR_KNOWN_HOSTS: ${{ secrets.AUR_KNOWN_HOSTS }}
         run: |
+          set -euo pipefail
           if [ -z "$AUR_SSH_KEY" ]; then
             echo "::notice::AUR_SSH_KEY not set, skipping AUR update"
             exit 0
