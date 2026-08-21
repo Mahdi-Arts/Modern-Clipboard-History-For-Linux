@@ -1,6 +1,6 @@
 #!/bin/bash
-# install.sh - Smart installer for Modern Clipboard History for Linux
-# Usage: curl -fsSL https://raw.githubusercontent.com/Mahdi-Arts/Modern-Clipboard-History-For-Linux/master/scripts/install.sh | bash
+# install.sh - Smart installer for Windows 11 Style Clipboard History Manager
+# Usage: curl -fsSL https://raw.githubusercontent.com/Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager/master/scripts/install.sh | bash
 
 set -e
 
@@ -21,7 +21,7 @@ error()   { echo -e "${RED}[✗]${NC} $1"; exit 1; }
 
 # Configuration
 REPO_OWNER="Mahdi-Arts"
-REPO_NAME="Modern-Clipboard-History-For-Linux"
+REPO_NAME="Windows-11-Style-Clipboard-History-Manager"
 # Optional Cloudsmith repository. Disabled by default because it is a
 # `curl | sudo bash` trust path. Enable explicitly:
 #   USE_CLOUDSMITH=1 CLOUDSMITH_REPO=owner/repo ./install.sh
@@ -33,17 +33,20 @@ CLOUDSMITH_REPO="${CLOUDSMITH_REPO:-mahdi-arts/clipboard-manager}"
 # - To skip verification (NOT recommended, e.g. offline mirror testing), set
 #   ALLOW_UNVERIFIED=1 — the installer will refuse to run without it.
 # - To require a detached GPG signature over SHA256SUMS, set
-#   MODERN_CLIPBOARD_HISTORY_TRUST_KEY=<keyid-or-fingerprint>; verification then also
+#   WINDOWS_11_CLIPBOARD_TRUST_KEY=<keyid-or-fingerprint>; verification then also
 #   needs a reachable keyserver or an imported public key.
 ALLOW_UNVERIFIED="${ALLOW_UNVERIFIED:-0}"
-MODERN_CLIPBOARD_HISTORY_TRUST_KEY="${MODERN_CLIPBOARD_HISTORY_TRUST_KEY:-}"
+WINDOWS_11_CLIPBOARD_TRUST_KEY="${WINDOWS_11_CLIPBOARD_TRUST_KEY:-${MODERN_CLIPBOARD_HISTORY_TRUST_KEY:-}}"
 
 # Cleanup previous AppImage installation (prevents conflicts with package manager installs)
 cleanup_appimage_installation() {
     local has_appimage=false
     
     # Check for AppImage installation artifacts
-    if [ -f "$HOME/.local/bin/modern-clipboard-history-for-linux.AppImage" ] || \
+    if [ -f "$HOME/.local/bin/windows-11-style-clipboard-history-manager.AppImage" ] || \
+       [ -f "$HOME/.local/bin/windows-11-style-clipboard-history-manager" ] || \
+       [ -f "$HOME/.local/share/applications/windows-11-style-clipboard-history-manager.desktop" ] || \
+       [ -f "$HOME/.local/bin/modern-clipboard-history-for-linux.AppImage" ] || \
        [ -f "$HOME/.local/bin/modern-clipboard-history-for-linux" ] || \
        [ -f "$HOME/.local/share/applications/modern-clipboard-history-for-linux.desktop" ]; then
         has_appimage=true
@@ -53,15 +56,16 @@ cleanup_appimage_installation() {
         log "Detected previous AppImage installation. Cleaning up..."
         
         # Kill any running AppImage instances
+        pkill -f "windows-11-style-clipboard-history-manager.AppImage" 2>/dev/null || true
         pkill -f "modern-clipboard-history-for-linux.AppImage" 2>/dev/null || true
 
         # Wait for processes to terminate, with a timeout
         timeout=5
         interval=1
         elapsed=0
-        while pgrep -f "modern-clipboard-history-for-linux.AppImage" >/dev/null 2>&1; do
+        while pgrep -f "windows-11-style-clipboard-history-manager.AppImage\|modern-clipboard-history-for-linux.AppImage" >/dev/null 2>&1; do
             if [ "$elapsed" -ge "$timeout" ]; then
-                warn "Timed out waiting for Modern Clipboard History for Linux AppImage processes to terminate."
+                warn "Timed out waiting for Windows 11 Style Clipboard History Manager AppImage processes to terminate."
                 break
             fi
             sleep "$interval"
@@ -69,6 +73,10 @@ cleanup_appimage_installation() {
         done
         
         # Remove AppImage files
+        rm -f "$HOME/.local/bin/windows-11-style-clipboard-history-manager.AppImage" 2>/dev/null || true
+        rm -f "$HOME/.local/bin/windows-11-style-clipboard-history-manager" 2>/dev/null || true
+        rm -f "$HOME/.local/share/applications/windows-11-style-clipboard-history-manager.desktop" 2>/dev/null || true
+        rm -f "$HOME/.local/share/icons/hicolor"/*/apps/windows-11-style-clipboard-history-manager.png 2>/dev/null || true
         rm -f "$HOME/.local/bin/modern-clipboard-history-for-linux.AppImage" 2>/dev/null || true
         rm -f "$HOME/.local/bin/modern-clipboard-history-for-linux" 2>/dev/null || true
         rm -f "$HOME/.local/share/applications/modern-clipboard-history-for-linux.desktop" 2>/dev/null || true
@@ -196,9 +204,9 @@ install_deb() {
         sudo apt-get update -qq
         sudo apt-get install -y apt-transport-https curl || true
         if curl -1sLf "https://dl.cloudsmith.io/public/${CLOUDSMITH_REPO}/setup.deb.sh" | sudo -E bash 2>/dev/null; then
-            log "Installing modern-clipboard-history-for-linux from repository..."
+            log "Installing windows-11-style-clipboard-history-manager from repository..."
             sudo apt-get update -qq
-            if sudo apt-get install -y modern-clipboard-history-for-linux; then
+            if sudo apt-get install -y windows-11-style-clipboard-history-manager; then
                 success "Installed via APT repository! (auto-updates enabled)"
                 return 0
             fi
@@ -218,7 +226,7 @@ install_deb() {
     cd "$TEMP_DIR"
     trap 'rm -rf "$TEMP_DIR"' EXIT
     
-    FILE="modern-clipboard-history-for-linux_${CLEAN_VERSION}_${DEB_ARCH}.deb"
+    FILE="windows-11-style-clipboard-history-manager_${CLEAN_VERSION}_${DEB_ARCH}.deb"
     BASE_URL="https://github.com/$REPO_OWNER/$REPO_NAME/releases/download/$RELEASE_TAG"
     
     log "Downloading $FILE..."
@@ -248,7 +256,7 @@ download_and_install_rpm() {
     chmod 755 "$TEMP_DIR"
     cd "$TEMP_DIR"
     trap 'rm -rf "$TEMP_DIR"' EXIT
-    FILE="modern-clipboard-history-for-linux-${CLEAN_VERSION}-1.${RPM_ARCH}.rpm"
+    FILE="windows-11-style-clipboard-history-manager-${CLEAN_VERSION}-1.${RPM_ARCH}.rpm"
     BASE_URL="https://github.com/$REPO_OWNER/$REPO_NAME/releases/download/$RELEASE_TAG"
     log "Downloading $FILE..."
     if ! curl -L -o "$FILE" "$BASE_URL/$FILE" --progress-bar --fail; then
@@ -304,8 +312,8 @@ install_rpm() {
     fi
     
     if [ "$repo_setup_success" = true ]; then
-        log "Installing modern-clipboard-history-for-linux from repository..."
-        if sudo dnf install -y modern-clipboard-history-for-linux; then
+        log "Installing windows-11-style-clipboard-history-manager from repository..."
+        if sudo dnf install -y windows-11-style-clipboard-history-manager; then
             success "Installed via DNF repository! (auto-updates enabled)"
             return 0
         fi
@@ -325,7 +333,7 @@ install_rpm() {
     cd "$TEMP_DIR"
     trap 'rm -rf "$TEMP_DIR"' EXIT
     
-    FILE="modern-clipboard-history-for-linux-${CLEAN_VERSION}-1.${RPM_ARCH}.rpm"
+    FILE="windows-11-style-clipboard-history-manager-${CLEAN_VERSION}-1.${RPM_ARCH}.rpm"
     BASE_URL="https://github.com/$REPO_OWNER/$REPO_NAME/releases/download/$RELEASE_TAG"
     
     log "Downloading $FILE..."
@@ -354,15 +362,15 @@ install_aur() {
     
     # Detect AUR helper
     if command -v yay &>/dev/null; then
-        yay -S --noconfirm modern-clipboard-history-for-linux-bin
+        yay -S --noconfirm windows-11-style-clipboard-history-manager-bin
     elif command -v paru &>/dev/null; then
-        paru -S --noconfirm modern-clipboard-history-for-linux-bin
+        paru -S --noconfirm windows-11-style-clipboard-history-manager-bin
     else
         warn "No AUR helper found. Installing yay first..."
         sudo pacman -S --needed --noconfirm git base-devel
         git clone https://aur.archlinux.org/yay-bin.git /tmp/yay-bin
         cd /tmp/yay-bin && makepkg -si --noconfirm
-        yay -S --noconfirm modern-clipboard-history-for-linux-bin
+        yay -S --noconfirm windows-11-style-clipboard-history-manager-bin
     fi
     
     success "Installed via AUR!"
@@ -400,20 +408,20 @@ install_appimage() {
     
     # Download AppImage
     log "Downloading AppImage..."
-    curl -fsSL -o "$HOME/.local/bin/modern-clipboard-history-for-linux.AppImage" "$LATEST_URL"
-    chmod +x "$HOME/.local/bin/modern-clipboard-history-for-linux.AppImage"
+    curl -fsSL -o "$HOME/.local/bin/windows-11-style-clipboard-history-manager.AppImage" "$LATEST_URL"
+    chmod +x "$HOME/.local/bin/windows-11-style-clipboard-history-manager.AppImage"
     BASE_URL="${LATEST_URL%/*}"
-    verify_downloaded_file "$HOME/.local/bin/modern-clipboard-history-for-linux.AppImage" "$BASE_URL"
+    verify_downloaded_file "$HOME/.local/bin/windows-11-style-clipboard-history-manager.AppImage" "$BASE_URL"
     
     # Download app icon for proper menu integration
     log "Downloading app icon..."
-    curl -fsSL -o "$HOME/.local/share/icons/hicolor/128x128/apps/modern-clipboard-history-for-linux.png" \
+    curl -fsSL -o "$HOME/.local/share/icons/hicolor/128x128/apps/windows-11-style-clipboard-history-manager.png" \
         "https://raw.githubusercontent.com/$REPO_OWNER/$REPO_NAME/master/src-tauri/icons/128x128.png" 2>/dev/null || true
     
     # Wrapper script — mirrors src-tauri/bundle/linux/wrapper.sh sanitization
-    cat > "$HOME/.local/bin/modern-clipboard-history-for-linux" << 'WRAPPER_EOF'
+    cat > "$HOME/.local/bin/windows-11-style-clipboard-history-manager" << 'WRAPPER_EOF'
 #!/bin/bash
-# AppImage wrapper for modern-clipboard-history-for-linux
+# AppImage wrapper for windows-11-style-clipboard-history-manager
 # Sanitizes Snap/Flatpak environment leaks, then launches the AppImage.
 
 # Always clear library/runtime overrides from sandbox parents
@@ -454,21 +462,21 @@ sanitize_xdg_data_dirs
 
 export NO_AT_BRIDGE=1
 
-exec "$HOME/.local/bin/modern-clipboard-history-for-linux.AppImage" "$@"
+exec "$HOME/.local/bin/windows-11-style-clipboard-history-manager.AppImage" "$@"
 WRAPPER_EOF
-    chmod +x "$HOME/.local/bin/modern-clipboard-history-for-linux"
+    chmod +x "$HOME/.local/bin/windows-11-style-clipboard-history-manager"
     
     # .desktop file with proper icon
-    cat > "$HOME/.local/share/applications/modern-clipboard-history-for-linux.desktop" << EOF
+    cat > "$HOME/.local/share/applications/windows-11-style-clipboard-history-manager.desktop" << EOF
 [Desktop Entry]
 Type=Application
 Name=Clipboard History
 Comment=Windows 11-style Clipboard History Manager
-Exec=$HOME/.local/bin/modern-clipboard-history-for-linux
-Icon=modern-clipboard-history-for-linux
+Exec=$HOME/.local/bin/windows-11-style-clipboard-history-manager
+Icon=windows-11-style-clipboard-history-manager
 Terminal=false
 Categories=Utility;
-StartupWMClass=modern-clipboard-history-for-linux
+StartupWMClass=windows-11-style-clipboard-history-manager
 EOF
     
     # Ask about udev rules for AppImage (optional - maintains portability)
@@ -516,14 +524,14 @@ setup_udev_appimage() {
     log "Setting up permanent uinput permissions (requires sudo)..."
     
     # Create udev rule
-    sudo tee /etc/udev/rules.d/99-modern-clipboard-history-input.rules > /dev/null << 'EOF'
+    sudo tee /etc/udev/rules.d/99-windows-11-style-clipboard-history-input.rules > /dev/null << 'EOF'
 # udev rules for Windows 11 Clipboard History
 ACTION=="add", SUBSYSTEM=="misc", KERNEL=="uinput", OPTIONS+="static_node=uinput"
 KERNEL=="uinput", SUBSYSTEM=="misc", MODE="0660", GROUP="input", TAG+="uaccess"
 EOF
     
     # Configure module to load on boot
-    echo "uinput" | sudo tee /etc/modules-load.d/modern-clipboard-history-for-linux.conf > /dev/null
+    echo "uinput" | sudo tee /etc/modules-load.d/windows-11-style-clipboard-history-manager.conf > /dev/null
     
     # Load now
     sudo modprobe uinput 2>/dev/null || true
@@ -543,16 +551,18 @@ launch_app() {
     log "Starting application..."
     
     # Kill any existing instances (matches both wrapper and -bin binary)
+    pkill -f "windows-11-style-clipboard-history-manager-bin" 2>/dev/null || true
+    pkill -f "windows-11-style-clipboard-history-manager.AppImage" 2>/dev/null || true
     pkill -f "modern-clipboard-history-for-linux-bin" 2>/dev/null || true
     pkill -f "modern-clipboard-history-for-linux.AppImage" 2>/dev/null || true
     sleep 1
     
     # Launch detached from terminal
-    nohup modern-clipboard-history-for-linux >/dev/null 2>&1 < /dev/null & disown
+    nohup windows-11-style-clipboard-history-manager >/dev/null 2>&1 < /dev/null & disown
     
     sleep 2
     
-    if pgrep -f "modern-clipboard-history-for-linux" > /dev/null; then
+    if pgrep -f "windows-11-style-clipboard-history-manager" > /dev/null; then
         return 0
     else
         return 1
@@ -581,9 +591,9 @@ verify_downloaded_file() {
     fi
 
     # Optional GPG verification of the checksum file itself.
-    if [ -n "$MODERN_CLIPBOARD_HISTORY_TRUST_KEY" ]; then
+    if [ -n "$WINDOWS_11_CLIPBOARD_TRUST_KEY" ]; then
         if ! command -v gpg &>/dev/null; then
-            error "GPG verification requested (MODERN_CLIPBOARD_HISTORY_TRUST_KEY) but gpg is not installed"
+            error "GPG verification requested (WINDOWS_11_CLIPBOARD_TRUST_KEY) but gpg is not installed"
         fi
         local sig_url="${base_url}/SHA256SUMS.sig"
         tmp_sha=$(mktemp)
@@ -594,7 +604,7 @@ verify_downloaded_file() {
                 rm -f "$tmp_sha" "${tmp_sha}.sums"
                 error "GPG signature verification failed for SHA256SUMS"
             fi
-            log "GPG signature verified (key: $MODERN_CLIPBOARD_HISTORY_TRUST_KEY)"
+            log "GPG signature verified (key: $WINDOWS_11_CLIPBOARD_TRUST_KEY)"
         else
             rm -f "$tmp_sha"
             error "GPG verification requested but SHA256SUMS.sig was not found in the release"
@@ -630,7 +640,7 @@ verify_downloaded_file() {
 main() {
     echo ""
     echo "╔═══════════════════════════════════════════════════════════╗"
-    echo "║     Modern Clipboard History for Linux - Linux Installer             ║"
+    echo "║  Windows 11 Style Clipboard History Manager - Installer   ║"
     echo "╚═══════════════════════════════════════════════════════════╝"
     echo ""
     
@@ -667,7 +677,7 @@ main() {
         echo ""
         success "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         success " Installation complete!"
-        success " Run 'modern-clipboard-history-for-linux' or find it in your menu."
+        success " Run 'windows-11-style-clipboard-history-manager' or find it in your menu."
         success " Press Super+V to open your clipboard history."
         success "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     fi

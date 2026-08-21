@@ -25,7 +25,7 @@ fn get_config_dir() -> PathBuf {
         .unwrap_or_else(|| {
             PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| ".".to_string())).join(".config")
         })
-        .join("modern-clipboard-history-for-linux")
+        .join("windows-11-style-clipboard-history-manager")
 }
 
 /// Return the first-run marker path.

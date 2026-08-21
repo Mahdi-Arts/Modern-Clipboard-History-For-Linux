@@ -20,6 +20,7 @@ pub fn detect_xfce_conflicts() -> Vec<ShortcutConflict> {
             let line_lower = line.to_lowercase();
             if line_lower.contains("<super>v")
                 && !line_lower.contains("clipboard-history")
+                && !line_lower.contains("windows-11-style-clipboard-history")
                 && !line_lower.contains("modern-clipboard-history")
             {
                 conflicts.push(ShortcutConflict {

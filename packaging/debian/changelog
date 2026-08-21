@@ -1,4 +1,4 @@
-modern-clipboard-history-for-linux (2.5.0-1) unstable; urgency=medium
+windows-11-style-clipboard-history-manager (2.5.0-1) unstable; urgency=medium
 
   * Activate live blocking CI/release (audit, deny, coverage, cargo test, SHA256SUMS, SPDX, SLSA).
   * Default build compiles without gif-search/reqwest; GIF commands stubbed.
@@ -8,7 +8,7 @@ modern-clipboard-history-for-linux (2.5.0-1) unstable; urgency=medium
 
  -- Mahdi Arts <mahdi-arts@users.noreply.github.com>  Fri, 21 Aug 2026 18:00:00 +0330
 
-modern-clipboard-history-for-linux (2.4.0-1) unstable; urgency=medium
+windows-11-style-clipboard-history-manager (2.4.0-1) unstable; urgency=medium
 
   * Fail-closed key load (no ephemeral re-key) and AEAD decrypt errors.
   * Default IPC pagination (get_history_page) wired into the UI.
@@ -18,7 +18,7 @@ modern-clipboard-history-for-linux (2.4.0-1) unstable; urgency=medium
 
  -- Mahdi Arts <mahdi-arts@users.noreply.github.com>  Fri, 21 Aug 2026 12:00:00 +0330
 
-modern-clipboard-history-for-linux (2.3.0-1) unstable; urgency=medium
+windows-11-style-clipboard-history-manager (2.3.0-1) unstable; urgency=medium
 
   * Fail-closed history encryption; paste tickets on all paste paths.
   * Blocking CI quality + audit gates; SHA256SUMS + SPDX + SLSA on release.
@@ -27,7 +27,7 @@ modern-clipboard-history-for-linux (2.3.0-1) unstable; urgency=medium
 
  -- Mahdi Arts <mahdi-arts@users.noreply.github.com>  Thu, 20 Aug 2026 23:45:00 +0330
 
-modern-clipboard-history-for-linux (2.2.0-1) unstable; urgency=medium
+windows-11-style-clipboard-history-manager (2.2.0-1) unstable; urgency=medium
 
   * Field-level ChaCha20-Poly1305 encryption for SQLite history text.
   * Split history_store / history_crypto from clipboard_manager.
@@ -38,7 +38,7 @@ modern-clipboard-history-for-linux (2.2.0-1) unstable; urgency=medium
 
  -- Mahdi Arts <mahdi-arts@users.noreply.github.com>  Thu, 20 Aug 2026 23:00:00 +0330
 
-modern-clipboard-history-for-linux (2.1.0-1) unstable; urgency=medium
+windows-11-style-clipboard-history-manager (2.1.0-1) unstable; urgency=medium
 
   * Enterprise hardening release: offline fonts (CSP tightened), hardened
     URL sanitizer, mandatory SHA256SUMS verification in the installer,
@@ -48,7 +48,7 @@ modern-clipboard-history-for-linux (2.1.0-1) unstable; urgency=medium
 
  -- Mahdi Arts <mahdi-arts@users.noreply.github.com>  Thu, 20 Aug 2026 19:30:00 +0330
 
-modern-clipboard-history-for-linux (2.0.0-1) unstable; urgency=medium
+windows-11-style-clipboard-history-manager (2.0.0-1) unstable; urgency=medium
 
   * Incremental SQLite persistence (upsert / delete / meta updates).
   * Enforce tiling WM config rewrite as an opt-in setting.
@@ -56,4 +56,4 @@ modern-clipboard-history-for-linux (2.0.0-1) unstable; urgency=medium
   * Cap clipboard history at 2000 items.
   * Run frontend and Rust tests in CI; publish SHA256SUMS on release.
 
- -- Mahdi Arts <gustaavoribeeiro@hotmail.com>  Thu, 20 Aug 2026 12:00:00 +0000
+ -- Mahdi Arts <mahdi-arts@users.noreply.github.com>  Thu, 20 Aug 2026 12:00:00 +0000

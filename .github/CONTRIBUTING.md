@@ -1,4 +1,4 @@
-# 🤝 Contributing to Modern Clipboard History for Linux  /  مشارکت در پروژه
+# 🤝 Contributing to Windows 11 Style Clipboard History Manager  /  مشارکت در پروژه
 
 <div dir="rtl">
 
@@ -28,12 +28,12 @@
 1. **مخزن را Fork کنید** در GitHub
 2. **فورک خود را به صورت محلی Clone کنید**:
    ```bash
-   git clone https://github.com/USERNAME/Modern-Clipboard-History-For-Linux.git
-   cd Modern-Clipboard-History-For-Linux
+   git clone https://github.com/USERNAME/Windows-11-Style-Clipboard-History-Manager.git
+   cd Windows-11-Style-Clipboard-History-Manager
    ```
 3. **آدرس مخزن اصلی را به عنوان upstream اضافه کنید**:
    ```bash
-   git remote add upstream https://github.com/Mahdi-Arts/Modern-Clipboard-History-For-Linux.git
+   git remote add upstream https://github.com/Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager.git
    ```
 
 ## تنظیم محیط توسعه
@@ -228,7 +228,7 @@ make hooks   # نصب pre-commit و commit-msg
 
 ## سوالات؟
 
-می‌توانید [یک discussion باز کنید](https://github.com/Mahdi-Arts/Modern-Clipboard-History-For-Linux/discussions) برای سوالات و ایده‌ها.
+می‌توانید [یک discussion باز کنید](https://github.com/Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager/discussions) برای سوالات و ایده‌ها.
 
 ---
 
@@ -240,7 +240,7 @@ make hooks   # نصب pre-commit و commit-msg
 
 ## 🌟 Welcome
 
-First off, thank you for considering contributing to Modern Clipboard History for Linux! 🎉 Every contribution, big or small, is valuable.
+First off, thank you for considering contributing to Windows 11 Style Clipboard History Manager! 🎉 Every contribution, big or small, is valuable.
 
 ## 📋 Table of Contents
 
@@ -264,12 +264,12 @@ This project and everyone participating in it is governed by our commitment to c
 1. **Fork the repository** on GitHub
 2. **Clone your fork** locally:
    ```bash
-   git clone https://github.com/YOUR-USERNAME/Modern-Clipboard-History-For-Linux.git
-   cd Modern-Clipboard-History-For-Linux
+   git clone https://github.com/YOUR-USERNAME/Windows-11-Style-Clipboard-History-Manager.git
+   cd Windows-11-Style-Clipboard-History-Manager
    ```
 3. **Add the upstream remote**:
    ```bash
-   git remote add upstream https://github.com/Mahdi-Arts/Modern-Clipboard-History-For-Linux.git
+   git remote add upstream https://github.com/Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager.git
    ```
 
 ## Development Setup
@@ -391,7 +391,7 @@ Check alignment with project goals, search existing issues, consider implementat
 
 ## Questions?
 
-Open a [discussion](https://github.com/Mahdi-Arts/Modern-Clipboard-History-For-Linux/discussions).
+Open a [discussion](https://github.com/Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager/discussions).
 
 ---
 

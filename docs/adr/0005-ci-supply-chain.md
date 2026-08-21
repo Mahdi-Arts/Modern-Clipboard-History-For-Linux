@@ -28,7 +28,7 @@ pointed at the upstream fork.
 4. Tagged releases publish `SHA256SUMS`, a **per-artifact** SPDX SBOM
    (syft scan of each `.deb` / `.rpm` / `.AppImage`), and SLSA provenance
    (`actions/attest-build-provenance`). All URLs target
-   `Mahdi-Arts/Modern-Clipboard-History-For-Linux`.
+   `Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager`.
 5. CI declares least-privilege `permissions: contents: read`,
    `persist-credentials: false` on checkouts, and concurrency groups that
    cancel stale runs.

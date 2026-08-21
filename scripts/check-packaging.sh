@@ -6,8 +6,8 @@ set -euo pipefail
 readonly ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-readonly BINARY="modern-clipboard-history-for-linux-bin"
-readonly WRAPPER="modern-clipboard-history-for-linux"
+readonly BINARY="windows-11-style-clipboard-history-manager-bin"
+readonly WRAPPER="windows-11-style-clipboard-history-manager"
 readonly APP_ID="io.github.mahdi-arts.clipboard-history"
 
 fail() {
@@ -27,15 +27,15 @@ grep -Fq "/usr/lib/$WRAPPER/$BINARY" src-tauri/bundle/linux/wrapper.sh \
 grep -Fq "/app/lib/$WRAPPER/$BINARY" src-tauri/bundle/linux/wrapper.sh \
     || fail "wrapper does not search the Flatpak library path"
 grep -Fq 'Icon=io.github.mahdi-arts.clipboard-history' \
-    src-tauri/bundle/linux/modern-clipboard-history-for-linux.desktop \
+    src-tauri/bundle/linux/windows-11-style-clipboard-history-manager.desktop \
     || fail "desktop entry and installed icon ID have drifted"
-grep -Fq 'modern-clipboard-history-for-linux.desktop' Makefile \
+grep -Fq 'windows-11-style-clipboard-history-manager.desktop' Makefile \
     || fail "Makefile references a missing desktop source"
 
 for required in \
     src-tauri/bundle/linux/wrapper.sh \
-    src-tauri/bundle/linux/modern-clipboard-history-for-linux.desktop \
-    src-tauri/bundle/linux/99-modern-clipboard-history-input.rules \
+    src-tauri/bundle/linux/windows-11-style-clipboard-history-manager.desktop \
+    src-tauri/bundle/linux/99-windows-11-style-clipboard-history-input.rules \
     packaging/flatpak/$APP_ID.yml \
     packaging/flatpak/$APP_ID.metainfo.xml \
     packaging/debian/control \
@@ -44,7 +44,7 @@ for required in \
 done
 
 if command -v desktop-file-validate >/dev/null 2>&1; then
-    desktop-file-validate src-tauri/bundle/linux/modern-clipboard-history-for-linux.desktop
+    desktop-file-validate src-tauri/bundle/linux/windows-11-style-clipboard-history-manager.desktop
 fi
 if command -v appstreamcli >/dev/null 2>&1; then
     appstreamcli validate --no-net packaging/flatpak/$APP_ID.metainfo.xml

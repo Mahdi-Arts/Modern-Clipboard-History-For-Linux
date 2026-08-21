@@ -145,7 +145,7 @@ fi
 
 # Update Cargo.lock
 log "Updating Cargo.lock..."
-cd src-tauri && cargo update -p modern-clipboard-history-for-linux --precise "$VERSION" 2>/dev/null || cargo check 2>/dev/null || true
+cd src-tauri && cargo update -p windows-11-style-clipboard-history-manager --precise "$VERSION" 2>/dev/null || cargo check 2>/dev/null || true
 cd ..
 success "Cargo.lock updated"
 
@@ -210,4 +210,4 @@ else
     echo -e "${GREEN}╚════════════════════════════════════════════════════════════════╝${NC}"
 fi
 echo ""
-echo "Track progress: https://github.com/Mahdi-Arts/Modern-Clipboard-History-For-Linux/actions"
+echo "Track progress: https://github.com/Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager/actions"

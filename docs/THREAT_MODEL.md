@@ -1,4 +1,4 @@
-# 🛡️ Threat Model — Modern Clipboard History for Linux
+# 🛡️ Threat Model — Windows 11 Style Clipboard History Manager
 
 > **Status:** Living document · **Applies to:** v2.5.0
 > This document describes the assets, trust boundaries, threat agents, and
@@ -11,12 +11,12 @@
 
 | # | Asset | Location | Sensitivity |
 | --- | --- | --- | --- |
-| A1 | Clipboard history (text + rich text) | `~/.local/share/modern-clipboard-history-for-linux/history.db` (SQLite, WAL, `0600`) | **High** — may contain copied credentials, personal data |
-| A2 | Clipboard images | `~/.local/share/modern-clipboard-history-for-linux/images/*.png` (`0600`, ChaCha20-Poly1305 envelope; legacy plaintext PNG still readable) | Medium-High |
-| A3 | User settings | `~/.config/modern-clipboard-history-for-linux/user_settings.json` (`0600`) | Low-Medium |
-| A4 | Emoji usage / custom kaomoji | `~/.local/share/modern-clipboard-history-for-linux/emoji_history.json` | Low |
-| A5 | GIF cache | `~/.cache/modern-clipboard-history-for-linux/gifs/` | Low |
-| A6 | Logs | `~/.local/share/modern-clipboard-history-for-linux/logs/` (`0700`) | Medium — may contain window titles, commands |
+| A1 | Clipboard history (text + rich text) | `~/.local/share/windows-11-style-clipboard-history-manager/history.db` (SQLite, WAL, `0600`) | **High** — may contain copied credentials, personal data |
+| A2 | Clipboard images | `~/.local/share/windows-11-style-clipboard-history-manager/images/*.png` (`0600`, ChaCha20-Poly1305 envelope; legacy plaintext PNG still readable) | Medium-High |
+| A3 | User settings | `~/.config/windows-11-style-clipboard-history-manager/user_settings.json` (`0600`) | Low-Medium |
+| A4 | Emoji usage / custom kaomoji | `~/.local/share/windows-11-style-clipboard-history-manager/emoji_history.json` | Low |
+| A5 | GIF cache | `~/.cache/windows-11-style-clipboard-history-manager/gifs/` | Low |
+| A6 | Logs | `~/.local/share/windows-11-style-clipboard-history-manager/logs/` (`0700`) | Medium — may contain window titles, commands |
 | A7 | Shortcut registrations (DE configs) | `~/.config/…` (gsettings, khotkeysrc, i3 config, …) | Medium |
 
 ## 2. Trust boundaries
@@ -111,7 +111,7 @@ Key boundaries:
   `RELEASE_GPG_PRIVATE_KEY` is configured), **per-artifact** SPDX SBOM
   (syft), SLSA build-provenance attestations.
 - Every URL in the release pipeline points at
-  `Mahdi-Arts/Modern-Clipboard-History-For-Linux`; optional channels
+  `Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager`; optional channels
   (Cloudsmith/AUR) activate only when repository secrets exist.
 - AUR PKGBUILD checksums are populated by the release workflow. The AUR SSH
   connection is **fail-closed**: `StrictHostKeyChecking yes` with

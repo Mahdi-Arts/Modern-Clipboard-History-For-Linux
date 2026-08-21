@@ -22,10 +22,10 @@ Service (GNOME Keyring / KWallet).
    `File` (default, unchanged) and `SecretService`.
 2. The Secret Service backend v1 talks to the keyring through the
    `secret-tool` helper (`libsecret-tools`), storing the base64 key under
-   attributes `application=modern-clipboard-history-for-linux`, `purpose=history.key`.
+   attributes `application=windows-11-style-clipboard-history-manager`, `purpose=history.key`.
    No new Rust dependency; native zbus integration remains a future option.
 3. **Key-integrity marker.** `history.key.check` stores
-   `ChaCha20-Poly1305("modern-clipboard-history-for-linux:key-check:v1")` under the
+   `ChaCha20-Poly1305("windows-11-style-clipboard-history-manager:key-check:v1")` under the
    adopted key. A backend may only be adopted when it decrypts the marker —
    otherwise loading **fails closed** rather than risking history encrypted
    under the wrong key.

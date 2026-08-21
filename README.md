@@ -1,7 +1,7 @@
 <div align="center">
 
-# 📋 Modern Clipboard History for Linux
-### مدیر تاریخچه کلیپ‌بورد مدرن برای لینوکس
+# 📋 Windows 11 Style Clipboard History Manager
+### مدیر تاریخچه کلیپ‌بورد به سبک ویندوز ۱۱ برای لینوکس
 
 > A fast, bilingual clipboard manager for Linux (Wayland & X11), inspired by Windows 11 Win+V.
 > مدیر کلیپ‌بورد سریع و دوزبانه برای لینوکس، با الهام از Win+V ویندوز ۱۱.
@@ -14,7 +14,7 @@
 
 <br/>
 
-<img src="docs/img/modern-clipboard-history-for-linux.png" alt="Clipboard History popup" width="360" />
+<img src="docs/img/windows-11-style-clipboard-history-manager.png" alt="Clipboard History popup" width="360" />
 
 </div>
 
@@ -57,9 +57,9 @@
 
 Clipboard history is stored **only on this machine**:
 
-- Database: `~/.local/share/modern-clipboard-history-for-linux/history.db` (mode `0600`, text columns encrypted at rest)
-- Images: `~/.local/share/modern-clipboard-history-for-linux/images/` (ChaCha20-Poly1305 at rest; UI gets a thumbnail)
-- Settings: `~/.config/modern-clipboard-history-for-linux/user_settings.json`
+- Database: `~/.local/share/windows-11-style-clipboard-history-manager/history.db` (mode `0600`, text columns encrypted at rest)
+- Images: `~/.local/share/windows-11-style-clipboard-history-manager/images/` (ChaCha20-Poly1305 at rest; UI gets a thumbnail)
+- Settings: `~/.config/windows-11-style-clipboard-history-manager/user_settings.json`
 - Encryption key: `history.key` (mode `0600`) next to the database — **or** the
   freedesktop Secret Service keyring (Settings → Privacy, see
   [ADR-0006](docs/adr/0006-secret-service-key-storage.md)); the active key is
@@ -79,7 +79,7 @@ This project needs `/dev/uinput` (or XTest) to simulate Ctrl+V. That is a powerf
 
 Tiling window managers (i3 / Sway / Hyprland) are **not** rewritten unless you enable *Allow rewriting tiling WM configs* in Settings.
 
-**Supply chain:** the installer **mandatorily verifies** every download against the release's `SHA256SUMS` (set `ALLOW_UNVERIFIED=1` to skip — not recommended); optional GPG verification of the checksum file via `MODERN_CLIPBOARD_HISTORY_TRUST_KEY`. The hardened CI contract ([`docs/CI.md`](docs/CI.md)) **blocks** on `cargo audit`, `cargo deny` (advisories/bans/licenses/sources), `npm audit --audit-level=high`, type-aware ESLint + `tsc`, frontend coverage thresholds, a tree-sitter Rust syntax gate, `cargo test` (default and `--all-features`), `clippy -D warnings`, and a release-binary smoke test. Every GitHub Action is pinned to a full commit SHA (OpenSSF recommendation). Each release publishes `SHA256SUMS`, an optional GPG `SHA256SUMS.sig`, a **per-artifact** SPDX SBOM (syft), and SLSA build-provenance attestations. The AUR push fails closed unless verified SSH host keys are configured (`AUR_KNOWN_HOSTS`). Activation of the hardened `.github/workflows/` is a one-command maintainer step (`git am docs/patches/hardened-ci-workflows.patch` — GitHub Apps without the `workflows` permission cannot push workflow files). See [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md) and [docs/adr/](docs/adr/).
+**Supply chain:** the installer **mandatorily verifies** every download against the release's `SHA256SUMS` (set `ALLOW_UNVERIFIED=1` to skip — not recommended); optional GPG verification of the checksum file via `WINDOWS_11_CLIPBOARD_TRUST_KEY`. The hardened CI contract ([`docs/CI.md`](docs/CI.md)) **blocks** on `cargo audit`, `cargo deny` (advisories/bans/licenses/sources), `npm audit --audit-level=high`, type-aware ESLint + `tsc`, frontend coverage thresholds, a tree-sitter Rust syntax gate, `cargo test` (default and `--all-features`), `clippy -D warnings`, and a release-binary smoke test. Every GitHub Action is pinned to a full commit SHA (OpenSSF recommendation). Each release publishes `SHA256SUMS`, an optional GPG `SHA256SUMS.sig`, a **per-artifact** SPDX SBOM (syft), and SLSA build-provenance attestations. The AUR push fails closed unless verified SSH host keys are configured (`AUR_KNOWN_HOSTS`). Activation of the hardened `.github/workflows/` is a one-command maintainer step (`git am docs/patches/hardened-ci-workflows.patch` — GitHub Apps without the `workflows` permission cannot push workflow files). See [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md) and [docs/adr/](docs/adr/).
 
 ---
 
@@ -90,23 +90,23 @@ Prefer your package manager over piping scripts to `bash`. Verify `SHA256SUMS` f
 ### Debian / Ubuntu
 
 ```bash
-sudo apt install ./modern-clipboard-history-for-linux_2.5.0_amd64.deb
+sudo apt install ./windows-11-style-clipboard-history-manager_2.5.0_amd64.deb
 sudo setfacl -m u:$USER:rw /dev/uinput
 ```
 
-Download the `.deb` from [GitHub Releases](https://github.com/Mahdi-Arts/Modern-Clipboard-History-For-Linux/releases) after verifying the published checksum.
+Download the `.deb` from [GitHub Releases](https://github.com/Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager/releases) after verifying the published checksum.
 
 ### Fedora
 
 ```bash
-sudo dnf install ./modern-clipboard-history-for-linux-2.5.0-1.x86_64.rpm
+sudo dnf install ./windows-11-style-clipboard-history-manager-2.5.0-1.x86_64.rpm
 sudo setfacl -m u:$USER:rw /dev/uinput
 ```
 
 ### Arch Linux (AUR)
 
 ```bash
-yay -S modern-clipboard-history-for-linux-bin
+yay -S windows-11-style-clipboard-history-manager-bin
 ```
 
 ### Flatpak
@@ -120,12 +120,12 @@ flatpak override --user --device=all io.github.mahdi-arts.clipboard-history
 ### Convenience installer (review before running)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Mahdi-Arts/Modern-Clipboard-History-For-Linux/master/scripts/install.sh -o install-clipboard.sh
+curl -fsSL https://raw.githubusercontent.com/Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager/master/scripts/install.sh -o install-clipboard.sh
 less install-clipboard.sh
 bash install-clipboard.sh
 ```
 
-The installer **requires** matching the downloaded artifact against the release's `SHA256SUMS` and aborts on mismatch. Optional GPG verification of the checksum file is available via `MODERN_CLIPBOARD_HISTORY_TRUST_KEY=<keyid>`.
+The installer **requires** matching the downloaded artifact against the release's `SHA256SUMS` and aborts on mismatch. Optional GPG verification of the checksum file is available via `WINDOWS_11_CLIPBOARD_TRUST_KEY=<keyid>`.
 
 ---
 
@@ -165,10 +165,10 @@ Full diagram: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 | Issue | Fix |
 | --- | --- |
-| Shortcut does nothing on GNOME | GNOME reserves Super+V. Rebind notification tray, or use Ctrl+Alt+V. Reset: `rm ~/.config/modern-clipboard-history-for-linux/setup.json` |
-| Black / opaque window on NVIDIA | `IS_NVIDIA=1 modern-clipboard-history-for-linux` |
+| Shortcut does nothing on GNOME | GNOME reserves Super+V. Rebind notification tray, or use Ctrl+Alt+V. Reset: `rm ~/.config/windows-11-style-clipboard-history-manager/setup.json` |
+| Black / opaque window on NVIDIA | `IS_NVIDIA=1 windows-11-style-clipboard-history-manager` |
 | Paste does nothing | `sudo setfacl -m u:$USER:rw /dev/uinput` then log out/in |
-| Window missing on Wayland | Run from a terminal and read the log in `~/.local/share/modern-clipboard-history-for-linux/logs/` |
+| Window missing on Wayland | Run from a terminal and read the log in `~/.local/share/windows-11-style-clipboard-history-manager/logs/` |
 | Password manager still captured | On Wayland, focused-app skip is unavailable. Keep *Skip secrets* on. |
 
 ---
@@ -176,8 +176,8 @@ Full diagram: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 ## Development / توسعه
 
 ```bash
-git clone https://github.com/Mahdi-Arts/Modern-Clipboard-History-For-Linux.git
-cd Modern-Clipboard-History-For-Linux
+git clone https://github.com/Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager.git
+cd Windows-11-Style-Clipboard-History-Manager
 make deps && make rust && make node
 source ~/.cargo/env
 make dev          # hot reload
@@ -210,7 +210,7 @@ docs/patches/hardened-ci-workflows.patch` (a GitHub App without the
 Tagged releases publish `.deb` / `.rpm` / AppImage plus `SHA256SUMS` (with an
 optional GPG `SHA256SUMS.sig`), a per-artifact SPDX SBOM, and SLSA
 build-provenance attestations. All URLs point at this repository
-(`Mahdi-Arts/Modern-Clipboard-History-For-Linux`).
+(`Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager`).
 
 ### Environment
 
@@ -239,4 +239,4 @@ Packaging notes (`.deb` → GitHub Release → Flatpak deployment guide):
 
 MIT. Based on the original [Windows 11 Clipboard History For Linux](https://github.com/gustavosett/Windows-11-Clipboard-History-For-Linux) by gustavosett.
 
-Security reports: use [GitHub private advisories](https://github.com/Mahdi-Arts/Modern-Clipboard-History-For-Linux/security/advisories/new) — do not open a public issue.
+Security reports: use [GitHub private advisories](https://github.com/Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager/security/advisories/new) — do not open a public issue.

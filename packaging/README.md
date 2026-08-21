@@ -1,8 +1,8 @@
 # Packaging and Release Guide / راهنمای بسته‌بندی و انتشار
 
 > Canonical application ID: `io.github.mahdi-arts.clipboard-history`
-> Canonical binary: `modern-clipboard-history-for-linux-bin`
-> Canonical launcher: `modern-clipboard-history-for-linux`
+> Canonical binary: `windows-11-style-clipboard-history-manager-bin`
+> Canonical launcher: `windows-11-style-clipboard-history-manager`
 
 ---
 
@@ -71,7 +71,7 @@ ls -lh src-tauri/target/release/bundle/deb/*.deb
 
 ```bash
 dpkg-buildpackage -us -uc -b
-lintian --pedantic ../modern-clipboard-history-for-linux_*.changes
+lintian --pedantic ../windows-11-style-clipboard-history-manager_*.changes
 ```
 
 ### آزمون نصب
@@ -80,9 +80,9 @@ lintian --pedantic ../modern-clipboard-history-for-linux_*.changes
 
 ```bash
 sudo apt install ./src-tauri/target/release/bundle/deb/*.deb
-command -v modern-clipboard-history-for-linux
-/usr/lib/modern-clipboard-history-for-linux/modern-clipboard-history-for-linux-bin --version
-sudo apt remove modern-clipboard-history-for-linux
+command -v windows-11-style-clipboard-history-manager
+/usr/lib/windows-11-style-clipboard-history-manager/windows-11-style-clipboard-history-manager-bin --version
+sudo apt remove windows-11-style-clipboard-history-manager
 ```
 
 عمل paste به `/dev/uinput` نیاز دارد. اسکریپت post-install ماژول را بارگذاری می‌کند و udev rule دارای `TAG+="uaccess"` را نصب می‌کند. ACL گسترده یا mode برابر `0666` مجاز نیست.
@@ -122,8 +122,8 @@ packaging/
 └── README.md
 src-tauri/bundle/linux/
 ├── wrapper.sh               # launcher مشترک deb/rpm/Flatpak
-├── modern-clipboard-history-for-linux.desktop
-├── 99-modern-clipboard-history-input.rules
+├── windows-11-style-clipboard-history-manager.desktop
+├── 99-windows-11-style-clipboard-history-input.rules
 ├── postinst.sh
 └── postrm.sh
 ```
@@ -191,16 +191,16 @@ The independent Debian tooling path is:
 
 ```bash
 dpkg-buildpackage -us -uc -b
-lintian --pedantic ../modern-clipboard-history-for-linux_*.changes
+lintian --pedantic ../windows-11-style-clipboard-history-manager_*.changes
 ```
 
 Install-test on a clean VM/container:
 
 ```bash
 sudo apt install ./src-tauri/target/release/bundle/deb/*.deb
-command -v modern-clipboard-history-for-linux
-/usr/lib/modern-clipboard-history-for-linux/modern-clipboard-history-for-linux-bin --version
-sudo apt remove modern-clipboard-history-for-linux
+command -v windows-11-style-clipboard-history-manager
+/usr/lib/windows-11-style-clipboard-history-manager/windows-11-style-clipboard-history-manager-bin --version
+sudo apt remove windows-11-style-clipboard-history-manager
 ```
 
 Paste simulation requires `/dev/uinput`. Packaging installs a `uaccess` udev rule; world-writable `0666` device permissions are forbidden.

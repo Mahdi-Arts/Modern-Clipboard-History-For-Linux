@@ -12,7 +12,7 @@
 
 در عوض، از یکی از روش‌های زیر استفاده کنید:
 
-1. **GitHub Security Advisory**: از [قابلیت گزارش خصوصی GitHub](https://github.com/Mahdi-Arts/Modern-Clipboard-History-For-Linux/security/advisories/new) استفاده کنید
+1. **GitHub Security Advisory**: از [قابلیت گزارش خصوصی GitHub](https://github.com/Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager/security/advisories/new) استفاده کنید
 2. **ایمیل**: mahdi-arts@users.noreply.github.com (ترجیحاً از GitHub Advisory استفاده کنید)
 
 ### اطلاعات مورد نیاز
@@ -45,7 +45,7 @@ If you discover a security vulnerability, please follow these steps:
 
 ### Private Disclosure Methods
 
-1. **GitHub Security Advisory**: Use [private vulnerability reporting](https://github.com/Mahdi-Arts/Modern-Clipboard-History-For-Linux/security/advisories/new)
+1. **GitHub Security Advisory**: Use [private vulnerability reporting](https://github.com/Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager/security/advisories/new)
 2. **Email**: mahdi-arts@users.noreply.github.com (prefer the GitHub Advisory flow)
 
 ### What to Include

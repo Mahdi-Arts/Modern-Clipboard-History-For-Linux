@@ -20,32 +20,32 @@ use tauri::{
     AppHandle, Emitter, Manager,
 };
 
-use modern_clipboard_history_for_linux::autostart_manager;
-use modern_clipboard_history_for_linux::clipboard_manager::ClipboardManager;
-use modern_clipboard_history_for_linux::commands;
-use modern_clipboard_history_for_linux::config_manager::ConfigManager;
-use modern_clipboard_history_for_linux::emoji_manager::EmojiManager;
-use modern_clipboard_history_for_linux::permission_checker;
-use modern_clipboard_history_for_linux::rendering_env;
-use modern_clipboard_history_for_linux::session;
-use modern_clipboard_history_for_linux::shortcut_setup;
+use windows_11_style_clipboard_history_manager::autostart_manager;
+use windows_11_style_clipboard_history_manager::clipboard_manager::ClipboardManager;
+use windows_11_style_clipboard_history_manager::commands;
+use windows_11_style_clipboard_history_manager::config_manager::ConfigManager;
+use windows_11_style_clipboard_history_manager::emoji_manager::EmojiManager;
+use windows_11_style_clipboard_history_manager::permission_checker;
+use windows_11_style_clipboard_history_manager::rendering_env;
+use windows_11_style_clipboard_history_manager::session;
+use windows_11_style_clipboard_history_manager::shortcut_setup;
 
-use modern_clipboard_history_for_linux::user_settings::UserSettingsManager;
-use modern_clipboard_history_for_linux::window_controller::{
+use windows_11_style_clipboard_history_manager::user_settings::UserSettingsManager;
+use windows_11_style_clipboard_history_manager::window_controller::{
     SettingsController, WindowController, STARTED_IN_BACKGROUND,
 };
-use modern_clipboard_history_for_linux::AppState;
+use windows_11_style_clipboard_history_manager::AppState;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 fn main() {
-    modern_clipboard_history_for_linux::init_tracing();
+    windows_11_style_clipboard_history_manager::init_tracing();
 
     let args: Vec<String> = std::env::args().collect();
 
     // Handle --version / -v
     if args.iter().any(|arg| arg == "--version" || arg == "-v") {
-        println!("modern-clipboard-history-for-linux {VERSION}");
+        println!("windows-11-style-clipboard-history-manager {VERSION}");
         return;
     }
 
@@ -67,10 +67,10 @@ fn main() {
     let open_settings_on_start = args.iter().any(|arg| arg == "--settings");
     let open_emoji_on_start = args.iter().any(|arg| arg == "--emoji");
 
-    modern_clipboard_history_for_linux::session::init();
+    windows_11_style_clipboard_history_manager::session::init();
 
     let is_mouse_inside = Arc::new(AtomicBool::new(false));
-    let base_dir = modern_clipboard_history_for_linux::clipboard_manager::data_dir();
+    let base_dir = windows_11_style_clipboard_history_manager::clipboard_manager::data_dir();
 
     if let Err(e) = std::fs::create_dir_all(&base_dir) {
         tracing::error!("Failed to create base directory: {e}");
@@ -82,7 +82,7 @@ fn main() {
     // Construct the manager with the user's preferred encryption-key
     // backend (file | Secret Service). See ADR-0006.
     // ساخت مدیر با بک‌اند کلید ترجیحی کاربر (فایل | Secret Service). ADR-0006.
-    let key_backend = modern_clipboard_history_for_linux::history_crypto::KeyBackend::from_setting(
+    let key_backend = windows_11_style_clipboard_history_manager::history_crypto::KeyBackend::from_setting(
         &user_settings.history_key_backend,
     );
     tracing::info!(
@@ -99,7 +99,7 @@ fn main() {
         manager.set_privacy_policy(user_settings.privacy_policy());
         manager.set_auto_delete_interval_minutes(user_settings.auto_delete_interval_in_minutes());
     }
-    modern_clipboard_history_for_linux::linux_shortcut_manager::set_allow_wm_config_rewrite(
+    windows_11_style_clipboard_history_manager::linux_shortcut_manager::set_allow_wm_config_rewrite(
         user_settings.allow_wm_config_rewrite,
     );
 
@@ -131,7 +131,7 @@ fn main() {
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::Destroyed = event {
                 if window.label() == "setup" {
-                    if modern_clipboard_history_for_linux::permission_checker::first_run_pending() {
+                    if windows_11_style_clipboard_history_manager::permission_checker::first_run_pending() {
                         tracing::info!("[Setup] Setup window closed without completion. Exiting.");
                         window.app_handle().exit(0);
                     }
@@ -141,8 +141,8 @@ fn main() {
         .setup(move |app| {
             let app_handle = app.handle().clone();
 
-            modern_clipboard_history_for_linux::input_simulator::init();
-            modern_clipboard_history_for_linux::paste_sync::init();
+            windows_11_style_clipboard_history_manager::input_simulator::init();
+            windows_11_style_clipboard_history_manager::paste_sync::init();
 
             // Background mode: immediately hide the main window
             if start_in_background {
@@ -171,13 +171,13 @@ fn main() {
 
             // Register window event handlers
             if let Some(main_window) = app.get_webview_window("main") {
-                modern_clipboard_history_for_linux::window_controller::register_window_events(
+                windows_11_style_clipboard_history_manager::window_controller::register_window_events(
                     &main_window,
                     &app_handle,
                 );
 
                 // Start clipboard watcher
-                modern_clipboard_history_for_linux::clipboard_watcher::start(
+                windows_11_style_clipboard_history_manager::clipboard_watcher::start(
                     app_handle.clone(),
                     clipboard_manager.clone(),
                 );
@@ -186,7 +186,7 @@ fn main() {
                 let app_handle_for_theme = app_handle.clone();
                 tauri::async_runtime::spawn(async move {
                     if let Err(e) =
-                        modern_clipboard_history_for_linux::theme_manager::start_theme_listener(
+                        windows_11_style_clipboard_history_manager::theme_manager::start_theme_listener(
                             app_handle_for_theme,
                         )
                         .await
@@ -211,7 +211,7 @@ fn main() {
 
                 // Background mode enforcer
                 if start_in_background {
-                    modern_clipboard_history_for_linux::window_controller::spawn_background_enforcer(
+                    windows_11_style_clipboard_history_manager::window_controller::spawn_background_enforcer(
                         &main_window,
                     );
                 }
@@ -292,15 +292,15 @@ fn build_tray(app: &tauri::App, app_handle: &AppHandle) -> Result<(), Box<dyn st
     let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
     let menu = Menu::with_items(app, &[&show, &settings_item, &quit])?;
 
-    let temp_dir = std::env::temp_dir().join("modern-clipboard-history-for-linux");
+    let temp_dir = std::env::temp_dir().join("windows-11-style-clipboard-history-manager");
     std::fs::create_dir_all(&temp_dir).ok();
 
-    modern_clipboard_history_for_linux::theme_manager::update_dynamic_tray_flag(
+    windows_11_style_clipboard_history_manager::theme_manager::update_dynamic_tray_flag(
         settings.enable_dynamic_tray_icon,
     );
 
     let (icon, use_template_icon) =
-        modern_clipboard_history_for_linux::theme_manager::initial_tray_icon(&settings);
+        windows_11_style_clipboard_history_manager::theme_manager::initial_tray_icon(&settings);
 
     let _tray = TrayIconBuilder::with_id("main-tray")
         .icon(icon)
@@ -330,7 +330,7 @@ fn build_tray(app: &tauri::App, app_handle: &AppHandle) -> Result<(), Box<dyn st
         let app_handle_bg = app_handle.clone();
         let settings_bg = settings.clone();
         tauri::async_runtime::spawn(async move {
-            modern_clipboard_history_for_linux::theme_manager::refresh_tray_icon(
+            windows_11_style_clipboard_history_manager::theme_manager::refresh_tray_icon(
                 &app_handle_bg,
                 &settings_bg,
             )
@@ -343,10 +343,10 @@ fn build_tray(app: &tauri::App, app_handle: &AppHandle) -> Result<(), Box<dyn st
 
 /// Print help message
 fn print_help() {
-    println!("modern-clipboard-history-for-linux {VERSION}");
+    println!("windows-11-style-clipboard-history-manager {VERSION}");
     println!();
     println!("USAGE:");
-    println!("    modern-clipboard-history-for-linux [OPTIONS]");
+    println!("    windows-11-style-clipboard-history-manager [OPTIONS]");
     println!();
     println!("OPTIONS:");
     println!("    -h, --help       Show this help message");

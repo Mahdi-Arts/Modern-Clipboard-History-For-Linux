@@ -34,16 +34,13 @@ All notable changes to this project will be documented in this file.
 
 ### Packaging and QA / بسته‌بندی و کنترل کیفیت
 
-- **Product renamed from the old `win11-clipboard-history` branding to
-  `Modern Clipboard History for Linux`.** The binary is now
-  `modern-clipboard-history-for-linux-bin`, the launcher/command is
-  `modern-clipboard-history-for-linux`, and all packaging (Debian, RPM, AppImage,
+- **Product named `Windows 11 Style Clipboard History Manager`.** The binary is
+  `windows-11-style-clipboard-history-manager-bin`, the launcher/command is
+  `windows-11-style-clipboard-history-manager`, and all packaging (Debian, RPM, AppImage,
   Flatpak, AUR), AppArmor profiles, udev rules, scripts, CI, docs, and data/config
-  paths (`~/.local/share/…`, `~/.config/…`, `~/.cache/…`) use the new name.
-  Existing installs' history in the old `win11-clipboard-history` paths is not
-  auto-migrated; copy it manually if you want to keep it.
-  محصول با نام جدید Modern Clipboard History for Linux یکپارچه شد؛ باینری، راه‌انداز،
-  بسته‌ها و مسیرهای داده/تنظیمات همگی به نام جدید تغییر کردند.
+  paths (`~/.local/share/…`, `~/.config/…`, `~/.cache/…`) use the canonical name.
+  محصول با نام رسمی Windows 11 Style Clipboard History Manager یکپارچه شد؛ باینری، راه‌انداز،
+  بسته‌ها و مسیرهای داده/تنظیمات همگی به نام استاندارد پروژه تنظیم شدند.
 - **Security hardening (from the 2026-08-21 review).** The in-memory history
   key is now wrapped in `zeroize::Zeroizing` and the `chacha20poly1305`
   `zeroize` feature is enabled explicitly; `open_safe_url` now refuses hosts
@@ -69,7 +66,7 @@ All notable changes to this project will be documented in this file.
   **مستندات بسته‌بندی و عملیات:** `packaging/DEPLOYMENT.md` دوزبانه (خط لولهٔ
   `.deb` → GitHub Release → Flatpak، پشتیبان‌گیری/بازیابی کلید، AppArmor enforce،
   چک‌لیست انتشار) و به‌روزرسانی ADR-0006 برای توصیهٔ Secret Service افزوده شد.
-- Canonicalized `modern-clipboard-history-for-linux-bin` across Cargo, CI, Debian, Flatpak,
+- Canonicalized `windows-11-style-clipboard-history-manager-bin` across Cargo, CI, Debian, Flatpak,
   AppArmor, Make, and the launcher; added package-contract and `.deb` checks.
   نام باینری در همهٔ مسیرهای ساخت و انتشار یکسان و کنترل محتوای `.deb` افزوده شد.
 - Added bilingual Debian-first/Flatpak-second release guidance and performance SLOs.
@@ -170,7 +167,7 @@ All notable changes to this project will be documented in this file.
 - **CI/release workflows now match the docs:** blocking `cargo audit` /
   `cargo deny` / `npm audit`, coverage, `cargo test`, xvfb smoke,
   `SHA256SUMS` + per-artifact SPDX SBOM + SLSA provenance. All URLs point
-  at `Mahdi-Arts/Modern-Clipboard-History-For-Linux`.
+  at `Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager`.
   گیت‌های CI/انتشار با مستندات هم‌خوان شدند.
 
 ### Changed / تغییرات
@@ -240,7 +237,7 @@ All notable changes to this project will be documented in this file.
 
 - **Fully offline**: Vazirmatn font bundled locally; Google Fonts removed; CSP tightened to `font-src 'self' data:` — the app makes zero network calls at runtime.
 - **Hardened URL sanitizer**: blocks IPv6 loopback/ULA/link-local/mapped, private/CGNAT/benchmark/multicast IPv4, raw control characters, and `.internal` hosts (tests caught the original gaps).
-- **Mandatory supply-chain verification**: `install.sh` now *implements* `verify_downloaded_file` (previously referenced but undefined — every GitHub-releases fallback path was broken) and requires SHA256SUMS matches; optional GPG verification via `MODERN_CLIPBOARD_HISTORY_TRUST_KEY`.
+- **Mandatory supply-chain verification**: `install.sh` now *implements* `verify_downloaded_file` (previously referenced but undefined — every GitHub-releases fallback path was broken) and requires SHA256SUMS matches; optional GPG verification via `WINDOWS_11_CLIPBOARD_TRUST_KEY`.
 - **Blocking security audits in CI**: `cargo audit` and `npm audit` are hard gates (previously `continue-on-error: true`).
 - **Release hardening**: SLSA build provenance attestation, SPDX SBOM, SHA256SUMS published per release; all release URLs fixed to the Mahdi-Arts repository (previously pointed at the upstream fork's install scripts and Cloudsmith/AUR sources).
 - Optional **AppArmor profile** (complain mode) shipped in `packaging/apparmor/` and installed by the deb to `/usr/share/doc/`.

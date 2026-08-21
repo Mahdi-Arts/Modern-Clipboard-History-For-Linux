@@ -1,10 +1,10 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
-Upstream-Name: modern-clipboard-history-for-linux
-Upstream-Contact: https://github.com/Mahdi-Arts/Modern-Clipboard-History-For-Linux
-Source: https://github.com/Mahdi-Arts/Modern-Clipboard-History-For-Linux
+Upstream-Name: windows-11-style-clipboard-history-manager
+Upstream-Contact: https://github.com/Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager
+Source: https://github.com/Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager
 
 Files: *
-Copyright: 2024-2026 Gustavo Sett
+Copyright: 2024-2026 Windows 11 Style Clipboard History Manager Contributors
            2026 Mahdi Arts
 License: MIT
 

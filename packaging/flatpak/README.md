@@ -1,7 +1,7 @@
 # 📦 Flatpak build & deployment guide / راهنمای ساخت و استقرار فلت‌پک
 
 > This directory holds everything needed to build and publish the Flatpak of
-> **Modern Clipboard History for Linux** (`io.github.mahdi-arts.clipboard-history`).
+> **Windows 11 Style Clipboard History Manager** (`io.github.mahdi-arts.clipboard-history`).
 > این پوشه شامل همهٔ آنچه برای ساخت و انتشار فلت‌پک پروژه لازم است می‌باشد.
 
 ---

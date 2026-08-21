@@ -39,7 +39,7 @@
 
 #### بسته‌بندی و انتشار
 
-- یکسان‌سازی نام باینری `modern-clipboard-history-for-linux-bin` در Cargo، CI، Debian، Flatpak، Make، wrapper و AppArmor؛
+- یکسان‌سازی نام باینری `windows-11-style-clipboard-history-manager-bin` در Cargo، CI، Debian، Flatpak، Make، wrapper و AppArmor؛
 - یکسان‌سازی App ID دسکتاپ و آیکون؛
 - پشتیبانی wrapper از مسیرهای Debian/RPM و `/app` در Flatpak؛
 - اصلاح source pathهای واقعی desktop/udev در Debian و Flatpak؛

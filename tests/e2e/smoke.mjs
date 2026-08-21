@@ -31,7 +31,7 @@ async function wd(method, path, body) {
 
 async function main() {
   const session = await wd('POST', '/session', {
-    capabilities: { alwaysMatch: { 'tauri:options': { application: '../src-tauri/target/debug/modern-clipboard-history-for-linux-bin' } } },
+    capabilities: { alwaysMatch: { 'tauri:options': { application: '../src-tauri/target/debug/windows-11-style-clipboard-history-manager-bin' } } },
   })
   const sessionId = session.sessionId
   try {

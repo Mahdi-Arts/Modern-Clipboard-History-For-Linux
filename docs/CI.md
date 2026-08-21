@@ -40,7 +40,7 @@ git am docs/patches/hardened-ci-workflows.patch && git push
 - `SHA256SUMS` (+ امضای اختیاری GPG با secret ی `RELEASE_GPG_PRIVATE_KEY`)
 - SPDX SBOM به ازای هر آرتیفکت (`syft`)
 - گواهی SLSA build-provenance
-- همهٔ URLها به `Mahdi-Arts/Modern-Clipboard-History-For-Linux`
+- همهٔ URLها به `Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager`
 
 Cloudsmith و AUR فقط وقتی secretهای مخزن تنظیم شده باشند فعال می‌شوند.
 اتصال AUR با `StrictHostKeyChecking yes` و `known_hosts` پین‌شده از secret ی

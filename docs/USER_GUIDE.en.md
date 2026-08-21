@@ -1,4 +1,4 @@
-# Complete English Guide — Modern Clipboard History for Linux
+# Complete English Guide — Windows 11 Style Clipboard History Manager
 
 > Documentation version: 2.5.0 — reviewed 2026-08-21
 
@@ -6,7 +6,7 @@ This is the English entry point for installation, daily use, privacy, troublesho
 
 ## 1. Overview
 
-Modern Clipboard History is a local Linux clipboard manager for X11 and Wayland, inspired by Windows 11 Win+V. It provides text, rich-text and image history; search and pinning; emoji, kaomoji and symbol pickers; bilingual English/Persian Setup and Settings with automatic RTL; a stable English/LTR main popup; SQLite persistence; and ChaCha20-Poly1305 encryption for stored text and images.
+Windows 11 Style Clipboard History Manager is a local Linux clipboard manager for X11 and Wayland, inspired by Windows 11 Win+V. It provides text, rich-text and image history; search and pinning; emoji, kaomoji and symbol pickers; bilingual English/Persian Setup and Settings with automatic RTL; a stable English/LTR main popup; SQLite persistence; and ChaCha20-Poly1305 encryption for stored text and images.
 
 ## 2. Installation
 
@@ -15,14 +15,14 @@ Download packages only from GitHub Releases and verify `SHA256SUMS` first.
 ```bash
 sha256sum -c SHA256SUMS --ignore-missing
 # Debian / Ubuntu
-sudo apt install ./modern-clipboard-history-for-linux_2.5.0_amd64.deb
+sudo apt install ./windows-11-style-clipboard-history-manager_2.5.0_amd64.deb
 # Fedora
-sudo dnf install ./modern-clipboard-history-for-linux-2.5.0-1.x86_64.rpm
+sudo dnf install ./windows-11-style-clipboard-history-manager-2.5.0-1.x86_64.rpm
 # Paste simulation permission
 sudo setfacl -m u:$USER:rw /dev/uinput
 ```
 
-Arch users can install `modern-clipboard-history-for-linux-bin` from AUR. Flatpak does not expose `/dev/uinput` by default; review [Packaging](../packaging/README.md) before granting a device override.
+Arch users can install `windows-11-style-clipboard-history-manager-bin` from AUR. Flatpak does not expose `/dev/uinput` by default; review [Packaging](../packaging/README.md) before granting a device override.
 
 ## 3. Usage
 
@@ -39,9 +39,9 @@ Settings cover theme, opacity, UI scale, language, retention, automatic deletion
 
 ## 4. Privacy and security
 
-- Database: `~/.local/share/modern-clipboard-history-for-linux/history.db`
-- Images: `~/.local/share/modern-clipboard-history-for-linux/images/`
-- Settings: `~/.config/modern-clipboard-history-for-linux/user_settings.json`
+- Database: `~/.local/share/windows-11-style-clipboard-history-manager/history.db`
+- Images: `~/.local/share/windows-11-style-clipboard-history-manager/images/`
+- Settings: `~/.config/windows-11-style-clipboard-history-manager/user_settings.json`
 - Key: local `history.key` (`0600`) or desktop Secret Service
 - Default history cap: 2,000 items
 - Network: zero calls in the default build; optional GIF search requires its build feature and `TENOR_API_KEY`.
@@ -52,9 +52,9 @@ Secret detection and password-manager exclusion are enabled by default, but patt
 
 - **GNOME shortcut conflict:** use `Ctrl+Alt+V` or rebind GNOME’s notification shortcut.
 - **Paste does not work:** verify `/dev/uinput` ACL and log out/in.
-- **Black NVIDIA window:** launch with `IS_NVIDIA=1`.
+- **Black NVIDIA window:** launch with `IS_NVIDIA=1 windows-11-style-clipboard-history-manager`.
 - **Sensitive app captured on Wayland:** keep secret filtering enabled; focused-window exclusion is unavailable.
-- **Logs:** inspect `~/.local/share/modern-clipboard-history-for-linux/logs/` and redact sensitive data before sharing.
+- **Logs:** inspect `~/.local/share/windows-11-style-clipboard-history-manager/logs/` and redact sensitive data before sharing.
 
 ## 6. Development
 

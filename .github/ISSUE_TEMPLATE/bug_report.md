@@ -1,6 +1,6 @@
 ---
 name: Bug Report / گزارش باگ
-about: Report a bug or issue with Modern Clipboard History For Linux
+about: Report a bug or issue with Windows 11 Style Clipboard History Manager
 title: 'BUG: '
 labels: ['bug', 'triage']
 assignees: ''
@@ -72,7 +72,7 @@ What actually happened instead.
 
 ```
 # Check logs at:
-# ~/.local/share/modern-clipboard-history-for-linux/logs/
+# ~/.local/share/windows-11-style-clipboard-history-manager/logs/
 # Paste relevant logs here
 ```
 

@@ -1,7 +1,7 @@
 {
   "app": {
-    "name": "Modern Clipboard History",
-    "name_en": "Modern Clipboard History",
+    "name": "Windows 11 Style Clipboard History Manager",
+    "name_en": "Windows 11 Style Clipboard History Manager",
     "description": "A Windows 11-style clipboard history manager for Linux"
   },
   "common": {
@@ -166,7 +166,7 @@
       "exclude_apps_desc": "On X11, skip capture from KeePass, 1Password, Bitwarden, and private browsing windows.",
       "wm_rewrite": "Allow rewriting tiling WM configs",
       "wm_rewrite_desc": "Off by default. When enabled, setup may comment out existing Super+V bindings in i3/Sway/Hyprland.",
-      "storage_note": "History is stored locally at ~/.local/share/modern-clipboard-history-for-linux/ (mode 0600). Text fields and image files are encrypted at rest (ChaCha20-Poly1305); the key lives in history.key or the Secret Service keyring. Nothing is uploaded unless you search GIFs with TENOR_API_KEY set.",
+      "storage_note": "History is stored locally at ~/.local/share/windows-11-style-clipboard-history-manager/ (mode 0600). Text fields and image files are encrypted at rest (ChaCha20-Poly1305); the key lives in history.key or the Secret Service keyring. Nothing is uploaded unless you search GIFs with TENOR_API_KEY set.",
       "wayland_note": "Wayland does not expose the focused window. Password-manager skipping works on X11 only; keep Skip secrets enabled.",
       "key_storage": "Encryption key storage",
       "key_storage_desc": "History is encrypted at rest. Choose where the key lives.",
