@@ -46,10 +46,10 @@ All notable changes to this project will be documented in this file.
   **گیت بسته‌بندی واقعی شد:** اسکریپت کنترل بسته‌بندی به‌عنوان گام مسدودکنندهٔ CI
   اجرا می‌شود و یک گارد رانش نسخهٔ تک‌منبعی هم به آن افزوده شد.
 - **Maintainer metadata corrected.** Replaced the placeholder
-  `mahdi@example.com` in `packaging/debian/control` and the RPM spec changelog
+  `info@Mahdiarts.ir` in `packaging/debian/control` and the RPM spec changelog
   with `mahdi-arts@users.noreply.github.com` (matching `debian/changelog` and
   `SECURITY.md`).
-  **اصلاح فرادادهٔ نگهدارنده:** ایمیل جایگزین `mahdi@example.com` در `debian/control`
+  **اصلاح فرادادهٔ نگهدارنده:** ایمیل جایگزین `info@Mahdiarts.ir` در `debian/control`
   و spec آرپی‌ام با ایمیل رسمی پروژه جایگزین شد.
 - **README / CI docs brought in line** with the now-live hardened pipelines
   and the new `check-packaging.sh` gate.
