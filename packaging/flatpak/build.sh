@@ -33,6 +33,6 @@ if [ "${FLATPAK_INSTALL:-1}" = "1" ]; then
   flatpak-builder --user --install "$BUILD_DIR" "$MANIFEST"
   echo "[✓] Installed. Launch with:"
   echo "    flatpak run $APP_ID"
-  echo "    # paste simulation override (optional):"
-  echo "    flatpak override --user --device=all $APP_ID"
+  echo "    Paste injection is unavailable in the default sandbox."
+  echo "    تزریق paste در sandbox پیش‌فرض در دسترس نیست."
 fi

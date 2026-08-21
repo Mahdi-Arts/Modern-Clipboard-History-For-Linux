@@ -4,14 +4,14 @@
 
 ## 🗣️ معرفی
 
-این برنامه به طور کامل از دو زبان **فارسی** و **انگلیسی** پشتیبانی می‌کند. سیستم ترجمه بر پایه `react-i18next` ساخته شده و تمام اجزای رابط کاربری (UI) را پوشش می‌دهد.
+پنجره‌های **راه‌اندازی اولیه** و **تنظیمات** از دو زبان فارسی و انگلیسی پشتیبانی می‌کنند. سیستم ترجمه بر پایهٔ `react-i18next` است. طبق سیاست تجربهٔ کاربری پروژه، پنجرهٔ اصلی کلیپ‌بورد همیشه انگلیسی و LTR باقی می‌ماند تا جهت کلیدها، شبکه‌ها و گردش کار سریع هنگام تغییر زبان جابه‌جا نشود.
 
 ## ✨ قابلیت‌ها
 
 | قابلیت | توضیح |
 | --- | --- |
 | **جابجایی آنی** | تغییر زبان بلافاصله اعمال می‌شود — بدون نیاز به ریستارت |
-| **RTL خودکار** | با انتخاب فارسی، جهت صفحه به راست‌به‌چپ (RTL) تغییر می‌کند |
+| **RTL محدود و خودکار** | با انتخاب فارسی، فقط راه‌اندازی و تنظیمات RTL می‌شوند؛ پنجرهٔ اصلی LTR است |
 | **فونت فارسی** | فونت **Vazirmatn** برای زبان فارسی به طور خودکار فعال می‌شود |
 | **همگام‌سازی بین پنجره‌ها** | تغییر زبان در تنظیمات، همه پنجره‌ها (اصلی، تنظیمات) را همگام به‌روز می‌کند |
 | **ذخیره‌سازی دائمی** | انتخاب زبان در فایل تنظیمات ذخیره می‌شود و در اجرای بعدی حفظ می‌شود |
@@ -71,14 +71,14 @@ src/
 
 ## 🗣️ Introduction
 
-This application fully supports **Persian (فارسی)** and **English**. The translation system is built on `react-i18next` and covers all UI components.
+The **first-run Setup** and **Settings** windows support Persian and English through `react-i18next`. By deliberate UX policy, the main clipboard popup always remains English/LTR so keyboard navigation, grids, and rapid workflows do not shift direction when the configuration language changes.
 
 ## ✨ Features
 
 | Feature | Description |
 | --- | --- |
 | **Instant Switching** | Language changes apply immediately — **no restart needed** |
-| **Automatic RTL** | Selecting Persian switches layout to Right-to-Left |
+| **Scoped automatic RTL** | Persian switches Setup/Settings to RTL; the main popup remains LTR |
 | **Persian Font** | **Vazirmatn** is bundled locally (SIL OFL 1.1) and loads automatically for Persian — fully offline |
 | **Cross-window Sync** | Language changes in Settings sync to all windows instantly |
 | **Persistent** | Language choice is saved and restored on next launch |

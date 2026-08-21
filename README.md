@@ -20,13 +20,25 @@
 
 ---
 
+## Documentation / مستندات
+
+- [راهنمای جامع فارسی](docs/USER_GUIDE.fa.md)
+- [درگاه مستندات فنی فارسی](docs/fa/README.md)
+- [Complete English guide](docs/USER_GUIDE.en.md)
+- [گزارش بازبینی فنی و امنیتی ۲۰۲۶](docs/reports/REPOSITORY_REVIEW_2026-08-21.fa.md)
+- [Enterprise upgrade final report / گزارش نهایی ارتقا](docs/reports/ENTERPRISE_UPGRADE_FINAL_2026-08-21.md)
+- [Performance budget / بودجهٔ عملکرد](docs/PERFORMANCE.md)
+- [Packaging and release / بسته‌بندی و انتشار](packaging/README.md)
+
+---
+
 ## Features / ویژگی‌ها
 
 | | English | فارسی |
 | --- | --- | --- |
 | 🐧 | Wayland and X11 | پشتیبانی Wayland و X11 |
 | ⚡ | `Super+V` / `Ctrl+Alt+V` | میانبر فوری |
-| 🌐 | Persian + English, instant RTL | فارسی و انگلیسی با RTL آنی |
+| 🌐 | Persian + English in Setup/Settings; main popup stays English/LTR | فارسی و انگلیسی در راه‌اندازی/تنظیمات؛ پنجرهٔ اصلی انگلیسی و LTR می‌ماند |
 | 📌 | Pin important items | سنجاق آیتم‌های مهم |
 | 🤩 | Emoji, kaomoji, symbols | ایموجی، کائوموجی، نماد |
 | 🛡️ | Local SQLite history, secret filter | تاریخچه محلی، فیلتر اسرار |

@@ -1,6 +1,9 @@
 import { invoke } from '@tauri-apps/api/core'
 import { useState, useEffect, useCallback } from 'react'
 import { clsx } from 'clsx'
+import { useTranslation } from 'react-i18next'
+import { changeLanguage, type LangCode } from '../i18n/config'
+import { useLanguageEffect } from '../i18n/useLanguage'
 import { useAutostart } from '../hooks/useAutostart'
 import { getTertiaryBackgroundStyle } from '../utils/themeUtils'
 import { useSystemThemePreference } from '../utils/systemTheme'
@@ -20,7 +23,7 @@ interface PermissionStatus {
   uinput_accessible: boolean
   uinput_path: string
   user_in_input_group: boolean
-  suggestion: string
+  status_code: 'permissions_ok' | 'relogin_required' | 'permissions_missing'
 }
 
 interface ShortcutToolsStatus {
@@ -29,7 +32,6 @@ interface ShortcutToolsStatus {
   kde_tools_available: boolean
   xfce_tools_available: boolean
   can_register_automatically: boolean
-  manual_instructions: string
   has_conflicts: boolean
   conflict_count: number
   can_auto_resolve_conflicts: boolean
@@ -106,6 +108,8 @@ const WizardButton = ({
 }
 
 export function SetupWizard({ onComplete }: SetupWizardProps) {
+  const { t, i18n } = useTranslation()
+  useLanguageEffect(i18n)
   const [step, setStep] = useState(0)
   const [permissions, setPermissions] = useState<PermissionStatus | null>(null)
   const [shortcutTools, setShortcutTools] = useState<ShortcutToolsStatus | null>(null)
@@ -173,6 +177,14 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
     return () => globalThis.clearTimeout(initialChecksTimer)
   }, [checkPermissions, checkShortcutTools, checkConflicts])
 
+  const localizedPermissionError = (error: unknown) => {
+    const raw = String(error)
+    const code = ['pkexec_missing', 'setfacl_missing', 'permission_fix_failed'].find((candidate) =>
+      raw.includes(candidate)
+    )
+    return code ? t(`setup.${code}`) : t('setup.permission_fix_failed')
+  }
+
   const handleResolveConflicts = async () => {
     setResolvingConflicts(true)
     setConflictError(null)
@@ -184,7 +196,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
       await checkShortcutTools()
     } catch (e) {
       console.error('Failed to resolve conflicts:', e)
-      setConflictError(String(e))
+      setConflictError(t('setup.conflicts_failed_detail'))
     } finally {
       setResolvingConflicts(false)
     }
@@ -198,7 +210,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
       await checkPermissions()
     } catch (e) {
       console.error('Failed to fix permissions:', e)
-      setFixError(String(e))
+      setFixError(localizedPermissionError(e))
     } finally {
       setFixing(false)
     }
@@ -223,13 +235,15 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
     setStep(4)
   }
 
-  const handleComplete = async () => {
-    try {
-      await invoke('mark_first_run_complete')
-    } catch (e) {
-      console.error('Failed to mark first run complete:', e)
-    }
+  const handleComplete = () => {
+    // The setup-only `finish_setup` command atomically persists completion.
+    // فرمان setup-only با نام `finish_setup` تکمیل را اتمیک ذخیره می‌کند.
     onComplete()
+  }
+
+  const handleLanguageChange = async (language: LangCode) => {
+    await changeLanguage(language)
+    await invoke('set_app_language', { lang: language })
   }
 
   const copyToClipboard = (text: string) => {
@@ -287,7 +301,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
           isDark ? 'text-win11-text-primary' : 'text-win11Light-text-primary'
         )}
       >
-        Welcome to Clipboard History
+        {t('setup.welcome')}
       </h2>
       <p
         className={clsx(
@@ -295,12 +309,12 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
           isDark ? 'text-win11-text-secondary' : 'text-win11Light-text-secondary'
         )}
       >
-        A Windows 11-style clipboard manager for Linux.
+        {t('setup.welcome_desc')}
         <br />
-        Let's set up a few things to get you started.
+        {t('setup.welcome_next')}
       </p>
       <WizardButton {...buttonProps} id="start" onClick={() => setStep(1)} primary>
-        Get Started
+        {t('setup.get_started')}
       </WizardButton>
     </div>,
 
@@ -326,7 +340,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
             isDark ? 'text-win11-text-primary' : 'text-win11Light-text-primary'
           )}
         >
-          Input Permissions
+          {t('setup.step_permissions')}
         </h2>
         <p
           className={clsx(
@@ -334,7 +348,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
             isDark ? 'text-win11-text-secondary' : 'text-win11Light-text-secondary'
           )}
         >
-          Required to simulate Ctrl+V for pasting.
+          {t('setup.permission_required')}
         </p>
       </div>
 
@@ -350,7 +364,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
           ) : (
             <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
           )}
-          <span>{permissions.suggestion}</span>
+          <span>{t(`setup.${permissions.status_code}`)}</span>
         </div>
       )}
 
@@ -364,11 +378,11 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
             onClick={() => void handleFixPermissions()}
             disabled={fixing}
           >
-            {fixing ? 'Fixing...' : 'Fix Now'}
+            {fixing ? t('setup.fixing') : t('setup.fix_now')}
           </WizardButton>
         )}
         <WizardButton {...buttonProps} id="perm-continue" onClick={() => setStep(2)} primary>
-          {permissions?.uinput_accessible ? 'Continue' : 'Skip'}
+          {permissions?.uinput_accessible ? t('common.continue') : t('common.skip')}
         </WizardButton>
       </div>
     </div>,
@@ -395,7 +409,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
             isDark ? 'text-win11-text-primary' : 'text-win11Light-text-primary'
           )}
         >
-          Keyboard Shortcut
+          {t('setup.step_shortcut')}
         </h2>
         <p
           className={clsx(
@@ -403,7 +417,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
             isDark ? 'text-win11-text-secondary' : 'text-win11Light-text-secondary'
           )}
         >
-          Set up{' '}
+          {t('setup.shortcut_intro_before')}{' '}
           <kbd
             className={clsx(
               'px-2 py-0.5 rounded text-xs font-mono',
@@ -412,7 +426,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
           >
             Super + V
           </kbd>{' '}
-          to open clipboard.
+          {t('setup.shortcut_intro_after')}
         </p>
       </div>
 
@@ -426,7 +440,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
           >
             <Settings className="w-4 h-4" />
             <span>
-              Detected:{' '}
+              {t('setup.detected')}{' '}
               <strong
                 className={isDark ? 'text-win11-text-primary' : 'text-win11Light-text-primary'}
               >
@@ -443,12 +457,13 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
           <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
           <div className="flex-1">
             <p className="font-medium mb-1">
-              {conflicts.conflicts.length} shortcut conflict
-              {conflicts.conflicts.length > 1 ? 's' : ''} detected
+              {t('setup.conflicts_detected', { count: conflicts.conflicts.length })}
             </p>
             <p className="text-xs opacity-90 mb-2">
-              Super+V is already used by {conflicts.conflicts[0].owner} for "
-              {conflicts.conflicts[0].current_action}"
+              {t('setup.conflict_detail', {
+                owner: conflicts.conflicts[0].owner,
+                action: conflicts.conflicts[0].current_action,
+              })}
             </p>
             {conflicts.can_auto_resolve && (
               <div className="space-y-1">
@@ -460,18 +475,14 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
                 >
                   <span className="flex items-center gap-2">
                     <Zap className="w-4 h-4" />
-                    {resolvingConflicts ? 'Resolving...' : 'Auto-Fix Conflicts'}
+                    {resolvingConflicts ? t('setup.resolving') : t('setup.auto_fix')}
                   </span>
                 </WizardButton>
-                <p className="text-xs opacity-60">
-                  This will comment out conflicting lines in your config. A backup will be created.
-                </p>
+                <p className="text-xs opacity-60">{t('setup.auto_fix_note')}</p>
               </div>
             )}
             {!conflicts.can_auto_resolve && (
-              <p className="text-xs opacity-75 mt-1">
-                Manual resolution required. See instructions below.
-              </p>
+              <p className="text-xs opacity-75 mt-1">{t('setup.manual_resolution')}</p>
             )}
           </div>
         </div>
@@ -480,7 +491,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
       {conflictsResolved && (
         <div className={clsx('mb-4', statusCardClass('success'))}>
           <CheckCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-          <span>Conflicts resolved! Super+V is now available.</span>
+          <span>{t('setup.conflicts_resolved')}</span>
         </div>
       )}
 
@@ -488,7 +499,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
         <div className={clsx('mb-4', statusCardClass('error'))}>
           <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="font-medium">Failed to resolve conflicts</p>
+            <p className="font-medium">{t('setup.conflicts_failed')}</p>
             <p className="text-xs opacity-90">{conflictError}</p>
           </div>
         </div>
@@ -497,7 +508,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
       {shortcutRegistered && (
         <div className={clsx('mb-4', statusCardClass('success'))}>
           <CheckCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-          <span>Shortcut registered successfully!</span>
+          <span>{t('setup.shortcut_success')}</span>
         </div>
       )}
 
@@ -505,9 +516,12 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
         <div className="mb-4 space-y-3">
           <div className={statusCardClass('warning')}>
             <div>
-              <p className="font-medium mb-2">Manual Setup Required:</p>
+              <p className="font-medium mb-2">{t('setup.manual_required')}</p>
               <p className="whitespace-pre-line opacity-90 text-xs">
-                {shortcutTools.manual_instructions}
+                {t('setup.manual_instructions', {
+                  desktop: shortcutTools.desktop_environment,
+                  command: 'win11-clipboard-history',
+                })}
               </p>
             </div>
           </div>
@@ -518,7 +532,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
           >
             <span className="flex items-center justify-center gap-2">
               <Copy className="w-4 h-4" />
-              {copied ? 'Copied!' : 'Copy command path'}
+              {copied ? t('clipboard.copied') : t('setup.copy_command')}
             </span>
           </WizardButton>
         </div>
@@ -535,7 +549,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
               disabled={registeringShortcut}
               primary
             >
-              {registeringShortcut ? 'Registering...' : 'Register Automatically'}
+              {registeringShortcut ? t('setup.registering') : t('setup.register_auto')}
             </WizardButton>
           )}
 
@@ -545,7 +559,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
             id="show-manual"
             onClick={() => setShowManualInstructions(true)}
           >
-            Show Manual Instructions
+            {t('setup.show_manual')}
           </WizardButton>
         )}
 
@@ -555,7 +569,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
           onClick={() => setStep(3)}
           primary={shortcutRegistered || showManualInstructions}
         >
-          {shortcutRegistered || showManualInstructions ? 'Continue' : 'Skip'}
+          {shortcutRegistered || showManualInstructions ? t('common.continue') : t('common.skip')}
         </WizardButton>
       </div>
     </div>,
@@ -582,7 +596,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
             isDark ? 'text-win11-text-primary' : 'text-win11Light-text-primary'
           )}
         >
-          Start on Login?
+          {t('setup.autostart_title')}
         </h2>
         <p
           className={clsx(
@@ -590,7 +604,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
             isDark ? 'text-win11-text-secondary' : 'text-win11Light-text-secondary'
           )}
         >
-          Start automatically when you log in?
+          {t('setup.autostart_desc')}
         </p>
       </div>
 
@@ -601,10 +615,10 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
           onClick={() => void handleEnableAutostart()}
           primary
         >
-          Yes, enable
+          {t('setup.yes_enable')}
         </WizardButton>
         <WizardButton {...buttonProps} id="skip-autostart" onClick={() => setStep(4)}>
-          No thanks
+          {t('setup.no_thanks')}
         </WizardButton>
       </div>
     </div>,
@@ -627,7 +641,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
           isDark ? 'text-win11-text-primary' : 'text-win11Light-text-primary'
         )}
       >
-        You're all set!
+        {t('setup.done_title')}
       </h2>
       <p
         className={clsx(
@@ -635,7 +649,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
           isDark ? 'text-win11-text-secondary' : 'text-win11Light-text-secondary'
         )}
       >
-        Press the shortcut anytime to open clipboard history.
+        {t('setup.done_desc')}
       </p>
       <div className="flex items-center justify-center gap-2 mb-6">
         <Keyboard
@@ -656,7 +670,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
         </kbd>
       </div>
       <WizardButton {...buttonProps} id="finish" onClick={() => void handleComplete()} primary>
-        Start Using
+        {t('setup.start_using')}
       </WizardButton>
     </div>,
   ]
@@ -676,12 +690,40 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
   return (
     <div
       className={clsx(
-        'h-full w-full flex flex-col items-center justify-center p-6',
+        'relative h-full w-full flex flex-col items-center justify-center p-6',
         isDark
           ? 'bg-win11-bg-primary text-win11-text-primary'
           : 'bg-win11Light-bg-primary text-win11Light-text-primary'
       )}
     >
+      <div
+        className="absolute top-4 end-4 z-10 flex rounded-lg border p-1 shadow-sm backdrop-blur-md"
+        role="group"
+        aria-label={t('setup.language_selector')}
+      >
+        {(['en', 'fa'] as const).map((language) => {
+          const selected = i18n.language === language
+          return (
+            <button
+              key={language}
+              type="button"
+              aria-pressed={selected}
+              onClick={() => void handleLanguageChange(language)}
+              className={clsx(
+                'min-w-16 rounded-md px-3 py-1.5 text-xs font-semibold transition-all',
+                selected
+                  ? 'bg-win11-bg-accent text-white shadow-sm'
+                  : isDark
+                    ? 'text-win11-text-secondary hover:bg-white/10'
+                    : 'text-win11Light-text-secondary hover:bg-black/5'
+              )}
+            >
+              {language === 'fa' ? 'فارسی' : 'English'}
+            </button>
+          )
+        })}
+      </div>
+
       <div className="w-full max-w-sm">
         {steps[step]}
 
@@ -692,7 +734,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
               key={`dot-${i}`}
               onClick={() => i < step && setStep(i)}
               disabled={i >= step}
-              aria-label={`Step ${i + 1}`}
+              aria-label={t('setup.step_label', { step: i + 1 })}
               className={clsx(
                 'h-1.5 w-1.5 rounded-full transition-all duration-200',
                 getProgressDotClass(i)

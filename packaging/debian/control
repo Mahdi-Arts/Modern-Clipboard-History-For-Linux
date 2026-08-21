@@ -37,7 +37,7 @@ Description: Windows 11-style Clipboard History Manager for Linux
  .
  Features:
   - Super+V / Ctrl+Alt+V shortcut to open clipboard history
-  - Persian (فارسی) + English bilingual UI with instant RTL
+  - Persian (فارسی) + English Setup and Settings; stable English/LTR main popup
   - Pin important items, emoji picker, kaomoji, and symbols
   - Local SQLite history with at-rest encryption, secret filter, and privacy controls
   - Acrylic/glass UI with light, dark, and system theme support

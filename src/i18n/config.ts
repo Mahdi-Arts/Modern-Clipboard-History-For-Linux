@@ -39,6 +39,18 @@ export const applyDocumentLang = (lang: LangCode) => {
 
 applyDocumentLang(detectLanguage())
 
+/// Apply the per-window language policy without persisting a preference.
+/// اعمال سیاست زبان هر پنجره بدون ذخیرهٔ ترجیح جدید.
+export const applyWindowLanguagePolicy = async (windowLabel: string) => {
+  if (windowLabel === 'main') {
+    await i18n.changeLanguage('en')
+    document.documentElement.lang = 'en'
+    document.documentElement.dir = 'ltr'
+    return
+  }
+  applyDocumentLang(i18n.language === 'fa' ? 'fa' : 'en')
+}
+
 export const changeLanguage = async (lang: LangCode) => {
   await i18n.changeLanguage(lang)
   applyDocumentLang(lang)

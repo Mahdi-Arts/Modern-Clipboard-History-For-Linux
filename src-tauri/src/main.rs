@@ -131,7 +131,7 @@ fn main() {
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::Destroyed = event {
                 if window.label() == "setup" {
-                    if modern_clipboard_history_for_linux::permission_checker::is_first_run() {
+                    if modern_clipboard_history_for_linux::permission_checker::first_run_pending() {
                         tracing::info!("[Setup] Setup window closed without completion. Exiting.");
                         window.app_handle().exit(0);
                     }
@@ -153,7 +153,7 @@ fn main() {
             }
 
             // Auto-migrate old autostart entries
-            match autostart_manager::autostart_migrate() {
+            match autostart_manager::migrate_native() {
                 Ok(true) => tracing::info!("[Setup] Migrated autostart entry to use wrapper script"),
                 Ok(false) => {}
                 Err(e) => tracing::warn!("[Setup] Failed to migrate autostart: {e}"),
@@ -259,7 +259,6 @@ fn main() {
             permission_checker::check_permissions,
             permission_checker::fix_permissions_now,
             permission_checker::is_first_run,
-            permission_checker::mark_first_run_complete,
             permission_checker::reset_first_run,
             // Shortcuts
             shortcut_setup::get_desktop_environment,
@@ -284,14 +283,13 @@ fn main() {
 fn build_tray(app: &tauri::App, app_handle: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     let settings_manager = UserSettingsManager::new();
     let settings = settings_manager.load();
-    let (show_label, settings_label, quit_label) = if settings.language == "fa" {
-        ("نمایش کلیپ‌بورد", "تنظیمات", "خروج")
-    } else {
-        ("Show Clipboard", "Settings", "Quit")
-    };
-    let show = MenuItem::with_id(app, "show", show_label, true, None::<&str>)?;
-    let settings_item = MenuItem::with_id(app, "settings", settings_label, true, None::<&str>)?;
-    let quit = MenuItem::with_id(app, "quit", quit_label, true, None::<&str>)?;
+    // The native tray belongs to the always-English main surface. Language
+    // selection is intentionally scoped to Settings and first-run Setup.
+    // سینی native متعلق به سطح اصلی همیشه‌انگلیسی است؛ انتخاب زبان عمداً
+    // فقط به تنظیمات و راه‌اندازی نخست محدود شده است.
+    let show = MenuItem::with_id(app, "show", "Show Clipboard", true, None::<&str>)?;
+    let settings_item = MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
     let menu = Menu::with_items(app, &[&show, &settings_item, &quit])?;
 
     let temp_dir = std::env::temp_dir().join("win11-clipboard-history");

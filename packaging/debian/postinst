@@ -1,35 +1,21 @@
 #!/bin/sh
+# Debian post-install: system-only, non-interactive setup.
+# پس‌نصب Debian: تنظیمات سیستمی و غیرتعاملی.
 set -e
 
 case "$1" in
     configure)
-        # Ensure uinput module is loaded
         modprobe uinput 2>/dev/null || true
-
-        # Reload udev rules
         udevadm control --reload-rules 2>/dev/null || true
-        udevadm trigger 2>/dev/null || true
-
-        # Ensure input group exists
-        if ! getent group input >/dev/null 2>&1; then
-            groupadd input 2>/dev/null || true
-        fi
-
-        # Add the installing user to the input group
-        if [ -n "$SUDO_USER" ]; then
-            if ! groups "$SUDO_USER" 2>/dev/null | grep -q '\binput\b'; then
-                usermod -aG input "$SUDO_USER" || true
-                echo "Added $SUDO_USER to the 'input' group."
-                echo "Please log out and back in for the change to take effect."
-            fi
-        fi
-
-        # Update desktop database
+        udevadm trigger --subsystem-match=misc 2>/dev/null || true
         update-desktop-database /usr/share/applications 2>/dev/null || true
-
-        # Update icon cache
         gtk-update-icon-cache -f -t /usr/share/icons/hicolor 2>/dev/null || true
         ;;
 esac
+
+# Deliberately do not add a user to the broad `input` group. The udev uaccess
+# tag grants the active seat, while Setup can request a narrow /dev/uinput ACL.
+# عمداً کاربر به گروه گستردهٔ input افزوده نمی‌شود؛ uaccess نشست فعال را مجاز
+# می‌کند و Setup در صورت نیاز ACL محدود /dev/uinput را درخواست می‌کند.
 
 #DEBHELPER#

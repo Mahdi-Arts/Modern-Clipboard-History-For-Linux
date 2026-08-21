@@ -1,4 +1,5 @@
 import { clsx } from 'clsx'
+import { useTranslation } from 'react-i18next'
 import type { CustomKaomoji, UserSettings } from '../../types/clipboard'
 import { XIcon } from './icons'
 import { SectionCard } from './SectionCard'
@@ -21,10 +22,12 @@ export function KaomojiSection({
   onAdd,
   onRemove,
 }: KaomojiSectionProps) {
+  const { t } = useTranslation()
+
   return (
     <SectionCard
-      title="Custom Kaomoji"
-      subtitle="Add your own personal kaomojis to the collection"
+      title={t('settings_page.custom_kaomoji')}
+      subtitle={t('settings_page.custom_kaomoji_desc')}
       isDark={isDark}
     >
       <div className="space-y-6">
@@ -51,7 +54,7 @@ export function KaomojiSection({
             onClick={onAdd}
             className="px-4 py-2 bg-win11-bg-accent text-white rounded-md text-sm font-medium hover:opacity-90 active:scale-95 transition-all"
           >
-            Add
+            {t('common.add')}
           </button>
         </div>
 
@@ -72,8 +75,8 @@ export function KaomojiSection({
                 <button
                   onClick={() => onRemove(idx)}
                   className="opacity-0 group-hover:opacity-100 p-1 text-red-500 hover:bg-red-500/10 rounded transition-all focus-visible:opacity-100"
-                  title="Delete"
-                  aria-label={`Delete ${item.text}`}
+                  title={t('common.delete')}
+                  aria-label={t('settings_page.delete_kaomoji', { kaomoji: item.text })}
                 >
                   <XIcon />
                 </button>
@@ -87,7 +90,7 @@ export function KaomojiSection({
               isDark ? 'text-gray-500' : 'text-gray-400'
             )}
           >
-            No custom kaomojis yet
+            {t('settings_page.no_custom_kaomoji')}
           </div>
         )}
       </div>

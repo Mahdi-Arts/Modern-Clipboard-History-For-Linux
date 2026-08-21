@@ -17,9 +17,9 @@ finish-args:
   - --filesystem=xdg-data/win11-clipboard-history:create
   - --filesystem=xdg-config/win11-clipboard-history:create
   - --env=NO_AT_BRIDGE=1
-  # Paste via /dev/uinput is not possible under Flathub's device policy.
-  # Install the .deb/.rpm for full paste, or:
-  #   flatpak override --user --device=all io.github.mahdi-arts.clipboard-history
+  # Paste via /dev/uinput is unavailable under Flathub's device policy.
+  # For full paste simulation, use the native .deb/.rpm package.
+  # تزریق paste در سیاست Flathub ممکن نیست؛ برای عملکرد کامل از deb/rpm استفاده کنید.
   # Optional GIF search:
   #   flatpak override --user --share=network io.github.mahdi-arts.clipboard-history
 
@@ -53,7 +53,7 @@ modules:
         ${FLATPAK_DEST}/lib/win11-clipboard-history/win11-clipboard-history-bin
       - install -Dm755 src-tauri/bundle/linux/wrapper.sh
         ${FLATPAK_DEST}/bin/win11-clipboard-history
-      - install -Dm644 src-tauri/bundle/linux/win11-clipboard-history.desktop
+      - install -Dm644 src-tauri/bundle/linux/modern-clipboard-history-for-linux.desktop
         ${FLATPAK_DEST}/share/applications/${FLATPAK_ID}.desktop
       - sed -i "s/^Exec=.*/Exec=${FLATPAK_ID}/" ${FLATPAK_DEST}/share/applications/${FLATPAK_ID}.desktop
       - install -Dm644 src-tauri/icons/128x128.png

@@ -1,4 +1,5 @@
 import { clsx } from 'clsx'
+import { useTranslation } from 'react-i18next'
 import type { UserSettings } from '../../types/clipboard'
 import { TrashIcon } from './icons'
 import { SectionCard } from './SectionCard'
@@ -19,25 +20,27 @@ export function AutoDeleteSection({
   onIntervalChange,
   onUnitChange,
 }: AutoDeleteSectionProps) {
+  const { t } = useTranslation()
+
   return (
     <SectionCard
       icon={<TrashIcon />}
-      title="Auto-delete History"
-      subtitle="Automatically clear old clipboard items (except pinned)"
+      title={t('settings_page.auto_delete_title')}
+      subtitle={t('settings_page.auto_delete_subtitle')}
       dividedHeader={false}
       isDark={isDark}
     >
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="flex-1 flex flex-col gap-2">
           <label className="text-xs font-medium opacity-60 ml-1" htmlFor="auto-delete-value">
-            Time value
+            {t('settings_page.time_value')}
           </label>
           <input
             id="auto-delete-value"
             type="number"
             min="0"
             value={settings.auto_delete_interval || ''}
-            placeholder="0 (Disabled)"
+            placeholder={t('settings_page.disabled_placeholder')}
             onChange={(e) => onIntervalChange(e.target.value)}
             className={clsx(
               'w-full px-4 py-2.5 rounded-lg border outline-none transition-all font-medium',
@@ -49,7 +52,9 @@ export function AutoDeleteSection({
         </div>
 
         <div className="flex-1 flex flex-col gap-2">
-          <span className="text-xs font-medium opacity-60 ml-1">Time unit</span>
+          <span className="text-xs font-medium opacity-60 ml-1">
+            {t('settings_page.time_unit')}
+          </span>
           <div className="flex gap-2">
             {UNITS.map((unit) => (
               <button
@@ -64,7 +69,7 @@ export function AutoDeleteSection({
                       : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
                 )}
               >
-                {unit}
+                {t(`settings_page.history.${unit}`)}
               </button>
             ))}
           </div>
@@ -74,14 +79,13 @@ export function AutoDeleteSection({
       <div className="mt-4 p-3 rounded-lg bg-win11-bg-accent/5 border border-win11-bg-accent/10">
         <p className="text-[11px] leading-relaxed opacity-70">
           {settings.auto_delete_interval === 0 ? (
-            <span className="font-medium">Auto-delete is currently disabled.</span>
+            <span className="font-medium">{t('settings_page.auto_delete_disabled')}</span>
           ) : (
             <>
-              Clipboard history items will be deleted after{' '}
-              <span className="font-bold text-win11-bg-accent">
-                {settings.auto_delete_interval} {settings.auto_delete_unit}
-              </span>
-              . Pinned items are never deleted.
+              {t('settings_page.auto_delete_enabled', {
+                count: settings.auto_delete_interval,
+                unit: t(`settings_page.history.${settings.auto_delete_unit}`),
+              })}
             </>
           )}
         </p>

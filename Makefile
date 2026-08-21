@@ -6,7 +6,7 @@
 #       To install system-wide like a package: sudo make install PREFIX=/usr
 
 SHELL := /bin/bash
-APP_NAME := Modern-Clipboard-History-For-Linux
+APP_NAME := win11-clipboard-history
 PREFIX ?= /usr/local
 LIBDIR := $(PREFIX)/lib
 BINDIR := $(PREFIX)/bin
@@ -241,15 +241,15 @@ install:
 	@echo -e "$(CYAN)Installing $(APP_NAME)...$(RESET)"
 	@# Install binary to lib directory
 	@mkdir -p $(DESTDIR)$(LIBDIR)/$(APP_NAME)
-	install -Dm755 src-tauri/target/release/Modern-Clipboard-History-For-Linux-bin $(DESTDIR)$(LIBDIR)/$(APP_NAME)/Modern-Clipboard-History-For-Linux-bin
+	install -Dm755 src-tauri/target/release/win11-clipboard-history-bin $(DESTDIR)$(LIBDIR)/$(APP_NAME)/win11-clipboard-history-bin
 	@# Install wrapper script to bin
 	install -Dm755 src-tauri/bundle/linux/wrapper.sh $(DESTDIR)$(BINDIR)/$(APP_NAME)
 	@# Install icons
-	install -Dm644 src-tauri/icons/128x128.png $(DESTDIR)$(DATADIR)/icons/hicolor/128x128/apps/$(APP_NAME).png
-	install -Dm644 src-tauri/icons/icon.png $(DESTDIR)$(DATADIR)/icons/hicolor/256x256/apps/$(APP_NAME).png
+	install -Dm644 src-tauri/icons/128x128.png $(DESTDIR)$(DATADIR)/icons/hicolor/128x128/apps/io.github.mahdi-arts.clipboard-history.png
+	install -Dm644 src-tauri/icons/icon.png $(DESTDIR)$(DATADIR)/icons/hicolor/256x256/apps/io.github.mahdi-arts.clipboard-history.png
 	@# Create udev rules for input devices and uinput
 	@mkdir -p $(DESTDIR)/etc/udev/rules.d
-	install -Dm644 src-tauri/bundle/linux/99-modern-clipboard-history-input.rules $(DESTDIR)/etc/udev/rules.d/
+	install -Dm644 src-tauri/bundle/linux/99-modern-clipboard-history-input.rules $(DESTDIR)/etc/udev/rules.d/99-win11-clipboard-history-input.rules
 	@# Ensure uinput loads on boot (use same filename as postinst/postrm)
 	@mkdir -p $(DESTDIR)/etc/modules-load.d
 	@echo "uinput" > $(DESTDIR)/etc/modules-load.d/modern-clipboard-history.conf
@@ -260,21 +260,11 @@ install:
 		udevadm trigger 2>/dev/null || true; \
 		udevadm trigger --subsystem-match=misc --action=change 2>/dev/null || true; \
 	fi
-	@# Ensure input group exists and add user (only on live system, not in DESTDIR/fakeroot)
-	@if [ -z "$$(printf '%s' "$(DESTDIR)")" ]; then \
-		getent group input >/dev/null 2>&1 || groupadd input; \
-		if [ -n "$$SUDO_USER" ]; then \
-			if groups $$SUDO_USER 2>/dev/null | grep -q '\binput\b'; then \
-				echo -e "$(GREEN)✓ User $$SUDO_USER already in input group$(RESET)"; \
-			else \
-				usermod -aG input $$SUDO_USER; \
-				echo -e "$(GREEN)✓ Added $$SUDO_USER to input group$(RESET)"; \
-			fi; \
-		fi; \
-	fi
+	@# Do not add users to the broad input group; uaccess or an explicit ACL is safer.
+	@# کاربر به گروه گستردهٔ input افزوده نمی‌شود؛ uaccess یا ACL صریح امن‌تر است.
 	@# Install desktop entry
 	@mkdir -p $(DESTDIR)$(DATADIR)/applications
-	install -Dm644 src-tauri/bundle/linux/$(APP_NAME).desktop $(DESTDIR)$(DATADIR)/applications/
+	install -Dm644 src-tauri/bundle/linux/modern-clipboard-history-for-linux.desktop $(DESTDIR)$(DATADIR)/applications/io.github.mahdi-arts.clipboard-history.desktop
 	@update-desktop-database $(DESTDIR)$(DATADIR)/applications 2>/dev/null || true
 	@gtk-update-icon-cache -f -t $(DESTDIR)$(DATADIR)/icons/hicolor 2>/dev/null || true
 	@echo -e "$(GREEN)✓ Installed successfully$(RESET)"
@@ -291,9 +281,9 @@ uninstall:
 	@echo -e "$(CYAN)Uninstalling $(APP_NAME)...$(RESET)"
 	@# Stop any running instances first
 	@if [ -n "$$SUDO_USER" ]; then \
-		pkill -u $$SUDO_USER -x "Modern-Clipboard-History-For-Linux-bin" 2>/dev/null || true; \
+		pkill -u $$SUDO_USER -x "win11-clipboard-history-bin" 2>/dev/null || true; \
 	fi
-	@pkill -x "Modern-Clipboard-History-For-Linux-bin" 2>/dev/null || true
+	@pkill -x "win11-clipboard-history-bin" 2>/dev/null || true
 	@# Remove from specified PREFIX path
 	rm -f $(DESTDIR)$(BINDIR)/$(APP_NAME)
 	rm -rf $(DESTDIR)$(LIBDIR)/$(APP_NAME)
@@ -306,18 +296,18 @@ uninstall:
 		rm -f $(DESTDIR)/usr/bin/$(APP_NAME) 2>/dev/null || true; \
 		rm -rf $(DESTDIR)/usr/lib/$(APP_NAME) 2>/dev/null || true; \
 	fi
-	rm -f $(DESTDIR)$(DATADIR)/icons/hicolor/128x128/apps/$(APP_NAME).png
-	rm -f $(DESTDIR)$(DATADIR)/icons/hicolor/256x256/apps/$(APP_NAME).png
-	rm -f $(DESTDIR)$(DATADIR)/applications/$(APP_NAME).desktop
+	rm -f $(DESTDIR)$(DATADIR)/icons/hicolor/128x128/apps/io.github.mahdi-arts.clipboard-history.png
+	rm -f $(DESTDIR)$(DATADIR)/icons/hicolor/256x256/apps/io.github.mahdi-arts.clipboard-history.png
+	rm -f $(DESTDIR)$(DATADIR)/applications/io.github.mahdi-arts.clipboard-history.desktop
 	@# Clean icons from all common share paths
-	rm -f $(DESTDIR)/usr/local/share/icons/hicolor/128x128/apps/$(APP_NAME).png 2>/dev/null || true
-	rm -f $(DESTDIR)/usr/local/share/icons/hicolor/256x256/apps/$(APP_NAME).png 2>/dev/null || true
-	rm -f $(DESTDIR)/usr/share/icons/hicolor/128x128/apps/$(APP_NAME).png 2>/dev/null || true
-	rm -f $(DESTDIR)/usr/share/icons/hicolor/256x256/apps/$(APP_NAME).png 2>/dev/null || true
+	rm -f $(DESTDIR)/usr/local/share/icons/hicolor/128x128/apps/io.github.mahdi-arts.clipboard-history.png 2>/dev/null || true
+	rm -f $(DESTDIR)/usr/local/share/icons/hicolor/256x256/apps/io.github.mahdi-arts.clipboard-history.png 2>/dev/null || true
+	rm -f $(DESTDIR)/usr/share/icons/hicolor/128x128/apps/io.github.mahdi-arts.clipboard-history.png 2>/dev/null || true
+	rm -f $(DESTDIR)/usr/share/icons/hicolor/256x256/apps/io.github.mahdi-arts.clipboard-history.png 2>/dev/null || true
 	@# Clean desktop entries from all common paths
-	rm -f $(DESTDIR)/usr/local/share/applications/$(APP_NAME).desktop 2>/dev/null || true
-	rm -f $(DESTDIR)/usr/share/applications/$(APP_NAME).desktop 2>/dev/null || true
-	rm -f $(DESTDIR)/etc/udev/rules.d/99-modern-clipboard-history-input.rules
+	rm -f $(DESTDIR)/usr/local/share/applications/io.github.mahdi-arts.clipboard-history.desktop 2>/dev/null || true
+	rm -f $(DESTDIR)/usr/share/applications/io.github.mahdi-arts.clipboard-history.desktop 2>/dev/null || true
+	rm -f $(DESTDIR)/etc/udev/rules.d/99-win11-clipboard-history-input.rules
 	rm -f $(DESTDIR)/etc/modules-load.d/uinput.conf
 	rm -f $(DESTDIR)/etc/modules-load.d/modern-clipboard-history.conf
 	@# Remove autostart entry for the user
