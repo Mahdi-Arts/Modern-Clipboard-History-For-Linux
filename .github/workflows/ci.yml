@@ -174,7 +174,7 @@ jobs:
 
       - name: CLI smoke (--version / --help)
         run: |
-          BIN=src-tauri/target/release/modern-clipboard-history-for-linux-bin
+          BIN=src-tauri/target/release/win11-clipboard-history-bin
           test -x "$BIN"
           "$BIN" --version
           "$BIN" --help
