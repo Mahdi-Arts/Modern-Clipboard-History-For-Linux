@@ -1,4 +1,4 @@
-Source: win11-clipboard-history
+Source: modern-clipboard-history-for-linux
 Section: utils
 Priority: optional
 Maintainer: Mahdi Arts <mahdi-arts@users.noreply.github.com>
@@ -21,7 +21,7 @@ Vcs-Git: https://github.com/Mahdi-Arts/Modern-Clipboard-History-For-Linux.git
 Vcs-Browser: https://github.com/Mahdi-Arts/Modern-Clipboard-History-For-Linux
 Rules-Requires-Root: no
 
-Package: win11-clipboard-history
+Package: modern-clipboard-history-for-linux
 Architecture: any
 Depends: ${shlibs:Depends},
          ${misc:Depends},

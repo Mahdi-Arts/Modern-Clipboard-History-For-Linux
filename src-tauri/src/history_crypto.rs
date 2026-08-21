@@ -57,17 +57,17 @@ const KEY_CHECK_FILE: &str = "history.key.check";
 /// Backup name for the file key after a Secret Service migration.
 /// نام پشتیبان کلید فایل پس از مهاجرت به Secret Service.
 const KEY_FILE_MIGRATED: &str = "history.key.migrated";
-const KEY_CHECK_PLAIN: &str = "win11-clipboard-history:key-check:v1";
+const KEY_CHECK_PLAIN: &str = "modern-clipboard-history-for-linux:key-check:v1";
 
 /// Attribute pair identifying our item in the Secret Service.
 /// جفت attribute که آیتم ما را در Secret Service شناسایی می‌کند.
 const SS_ATTRIBUTES: [&str; 4] = [
     "application",
-    "win11-clipboard-history",
+    "modern-clipboard-history-for-linux",
     "purpose",
     "history.key",
 ];
-const SS_LABEL: &str = "Win11 Clipboard History — history encryption key";
+const SS_LABEL: &str = "Modern Clipboard History for Linux — history encryption key";
 
 /// Where the history encryption key is stored.
 /// محل ذخیرهٔ کلید رمزنگاری تاریخچه.
@@ -133,8 +133,15 @@ impl HistoryCrypto {
             None => Self::bootstrap_new_key(data_dir, requested, &marker_path)?,
         };
 
+        // Wrap the derived key in `Zeroizing` so the in-memory copy is wiped on
+        // drop (even across a panic). Combined with the `zeroize` feature on
+        // `chacha20poly1305`, the key material never lingers in heap memory.
+        // کلید استخراج‌شده در `Zeroizing` قرار می‌گیرد تا نسخهٔ حافظه هنگام
+        // drop (حتی در panic) پاک شود. همراه با feature ی `zeroize` در
+        // `chacha20poly1305`، کلید در حافظهٔ heap باقی نمی‌ماند.
+        let key_bytes = zeroize::Zeroizing::new(key_bytes);
         Ok(Self {
-            cipher: ChaCha20Poly1305::new(Key::from_slice(&key_bytes)),
+            cipher: ChaCha20Poly1305::new(Key::from_slice(&key_bytes[..])),
             backend: active,
         })
     }

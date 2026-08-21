@@ -211,7 +211,7 @@ impl UserSettingsManager {
     pub fn new() -> Self {
         let config_dir = dirs::config_dir()
             .unwrap_or_else(|| PathBuf::from("."))
-            .join("win11-clipboard-history");
+            .join("modern-clipboard-history-for-linux");
 
         Self { config_dir }
     }

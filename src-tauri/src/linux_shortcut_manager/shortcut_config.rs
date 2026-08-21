@@ -69,8 +69,8 @@ impl ShortcutConfig {
 /// startup, so the `Box::leak` is intentional and bounded.
 pub fn get_command_path() -> &'static str {
     // First, check if binary is in PATH (production install)
-    if Utils::command_exists("win11-clipboard-history") {
-        return "win11-clipboard-history";
+    if Utils::command_exists("modern-clipboard-history-for-linux") {
+        return "modern-clipboard-history-for-linux";
     }
 
     // Try to find the current executable path (for development)
@@ -80,16 +80,16 @@ pub fn get_command_path() -> &'static str {
     }
 
     // Fallback to just the name
-    "win11-clipboard-history"
+    "modern-clipboard-history-for-linux"
 }
 
 /// All shortcuts managed by the application. `command` is replaced at runtime
 /// with the resolved executable path (see [`get_command_path`]).
 pub const SHORTCUTS: &[ShortcutConfig] = &[
     ShortcutConfig {
-        id: "win11-clipboard-history",
+        id: "modern-clipboard-history-for-linux",
         name: "Clipboard History",
-        command: "win11-clipboard-history", // Will be replaced at runtime
+        command: "modern-clipboard-history-for-linux", // Will be replaced at runtime
         args: "",
         gnome_binding: "<Super>v",
         kde_binding: "Meta+V",
@@ -102,9 +102,9 @@ pub const SHORTCUTS: &[ShortcutConfig] = &[
         lxde_binding: "W-v",
     },
     ShortcutConfig {
-        id: "win11-clipboard-history-alt",
+        id: "modern-clipboard-history-for-linux-alt",
         name: "Clipboard History (Alt)",
-        command: "win11-clipboard-history", // Will be replaced at runtime
+        command: "modern-clipboard-history-for-linux", // Will be replaced at runtime
         args: "",
         gnome_binding: "<Ctrl><Alt>v",
         kde_binding: "Ctrl+Alt+V",
@@ -117,9 +117,9 @@ pub const SHORTCUTS: &[ShortcutConfig] = &[
         lxde_binding: "C-A-v",
     },
     ShortcutConfig {
-        id: "win11-clipboard-history-emoji",
+        id: "modern-clipboard-history-for-linux-emoji",
         name: "Emoji Picker",
-        command: "win11-clipboard-history", // Will be replaced at runtime
+        command: "modern-clipboard-history-for-linux", // Will be replaced at runtime
         args: "--emoji",
         gnome_binding: "<Super>period",
         kde_binding: "Meta+.",
@@ -146,7 +146,7 @@ mod tests {
     #[test]
     fn full_command_appends_args() {
         let config = &SHORTCUTS[2];
-        assert_eq!(config.full_command(), "win11-clipboard-history --emoji");
+        assert_eq!(config.full_command(), "modern-clipboard-history-for-linux --emoji");
     }
 
     #[test]

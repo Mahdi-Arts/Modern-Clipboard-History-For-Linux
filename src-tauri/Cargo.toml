@@ -13,7 +13,7 @@ name = "modern_clipboard_history_for_linux"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [[bin]]
-name = "win11-clipboard-history-bin"
+name = "modern-clipboard-history-for-linux-bin"
 path = "src/main.rs"
 
 [build-dependencies]
@@ -87,7 +87,13 @@ rusqlite = { version = "0.32", features = ["bundled"] }
 # Field-level at-rest encryption for history text columns
 # The cipher zeroises key material in memory on drop (defence in depth).
 # رمزنگاری میدان‌ای برای ستون‌های متنی تاریخچه؛ کلید در حافظه هنگام drop پاک می‌شود.
-chacha20poly1305 = { version = "0.10" }
+chacha20poly1305 = { version = "0.10", features = ["zeroize"] }
+
+# Explicit key-wiping on drop for the in-memory key copy. `Zeroizing`
+# guarantees the key bytes are zeroed even if a panic unwinds mid-use.
+# پاک‌کردن صریح کلید هنگام drop برای نسخهٔ کلید در حافظه؛ `Zeroizing`
+# تضمین می‌کند حتی در panic نیز کلید صفر شود.
+zeroize = "1"
 rand = "0.8"
 
 [features]

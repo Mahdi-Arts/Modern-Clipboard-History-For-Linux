@@ -52,6 +52,31 @@ pub enum AppError {
 
 pub type AppResult<T> = Result<T, AppError>;
 
+impl AppError {
+    /// Stable, machine-readable error code (unaffected by message translation).
+    /// Frontends/telemetry key on this; human text stays in `Display`.
+    /// کد خطای پایدار و ماشین‌خوان (تحت تأثیر ترجمهٔ پیام نیست).
+    /// فرانت‌اند/telemetry روی این کد کلید می‌زند؛ متن انسانی در `Display` می‌ماند.
+    pub fn code(&self) -> &'static str {
+        match self {
+            AppError::Clipboard(_) => "clipboard_error",
+            AppError::Serialization(_) => "serialization_error",
+            AppError::Io(_) => "io_error",
+            AppError::Persistence(_) => "persistence_error",
+            AppError::InputSimulation(_) => "input_simulation_error",
+            AppError::NotFound { .. } => "not_found",
+            AppError::Network(_) => "network_error",
+            AppError::InvalidUrl(_) => "invalid_url",
+            AppError::DownloadTooLarge { .. } => "download_too_large",
+            AppError::Session(_) => "session_error",
+            AppError::X11(_) => "x11_error",
+            AppError::PrivacyBlocked => "privacy_blocked",
+            AppError::PermissionDenied(_) => "permission_denied",
+            AppError::Other(_) => "other",
+        }
+    }
+}
+
 // ---------------------------------------------------------------------------
 // From implementations for seamless ? operator usage
 // ---------------------------------------------------------------------------

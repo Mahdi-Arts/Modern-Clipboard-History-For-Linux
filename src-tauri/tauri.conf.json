@@ -94,8 +94,8 @@
           "libayatana-appindicator3-1 | libappindicator3-1"
         ],
         "files": {
-          "/usr/bin/win11-clipboard-history": "bundle/linux/wrapper.sh",
-          "/etc/udev/rules.d/99-win11-clipboard-history-input.rules": "bundle/linux/99-modern-clipboard-history-input.rules",
+          "/usr/bin/modern-clipboard-history-for-linux": "bundle/linux/wrapper.sh",
+          "/etc/udev/rules.d/99-modern-clipboard-history-input.rules": "bundle/linux/99-modern-clipboard-history-input.rules",
           "/usr/share/applications/io.github.mahdi-arts.clipboard-history.desktop": "bundle/linux/modern-clipboard-history-for-linux.desktop",
           "/usr/share/icons/hicolor/128x128/apps/io.github.mahdi-arts.clipboard-history.png": "icons/128x128.png",
           "/usr/share/icons/hicolor/256x256/apps/io.github.mahdi-arts.clipboard-history.png": "icons/icon.png",

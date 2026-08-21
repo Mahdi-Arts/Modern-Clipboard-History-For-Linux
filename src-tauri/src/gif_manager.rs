@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 use tracing::{debug, info, warn};
 
-const APP_CACHE_DIR: &str = "win11-clipboard-history/gifs";
+const APP_CACHE_DIR: &str = "modern-clipboard-history-for-linux/gifs";
 const DOWNLOAD_TIMEOUT: u64 = 10;
 
 struct GifCache;

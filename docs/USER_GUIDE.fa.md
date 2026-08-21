@@ -23,7 +23,7 @@
 
 ```bash
 sha256sum -c SHA256SUMS --ignore-missing
-sudo apt install ./win11-clipboard-history_2.5.0_amd64.deb
+sudo apt install ./modern-clipboard-history-for-linux_2.5.0_amd64.deb
 sudo setfacl -m u:$USER:rw /dev/uinput
 ```
 
@@ -31,14 +31,14 @@ sudo setfacl -m u:$USER:rw /dev/uinput
 
 ```bash
 sha256sum -c SHA256SUMS --ignore-missing
-sudo dnf install ./win11-clipboard-history-2.5.0-1.x86_64.rpm
+sudo dnf install ./modern-clipboard-history-for-linux-2.5.0-1.x86_64.rpm
 sudo setfacl -m u:$USER:rw /dev/uinput
 ```
 
 ### Arch Linux
 
 ```bash
-yay -S win11-clipboard-history-bin
+yay -S modern-clipboard-history-for-linux-bin
 ```
 
 ### Flatpak
@@ -60,9 +60,9 @@ yay -S win11-clipboard-history-bin
 
 ## ۴. داده، حریم خصوصی و امنیت
 
-- پایگاه داده: `~/.local/share/win11-clipboard-history/history.db`
-- تصاویر: `~/.local/share/win11-clipboard-history/images/`
-- تنظیمات: `~/.config/win11-clipboard-history/user_settings.json`
+- پایگاه داده: `~/.local/share/modern-clipboard-history-for-linux/history.db`
+- تصاویر: `~/.local/share/modern-clipboard-history-for-linux/images/`
+- تنظیمات: `~/.config/modern-clipboard-history-for-linux/user_settings.json`
 - کلید پیش‌فرض: `history.key` با مجوز `0600`، یا Secret Service دسکتاپ
 - سقف پیش‌فرض تاریخچه: ۲۰۰۰ مورد
 - شبکه: در حالت پیش‌فرض هیچ درخواست شبکه‌ای انجام نمی‌شود. قابلیت اختیاری GIF به `TENOR_API_KEY` و build feature مربوط نیاز دارد.
@@ -75,7 +75,7 @@ yay -S win11-clipboard-history-bin
 - **چسباندن انجام نمی‌شود:** دسترسی `/dev/uinput` را با `setfacl` بررسی و یک‌بار logout/login کنید.
 - **پنجره روی NVIDIA سیاه است:** برنامه را با `IS_NVIDIA=1` اجرا کنید.
 - **مدیر رمز عبور در Wayland ثبت می‌شود:** «نادیده گرفتن اسرار» را روشن نگه دارید؛ تشخیص پنجرهٔ فعال در Wayland ممکن نیست.
-- **گزارش‌ها:** مسیر `~/.local/share/win11-clipboard-history/logs/` را بررسی کنید و پیش از ارسال، اطلاعات حساس را حذف کنید.
+- **گزارش‌ها:** مسیر `~/.local/share/modern-clipboard-history-for-linux/logs/` را بررسی کنید و پیش از ارسال، اطلاعات حساس را حذف کنید.
 
 ## ۶. توسعه و آزمون
 
