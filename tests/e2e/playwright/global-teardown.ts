@@ -20,6 +20,28 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { execSync } from 'child_process';
 
+/**
+ * Shape of the subset of Playwright's JSON report we summarise.
+ * گِردِ subset گزارش JSON پلی‌رایت که خلاصه می‌کنیم.
+ */
+interface PlaywrightReportStats {
+  tests?: number;
+  passed?: number;
+  failed?: number;
+  skipped?: number;
+  duration?: number;
+}
+
+interface PlaywrightJsonReport {
+  stats?: PlaywrightReportStats;
+}
+
+/** Best-effort human-readable description of an unknown thrown value. */
+/** توصیف خوانا و best-effort از یک مقدار پرتاب‌شدهٔ ناشناخته. */
+function describeError(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 /** Application data directories to clean */
 const TEST_DATA_DIRS = [
   '.local/share/windows-11-style-clipboard-history-manager',
@@ -41,7 +63,7 @@ function cleanupTestData(): void {
         fs.rmSync(fullPath, { recursive: true, force: true });
         console.log(`[teardown] Cleaned: ${dir}`);
       } catch (error) {
-        console.warn(`[teardown] Failed to clean ${dir}: ${error}`);
+        console.warn(`[teardown] Failed to clean ${dir}: ${describeError(error)}`);
       }
     }
   }
@@ -63,7 +85,7 @@ function archiveTestResults(): void {
       console.log('[teardown] Test results available for upload');
     }
   } catch (error) {
-    console.warn(`[teardown] Failed to archive results: ${error}`);
+    console.warn(`[teardown] Failed to archive results: ${describeError(error)}`);
   }
 }
 
@@ -80,14 +102,21 @@ function generateSummary(): void {
   }
   
   try {
-    const results = JSON.parse(fs.readFileSync(resultsFile, 'utf-8'));
+    // Parsed JSON is `unknown`; narrow it before reading `.stats` so the
+    // type-aware lint can verify every access is safe.
+    // JSON تجزیه‌شده از نوع `unknown` است؛ پیش از خواندن `.stats` آن را
+    // محدود می‌کنیم تا لینت آگاه به نوع، امنیت همهٔ دسترسی‌ها را تأیید کند.
+    const results: PlaywrightJsonReport = JSON.parse(
+      fs.readFileSync(resultsFile, 'utf-8')
+    ) as PlaywrightJsonReport;
+    const s = results.stats ?? {};
     
     const stats = {
-      total: results.stats?.tests || 0,
-      passed: results.stats?.passed || 0,
-      failed: results.stats?.failed || 0,
-      skipped: results.stats?.skipped || 0,
-      duration: results.stats?.duration || 0,
+      total: s.tests ?? 0,
+      passed: s.passed ?? 0,
+      failed: s.failed ?? 0,
+      skipped: s.skipped ?? 0,
+      duration: s.duration ?? 0,
     };
     
     console.log('\n' + '='.repeat(60));
@@ -100,7 +129,7 @@ function generateSummary(): void {
     console.log(`  Duration: ${(stats.duration / 1000).toFixed(2)}s`);
     console.log('='.repeat(60) + '\n');
   } catch (error) {
-    console.warn(`[teardown] Failed to generate summary: ${error}`);
+    console.warn(`[teardown] Failed to generate summary: ${describeError(error)}`);
   }
 }
 
@@ -125,7 +154,13 @@ function killRemainingProcesses(): void {
  * Main teardown function
  * تابع اصلی خاتمه
  */
-async function globalTeardown(): Promise<void> {
+/**
+ * Playwright runs this as a synchronous teardown hook; nothing here is
+ * asynchronous, so the function is intentionally not `async`.
+ * Playwright این را به‌عنوان هوک خاتمه هم‌زمان اجرا می‌کند؛ هیچ عملیاتی در
+ * این‌جا ناهمگام نیست، بنابراین تابع عمداً `async` نیست.
+ */
+function globalTeardown(): void {
   console.log('='.repeat(60));
   console.log('[teardown] Starting E2E test cleanup...');
   console.log('='.repeat(60));

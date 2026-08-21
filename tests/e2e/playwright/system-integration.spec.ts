@@ -8,7 +8,7 @@
  * میانبرهای سراسری و دسترسی به کلیپ‌بورد.
  */
 
-import { test, expect, type Page } from '@playwright/test';
+import { test } from '@playwright/test';
 
 /**
  * Test group: System Tray

@@ -1,7 +1,7 @@
 Source: windows-11-style-clipboard-history-manager
 Section: utility
 Priority: optional
-Maintainer: Mahdi Arts <mahdi@example.com>
+Maintainer: Mahdi Arts <mahdi-arts@users.noreply.github.com>
 Build-Depends: debhelper-compat (= 13),
                cargo,
                libwebkit2gtk-4.1-dev | libwebkit2gtk-4.0-dev,

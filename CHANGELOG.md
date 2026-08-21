@@ -12,6 +12,49 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased] — 2026-08-21
 
+### QA follow-up / پیروی از بازبینی (2026-08-21)
+
+- **Lockfile restored in sync.** `package-lock.json` had drifted out of sync
+  with `package.json` (`@playwright/test`, `playwright`, `playwright-core`
+  were missing), so a clean `npm ci` failed. Regenerated the lockfile; `npm ci`
+  now installs cleanly.
+  **بازگردانی همگامی قفل وابستگی‌ها:** `package-lock.json` از `package.json`
+  فاصله گرفته بود و `npm ci` تمیز شکست می‌خورد؛ بازتولید شد و اکنون درست نصب می‌شود.
+- **Playwright E2E specs now linted.** The type-aware ESLint block matched
+  `tests/e2e/**` but they belonged to no `tsconfig` project, so `npm run lint`
+  failed with a parsing error and 117 real findings stayed hidden. Added a
+  dedicated `tests/e2e/tsconfig.json` + ESLint block and fixed every finding:
+  unused imports, unsafe `any` reads in `global-teardown.ts` (typed JSON
+  report + `describeError` helper), and an unused locator whose test now
+  actually asserts the drag handle is visible.
+  **لینت شدن specهای E2E:** specها در هیچ پروژهٔ tsconfig نبودند و لینت با خطای
+  parsing می‌شکست؛ با افزودن tsconfig اختصاصی و بلوک ESLint، همهٔ یافته‌ها
+  (ایمپورت استفاده‌نشده، خواندن ناامن `any` و locator بی‌اثر) اصلاح شد.
+- **Live release pipeline canonicalised for real.** `.github/workflows/release.yml`
+  still referenced the legacy repository (`Mahdi-Arts/Modern-Clipboard-History-For-Linux`)
+  and legacy package names (`win11-clipboard-history-bin`), and the Cloudsmith/AUR
+  steps still used `continue-on-error` + masked failures. Replaced with the
+  hardened, canonical-named pipelines (`docs/github-workflows/` is now a true
+  mirror). `scripts/check-packaging.sh` passes again.
+  **خط لولهٔ انتشار واقعاً رسمی شد:** فایل‌های زنده به مخزن و نام‌های قدیمی
+  ارجاع می‌دادند و مراحل Cloudsmith/AUR fail-open بودند؛ با نسخهٔ سخت‌شده و
+  رسمی جایگزین و `check-packaging.sh` دوباره قبول شد.
+- **Packaging contract is now a real CI gate.** `scripts/check-packaging.sh`
+  runs as a blocking step in `ci.yml` (previously only mentioned in a comment),
+  and gained a **single-source version-drift guard** (Cargo.toml, package.json,
+  tauri.conf.json, Cargo.lock, debian/changelog, AppStream metainfo must agree).
+  **گیت بسته‌بندی واقعی شد:** اسکریپت کنترل بسته‌بندی به‌عنوان گام مسدودکنندهٔ CI
+  اجرا می‌شود و یک گارد رانش نسخهٔ تک‌منبعی هم به آن افزوده شد.
+- **Maintainer metadata corrected.** Replaced the placeholder
+  `mahdi@example.com` in `packaging/debian/control` and the RPM spec changelog
+  with `mahdi-arts@users.noreply.github.com` (matching `debian/changelog` and
+  `SECURITY.md`).
+  **اصلاح فرادادهٔ نگهدارنده:** ایمیل جایگزین `mahdi@example.com` در `debian/control`
+  و spec آرپی‌ام با ایمیل رسمی پروژه جایگزین شد.
+- **README / CI docs brought in line** with the now-live hardened pipelines
+  and the new `check-packaging.sh` gate.
+  **هم‌راستا شدن README / CI.md** با خط‌لوله‌های سخت‌شدهٔ فعال و گیت جدید بسته‌بندی.
+
 ### Security / امنیت
 
 - **Central window authorization.** State-changing Tauri commands now use a
