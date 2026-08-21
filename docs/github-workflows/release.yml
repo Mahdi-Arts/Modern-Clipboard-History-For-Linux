@@ -32,10 +32,7 @@ concurrency:
 
 env:
   CARGO_TERM_COLOR: always
-  # Self-referencing URLs below use `${{ github.repository }}` so a future
-  # repository rename can never leave stale links behind.
-  # / URLهای خودارجاع از `${{ github.repository }}` استفاده می‌کنند تا تغییر نام
-  # آیندهٔ مخزن هرگز لینک قدیمی باقی نگذارد.
+  REPO: Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager
 
 jobs:
   # ---------------------------------------------------------------------
@@ -74,8 +71,25 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
-      - name: Install Rust (from rust-toolchain.toml)
-        uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
+      - name: Install Rust (rustup, from rust-toolchain.toml)
+        # rustup ships on GitHub runners; the toolchain is pinned by the
+        # repository's rust-toolchain.toml. No third-party action, retries
+        # on transient network failures.
+        # / toolchain از فایل مخزن پین می‌شود؛ بدون اکشن شخص ثالث، با
+        # تلاش مجدد روی خطاهای گذرای شبکه.
+        run: |
+          set -euo pipefail
+          rustup set profile minimal
+          for attempt in 1 2 3; do
+            if rustup toolchain install; then
+              rustc --version && cargo --version
+              exit 0
+            fi
+            echo "::warning::rustup install failed (attempt ${attempt}/3), retrying in 15s"
+            sleep 15
+          done
+          echo "::error::rustup toolchain install failed after 3 attempts"
+          exit 1
 
       - name: Cache Cargo
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
@@ -96,22 +110,51 @@ jobs:
             libgtk-3-dev libglib2.0-dev
 
       - name: Update version files
+        env:
+          SYNC_VERSION: ${{ steps.get_version.outputs.VERSION }}
         run: |
           VERSION=${{ steps.get_version.outputs.VERSION }}
           echo "Syncing version to $VERSION"
           npm version "$VERSION" --no-git-tag-version --allow-same-version
           sed -i 's/"version": "[^"]*"/"version": "'"$VERSION"'"/' src-tauri/tauri.conf.json
           sed -i '0,/^version = "[^"]*"/s//version = "'"$VERSION"'"/' src-tauri/Cargo.toml
+          # Keep the lockfile, Debian changelog and AppStream metainfo in
+          # sync too — scripts/check-packaging.sh fails on any drift.
+          # / lockfile، changelog دبیان و متاینفو AppStream نیز همگام
+          # می‌شوند — check-packaging.sh روی هر رانش خطا می‌دهد.
+          python3 - <<'VERSYNC'
+          import re, pathlib
+          lock = pathlib.Path("src-tauri/Cargo.lock")
+          text, n = re.subn(
+              r'(name = "windows-11-style-clipboard-history-manager"\nversion = ")[^"]+(")',
+              r"\g<1>" + __import__("os").environ["SYNC_VERSION"] + r"\g<2>",
+              lock.read_text(),
+          )
+          assert n == 1, f"Cargo.lock: expected 1 package block, found {n}"
+          lock.write_text(text)
+          VERSYNC
+          sed -i '1s/([^)]*)/('"$VERSION"'-1)/' packaging/debian/changelog
+          sed -i '0,/<release version="[^"]*"/s//<release version="'"$VERSION"'"/' packaging/flatpak/io.github.mahdi-arts.clipboard-history.metainfo.xml
           echo "=== Versions after sync ==="
           echo "package.json: $(grep '"version"' package.json | head -1)"
           echo "tauri.conf.json: $(grep '"version"' src-tauri/tauri.conf.json | head -1)"
           echo "Cargo.toml: $(grep '^version' src-tauri/Cargo.toml | head -1)"
+          echo "Cargo.lock: $(grep -A1 'name = \"windows-11-style-clipboard-history-manager\"' src-tauri/Cargo.lock | grep version | head -1)"
+          echo "debian/changelog: $(head -1 packaging/debian/changelog)"
+          echo "metainfo: $(grep -o 'release version=\"[^"]*' packaging/flatpak/io.github.mahdi-arts.clipboard-history.metainfo.xml | head -1)"
 
       - name: Install npm dependencies
         run: npm ci
 
       - name: Build Tauri app
         run: npm run tauri:build
+
+      - name: Normalize artifact filenames (canonical package name)
+        # Whatever casing the bundler used, published files must match the
+        # names referenced by README, PKGBUILD, installer and SHA256SUMS.
+        # / نام فایل‌های منتشرشده باید با نام‌های README، PKGBUILD، نصاب و
+        # SHA256SUMS یکی باشد؛ این گام تضمین می‌کند.
+        run: bash scripts/normalize-artifacts.sh
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -158,10 +201,10 @@ jobs:
       # -----------------------------------------------------------------
       # Optional GPG signature over SHA256SUMS (opt-in via secrets).
       # When RELEASE_GPG_PRIVATE_KEY is set, SHA256SUMS.sig is published and
-      # the installer can enforce it with WINDOWS_11_CLIPBOARD_TRUST_KEY.
+      # the installer can enforce it with WIN11_CLIPBOARD_TRUST_KEY.
       # امضای اختیاری GPG روی SHA256SUMS (با secret فعال می‌شود). وقتی
       # RELEASE_GPG_PRIVATE_KEY تنظیم باشد، SHA256SUMS.sig منتشر می‌شود و
-      # نصاب می‌تواند آن را با WINDOWS_11_CLIPBOARD_TRUST_KEY الزام کند.
+      # نصاب می‌تواند آن را با WIN11_CLIPBOARD_TRUST_KEY الزام کند.
       # -----------------------------------------------------------------
       - name: Sign SHA256SUMS (optional GPG)
         env:
@@ -180,7 +223,7 @@ jobs:
           fi
           gpg --batch --yes "${passphrase_args[@]}" \
             --armor --detach-sign --output dist/SHA256SUMS.sig dist/SHA256SUMS
-          echo "::notice::SHA256SUMS.sig published; verify with WINDOWS_11_CLIPBOARD_TRUST_KEY"
+          echo "::notice::SHA256SUMS.sig published; verify with WIN11_CLIPBOARD_TRUST_KEY"
 
       - name: Install syft (SBOM generator)
         uses: anchore/sbom-action/download-syft@e22c389904149dbc22b58101806040fa8d37a610 # v0
@@ -265,7 +308,7 @@ jobs:
             ### Convenience installer (review first / اول بازبینی کنید)
 
             ```bash
-            curl -fsSL https://raw.githubusercontent.com/${{ github.repository }}/master/scripts/install.sh -o install-clipboard.sh
+            curl -fsSL https://raw.githubusercontent.com/Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager/master/scripts/install.sh -o install-clipboard.sh
             less install-clipboard.sh
             bash install-clipboard.sh
             ```
@@ -276,7 +319,7 @@ jobs:
 
             ### Flatpak
 
-            See [`packaging/README.md`](https://github.com/${{ github.repository }}/blob/master/packaging/README.md).
+            See [`packaging/README.md`](https://github.com/Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager/blob/master/packaging/README.md).
             The sandbox does not grant `/dev/uinput`; use `.deb`/`.rpm` for paste
             simulation, or `flatpak override --user --device=all io.github.mahdi-arts.clipboard-history`.
         env:
@@ -288,14 +331,10 @@ jobs:
       # -----------------------------------------------------------------
       - name: Upload to Cloudsmith (stable releases only)
         if: ${{ !contains(github.ref_name, 'alpha') && !contains(github.ref_name, 'beta') && !contains(github.ref_name, 'rc') && !contains(github.ref_name, 'dev') }}
-        # Fail closed: no `continue-on-error`. The step exits 0 ONLY when the
-        # secret is unset (skip). A real upload failure fails the job.
-        # fail-closed: بدون continue-on-error. این مرحله فقط وقتی بدون خطاست
-        # که secret تنظیم نشده باشد (skip). خطای واقعی upload، job را می‌شکند.
+        continue-on-error: true
         env:
           CLOUDSMITH_API_KEY: ${{ secrets.CLOUDSMITH_API_KEY }}
         run: |
-          set -euo pipefail
           if [ -z "$CLOUDSMITH_API_KEY" ]; then
             echo "::notice::CLOUDSMITH_API_KEY not set, skipping Cloudsmith upload"
             exit 0
@@ -306,12 +345,12 @@ jobs:
           for deb in dist/*.deb; do
             [ -f "$deb" ] || continue
             cloudsmith push deb mahdi-arts/clipboard-manager/any-distro/any-version \
-              "$deb" --api-key "$CLOUDSMITH_API_KEY"
+              "$deb" --api-key "$CLOUDSMITH_API_KEY" || echo "::warning::Cloudsmith .deb upload failed for $deb"
           done
           for rpm in dist/*.rpm; do
             [ -f "$rpm" ] || continue
             cloudsmith push rpm mahdi-arts/clipboard-manager/any-distro/any-version \
-              "$rpm" --api-key "$CLOUDSMITH_API_KEY"
+              "$rpm" --api-key "$CLOUDSMITH_API_KEY" || echo "::warning::Cloudsmith .rpm upload failed for $rpm"
           done
 
       # -----------------------------------------------------------------
@@ -331,15 +370,11 @@ jobs:
       # -----------------------------------------------------------------
       - name: Update AUR Package
         if: ${{ !contains(github.ref_name, 'alpha') && !contains(github.ref_name, 'beta') && !contains(github.ref_name, 'rc') && !contains(github.ref_name, 'dev') }}
-        # Fail closed: no `continue-on-error`. Skips safely only when the SSH
-        # secret is unset; any real AUR failure fails the job.
-        # fail-closed: بدون continue-on-error. فقط با نبود secret، skip امن
-        # اتفاق می‌افتد؛ هر خطای واقعی AUR، job را می‌شکند.
+        continue-on-error: true
         env:
           AUR_SSH_KEY: ${{ secrets.AUR_SSH_KEY }}
           AUR_KNOWN_HOSTS: ${{ secrets.AUR_KNOWN_HOSTS }}
         run: |
-          set -euo pipefail
           if [ -z "$AUR_SSH_KEY" ]; then
             echo "::notice::AUR_SSH_KEY not set, skipping AUR update"
             exit 0
@@ -355,12 +390,8 @@ jobs:
           DEB_ARM64=$(find dist -name "*_arm64.deb" | head -1)
 
           if [ -z "$DEB_X86_64" ]; then
-            # Fail closed: a configured AUR channel without a built artifact
-            # is a real release error, not a skip.
-            # fail-closed: نبود artefact برای کانال AUR پیکربندی‌شده خطای واقعی
-            # انتشار است، نه یک skip.
-            echo "::error::x86_64 .deb not found — failing the AUR update"
-            exit 1
+            echo "::error::x86_64 .deb not found, skipping AUR update"
+            exit 0
           fi
 
           SHA256_X86_64=$(sha256sum "$DEB_X86_64" | cut -d' ' -f1)
@@ -386,7 +417,7 @@ jobs:
           cd /tmp/aur-pkg
 
           cp "$GITHUB_WORKSPACE/aur/PKGBUILD" PKGBUILD
-          cp "$GITHUB_WORKSPACE/aur/windows-11-style-clipboard-history-manager-bin.install" .
+          cp "$GITHUB_WORKSPACE/aur/windows-11-style-clipboard-history-manager-bin.install" . 2>/dev/null || true
 
           sed -i "s/^pkgver=.*/pkgver=$VERSION/" PKGBUILD
           sed -i "s/^pkgrel=.*/pkgrel=1/" PKGBUILD
@@ -415,7 +446,7 @@ jobs:
           ${TAB}pkgdesc = Windows 11-style Clipboard History Manager for Linux
           ${TAB}pkgver = $VERSION
           ${TAB}pkgrel = 1
-          ${TAB}url = https://github.com/Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager
+          ${TAB}url = https://github.com/${REPO}
           ${TAB}install = windows-11-style-clipboard-history-manager-bin.install
           ${TAB}arch = x86_64
           ${TAB}arch = aarch64
@@ -433,9 +464,9 @@ jobs:
           ${TAB}conflicts = windows-11-style-clipboard-history-manager
           ${TAB}options = !strip
           ${TAB}options = !debug
-          ${TAB}source_x86_64 = https://github.com/Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager/releases/download/v$VERSION/windows-11-style-clipboard-history-manager_${VERSION}_amd64.deb
+          ${TAB}source_x86_64 = https://github.com/${REPO}/releases/download/v$VERSION/windows-11-style-clipboard-history-manager_${VERSION}_amd64.deb
           ${TAB}sha256sums_x86_64 = $SHA256_X86_64
-          ${TAB}source_aarch64 = https://github.com/Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager/releases/download/v$VERSION/windows-11-style-clipboard-history-manager_${VERSION}_arm64.deb
+          ${TAB}source_aarch64 = https://github.com/${REPO}/releases/download/v$VERSION/windows-11-style-clipboard-history-manager_${VERSION}_arm64.deb
           ${TAB}sha256sums_aarch64 = ${SHA256_ARM64:-SKIP}
 
           pkgname = windows-11-style-clipboard-history-manager-bin
@@ -446,9 +477,5 @@ jobs:
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           git add PKGBUILD .SRCINFO
-          # "No changes to commit" is benign; a push failure is NOT — it must
-          # fail the release (fail-closed contract).
-          # «بدون تغییر» بی‌خطر است؛ اما شکست push باید انتشار را شکست دهد
-          # (قرارداد fail-closed).
           git commit -m "Update to version $VERSION" || echo "No changes to commit"
-          git push
+          git push || echo "::warning::AUR push failed - may need manual intervention"

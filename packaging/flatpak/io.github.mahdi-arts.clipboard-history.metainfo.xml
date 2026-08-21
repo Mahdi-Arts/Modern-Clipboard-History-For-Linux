@@ -84,7 +84,19 @@
     <releases>
         <release version="2.5.0" date="2026-08-21">
             <description>
-                <p>Latest stable release with full feature set.</p>
+                <p>
+                    Stable release: SQLite persistence with ChaCha20-Poly1305
+                    at-rest encryption, Secret Service key storage, paged IPC,
+                    setup wizard with permission and shortcut auto-configuration,
+                    and canonical .deb / .rpm / AppImage release artifacts with
+                    SBOM and provenance attestations.
+                </p>
+                <p xml:lang="fa">
+                    نسخهٔ پایدار: ذخیره‌سازی SQLite با رمزنگاری ChaCha20-Poly1305،
+                    نگهداری کلید در Secret Service، IPC صفحه‌بندی‌شده، جادوگر
+                    راه‌اندازی با پیکربندی خودکار مجوزها و میانبر، و آرتیفکت‌های
+                    رسمی deb/rpm/AppImage همراه SBOM و گواهی provenance.
+                </p>
             </description>
         </release>
     </releases>
@@ -93,7 +105,7 @@
         <screenshot type="default">
             <caption>Main clipboard history window</caption>
             <caption xml:lang="fa">پنجره اصلی تاریخچه کلیپ‌بورد</caption>
-            <image>https://raw.githubusercontent.com/Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager/main/docs/img/windows-11-style-clipboard-history-manager.png</image>
+            <image>https://raw.githubusercontent.com/Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager/master/docs/img/windows-11-style-clipboard-history-manager.png</image>
         </screenshot>
     </screenshots>
     

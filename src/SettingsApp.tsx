@@ -269,7 +269,7 @@ function SettingsApp() {
   return (
     <div
       className={clsx(
-        'h-screen w-screen flex flex-col font-sans select-none',
+        'h-screen w-screen flex flex-col font-sans select-none animate-window-in',
         isDark
           ? 'bg-win11-bg-primary text-win11-text-primary'
           : 'bg-[#f0f3f9] text-win11Light-text-primary' // Slightly better light gray background

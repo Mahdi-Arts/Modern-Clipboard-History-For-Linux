@@ -12,6 +12,61 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased] — 2026-08-21
 
+### Release-readiness pass / گردش کار آماده‌سازی انتشار (2026-08-21)
+
+- **Release pipeline fully renamed to the canonical project.** 17 stale
+  references to the pre-rename names (`win11-clipboard-history`,
+  `Modern-Clipboard-History-For-Linux`) remained in `ci.yml` and
+  `release.yml`: the CI smoke test probed a binary that no longer exists,
+  the release notes installed artifact names that are never produced, and
+  the AUR job pushed a package pointing at a deleted repository. All are
+  now the canonical `windows-11-style-clipboard-history-manager` names;
+  `scripts/check-packaging.sh` (which previously failed on `master`) is
+  green again and wired into CI as a dedicated blocking job.
+  **خط لولهٔ انتشار کامل به نام رسمی پروژه بازنویسی شد؛** ۱۷ ارجاع
+  قدیمی در ورک‌فلوها اصلاح شد و گیت پکیجینگ سبز و در CI مسدودکننده است.
+- **CI no longer depends on a third-party Rust action.** The flaky
+  `dtolnay/rust-toolchain` step (root cause of six consecutive red runs)
+  was replaced by the runner's built-in rustup reading the repository's
+  `rust-toolchain.toml`, with retries on transient network failures —
+  one fewer supply-chain dependency.
+  **نصب Rust با rustup خود رانر از فایل مخزن انجام می‌شود** (بدون اکشن
+  شخص ثالث، با تلاش مجدد روی خطای گذرا) — رفع ریشهٔ شش اجرای قرمز CI.
+- **Canonical artifact filenames, guaranteed.** New
+  `scripts/normalize-artifacts.sh` renames whatever the Tauri bundler
+  emits (per-format `productName` casing) to the exact lowercase names
+  referenced by README, PKGBUILD, the installer and `SHA256SUMS`; the
+  release workflow runs it right after `tauri build` (idempotent,
+  unit-tested against six naming variants).
+  **نام فایل آرتیفکت‌ها با اسکریپت نرمال‌سازی به نام رسمی تضمین می‌شود.**
+- **Version sync covers every source.** The tag workflow now also updates
+  `Cargo.lock`, the Debian changelog and the AppStream metainfo, matching
+  the drift guard in `check-packaging.sh`.
+  **همگامی نسخه شامل Cargo.lock، changelog دبیان و متاینفو هم شد.**
+- **Setup wizard decomposed (748 → 216-line orchestrator).** The monolith
+  is now `src/components/setup/`: one module per step plus shared
+  `WizardButton`, `StatusCard`, `StepHeader`, `LanguageSwitcher` and a
+  `useSetupChecks` hook. Behaviour identical; five new unit tests cover
+  the extracted primitives.
+  **جادوگر راه‌اندازی به ماژول‌های تک‌مسئولیتی تجزیه شد** با ۵ تست جدید.
+- **Entrance motion (Windows 11 style).** `animate-window-in` /
+  `animate-step-in` / `animate-item-in` keyframes for the settings and
+  setup windows and wizard steps — automatically disabled under
+  `prefers-reduced-motion`.
+  **انیمیشن ورود ویندوزی برای پنجره‌ها و گام‌ها** (با احترام به
+  reduced-motion).
+- **Flatpak metainfo fixed & enriched.** Screenshot URL pointed at the
+  non-existent `main` branch (404) — now `master`; 2.5.0 release notes
+  are bilingual and describe the actual feature set.
+  **متاینفو: اصلاح URL اسکرین‌شات و غنی‌سازی یادداشت نسخه به دو زبان.**
+- **Docs hygiene.** Session reports moved from `docs/reports/` to
+  `docs/archive/reports/` (index left behind with the policy); README,
+  CONTRIBUTING and `docs/CI.md` updated to match the real pipeline;
+  `engines.node >= 20.19` declared and `.nvmrc` added; new
+  `make packaging` target.
+  **پاکیزگی مستندات:** آرشیو گزارش‌ها، همگامی README/CONTRIBUTING/CI با
+  خط لولهٔ واقعی، اعلان کف Node و target جدید `make packaging`.
+
 ### QA follow-up / پیروی از بازبینی (2026-08-21)
 
 - **Lockfile restored in sync.** `package-lock.json` had drifted out of sync

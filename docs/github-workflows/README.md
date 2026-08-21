@@ -17,6 +17,13 @@ git am docs/patches/hardened-ci-workflows.patch
 git push   # needs a classic PAT or a direct maintainer push
 ```
 
+The patch is **regenerated** from the live workflows whenever they change
+(`git diff <base> -- .github/workflows/...`), so it always produces the
+current pipelines. Older, superseded patches live in
+[`docs/patches/archive/`](../patches/archive/).
+پچ هر زمان ورک‌فلوها تغییر کنند بازتولید می‌شود تا همیشه خط لولهٔ
+جاری را پدید آورد؛ پچ‌های قدیمی در archive هستند.
+
 After activation, keep the two copies in sync:
 پس از فعال‌سازی، دو نسخه را همگام نگه دارید:
 
@@ -32,6 +39,7 @@ git add docs/github-workflows .github/workflows
   - ESLint (type-aware) + `tsc` with zero warnings
   - Frontend tests with coverage thresholds (`npm run test:coverage`)
   - Fast Rust syntax gate (`node scripts/check-rust-syntax.mjs`)
+  - Packaging contract (`scripts/check-packaging.sh`) in a dedicated job
   - `cargo fmt --check`, `clippy -D warnings`, `cargo test` + `--all-features`
   - `cargo audit`, `cargo deny check advisories bans licenses sources`,
     `npm audit --audit-level=high` — no `continue-on-error`
