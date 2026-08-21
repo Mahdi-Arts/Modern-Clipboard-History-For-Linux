@@ -36,7 +36,7 @@ RESET := \033[0m
 
 .PHONY: all help deps deps-ubuntu deps-debian deps-fedora deps-arch \
         rust node check-deps dev build install uninstall clean clean-first-run run \
-        lint format test test-coverage rust-syntax audit hooks release
+        lint format test test-coverage rust-syntax audit packaging hooks release
 
 all: build
 
@@ -342,6 +342,11 @@ audit:
 	cd src-tauri && cargo audit
 	cd src-tauri && cargo deny check advisories bans licenses sources
 	npm audit --audit-level=high
+
+packaging:
+	@echo -e "$(CYAN)Validating packaging contracts (names, versions, deb/rpm parity)...$(RESET)"
+	bash scripts/check-packaging.sh
+	@bash -n scripts/normalize-artifacts.sh && echo "normalize-artifacts.sh syntax OK"
 
 hooks:
 	@echo -e "$(CYAN)Installing git hooks (pre-commit, commit-msg)...$(RESET)"

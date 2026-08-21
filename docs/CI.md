@@ -14,13 +14,16 @@
 git am docs/patches/hardened-ci-workflows.patch && git push
 ```
 
-همهٔ actionها به SHA کامل کامیت پین شده‌اند (توصیهٔ OpenSSF).
+همهٔ actionها به SHA کامل کامیت پین شده‌اند (توصیهٔ OpenSSF). نصب Rust با
+rustup خودِ رانر و از `rust-toolchain.toml` مخزن انجام می‌شود (بدون اکشن
+شخص ثالث، با تلاش مجدد روی خطای گذرای شبکه).
 
 ## گیت‌های مسدودکننده (`docs/github-workflows/ci.yml`)
 
 | Job | بررسی | مسدودکننده؟ |
 | --- | --- | --- |
 | quality | `npm run lint` (tsc + ESLint، صفر هشدار) | بله |
+| quality | `node scripts/check-rust-syntax.mjs` (گیت سینتکس سریع Rust) | بله |
 | quality | `npm run test:coverage` (آستانه‌های Vitest) | بله |
 | quality | `cargo fmt --all -- --check` | بله |
 | quality | `cargo clippy --all-targets -- -D warnings` | بله |
@@ -29,7 +32,8 @@ git am docs/patches/hardened-ci-workflows.patch && git push
 | security | `cargo audit` | بله |
 | security | `cargo deny check advisories bans licenses sources` | بله |
 | security | `npm audit --audit-level=high` | بله |
-| build-linux | بیلد Tauri + `--version` / `--help` روی باینری (با و بدون xvfb) | بله |
+| packaging | `scripts/check-packaging.sh` (نام‌های رسمی، همگامی نسخه‌ها، برابری deb/rpm، اعتبارسنجی desktop/metainfo) | بله |
+| build-linux | بیلد Tauri + نرمال‌سازی نام آرتیفکت‌ها (`scripts/normalize-artifacts.sh`) + `--version` / `--help` روی باینری (با و بدون xvfb) | بله |
 
 `continue-on-error` روی هیچ گیت امنیتی نیست.
 
@@ -62,6 +66,9 @@ git am docs/patches/hardened-ci-workflows.patch && git push
 ```
 
 All actions are pinned to full commit SHAs (OpenSSF recommendation).
+Rust is installed with the runner's own rustup from the repository's
+`rust-toolchain.toml` (no third-party action; transient network failures
+are retried).
 
 ## Blocking gates (`docs/github-workflows/ci.yml`)
 
@@ -73,7 +80,10 @@ binary compiles **without** our optional `reqwest` / GIF search feature.
 
 Tag `v*` publishes checksums (plus an optional GPG `SHA256SUMS.sig` driven
 by `RELEASE_GPG_PRIVATE_KEY`), per-artifact SPDX SBOMs, and SLSA
-attestations. Optional channels (Cloudsmith, AUR) require repository
+attestations. Artifact filenames are normalized to the canonical lowercase
+package name by `scripts/normalize-artifacts.sh` before upload, and the
+version-sync step keeps `package.json`, `Cargo.toml`, `Cargo.lock`,
+`tauri.conf.json`, the Debian changelog and the AppStream metainfo aligned. Optional channels (Cloudsmith, AUR) require repository
 secrets; they never silently point at a third-party fork. The AUR SSH
 connection is fail-closed: `StrictHostKeyChecking yes` with `known_hosts`
 pinned via the `AUR_KNOWN_HOSTS` secret — trust-on-first-use is never

@@ -400,3 +400,56 @@ body {
 .empty-icon-glow {
   animation: emptyGlow 3.2s ease-in-out infinite;
 }
+
+/* ============================================================================
+   Entrance motion — Windows 11 style (fade + slight rise; no bounce)
+   All entrances are neutralised automatically under prefers-reduced-motion.
+   ========================================================================= */
+
+@keyframes windowIn {
+  from {
+    opacity: 0;
+    transform: scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes stepIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Whole first-run / settings window entrance */
+.animate-window-in {
+  animation: windowIn 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* One wizard step or settings section sliding into place */
+.animate-step-in {
+  animation: stepIn 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* List rows: quick fade so long histories do not "pop" on page change */
+@keyframes itemIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-item-in {
+  animation: itemIn 150ms ease-out;
+}

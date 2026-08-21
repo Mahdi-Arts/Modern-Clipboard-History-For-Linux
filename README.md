@@ -25,9 +25,7 @@
 - [راهنمای جامع فارسی](docs/USER_GUIDE.fa.md)
 - [درگاه مستندات فنی فارسی](docs/fa/README.md)
 - [Complete English guide](docs/USER_GUIDE.en.md)
-- [گزارش بازبینی فنی و امنیتی ۲۰۲۶](docs/reports/REPOSITORY_REVIEW_2026-08-21.fa.md)
-- [بازبینی مستقل کد (Arena) / Independent code review](docs/reports/ARENA_CODE_REVIEW_2026-08-21.fa.md)
-- [Enterprise upgrade final report / گزارش نهایی ارتقا](docs/reports/ENTERPRISE_UPGRADE_FINAL_2026-08-21.md)
+- [Archive of review & QA reports / آشیانهٔ گزارش‌های بازبینی](docs/archive/reports/)
 - [Performance budget / بودجهٔ عملکرد](docs/PERFORMANCE.md)
 - [Packaging and release / بسته‌بندی و انتشار](packaging/README.md)
 
@@ -176,6 +174,9 @@ Full diagram: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ## Development / توسعه
 
+Requires **Node ≥ 20.19** (Vite 7 floor; `.nvmrc` pins 20) and a Rust
+toolchain as pinned by `rust-toolchain.toml`.
+
 ```bash
 git clone https://github.com/Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager.git
 cd Windows-11-Style-Clipboard-History-Manager
@@ -184,6 +185,7 @@ source ~/.cargo/env
 make dev          # hot reload
 make test         # frontend + Rust unit tests
 make lint
+make packaging    # release-name / version / deb-rpm parity contracts
 make build
 ```
 
@@ -245,7 +247,11 @@ hardened, canonical-named pipelines (SHA-pinned actions) directly, with
 Tagged releases publish `.deb` / `.rpm` / AppImage plus `SHA256SUMS` (with an
 optional GPG `SHA256SUMS.sig`), a per-artifact SPDX SBOM, and SLSA
 build-provenance attestations. All URLs point at this repository
-(`Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager`).
+(`Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager`). Artifact
+filenames are normalized at build time
+(`scripts/normalize-artifacts.sh`) to the canonical lowercase package
+name, so the release notes, `PKGBUILD`, installer and `SHA256SUMS` always
+reference identical files.
 
 ### Environment
 

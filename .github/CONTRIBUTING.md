@@ -40,8 +40,8 @@
 
 ### پیش‌نیازها
 
-- **Rust 1.77+**
-- **Node.js 20+**
+- **Rust 1.77+** (نسخهٔ دقیق در `rust-toolchain.toml`)
+- **Node.js ≥ 20.19** (کف Vite 7 — `.nvmrc` نسخهٔ ۲۰ را پین می‌کند)
 - وابستگی‌های سیستمی
 
 ```bash
@@ -132,6 +132,8 @@ make dev
 - [ ] مستندات به‌روز شده است (در صورت نیاز)
 - [ ] برای تغییرات i18n، هر دو فایل `fa.json` و `en.json` به‌روز شده‌اند
 - [ ] تغییرات روی X11 و Wayland تست شده (در صورت امکان)
+- [ ] برای تغییرات بسته‌بندی/انتشار: `make packaging` سبز است (نام‌های رسمی،
+      همگامی نسخه‌ها، برابری deb/rpm)
 
 ## راهنمای سبک کدنویسی
 
@@ -171,6 +173,16 @@ make hooks   # نصب pre-commit و commit-msg
 
 - `pre-commit`: روی فایل‌های stage شده ESLint + tsc و `cargo fmt --check` اجرا می‌کند.
 - `commit-msg`: قالب Conventional Commits را الزامی می‌کند.
+
+### سیاست مستندات و گزارش‌ها
+
+- مستنداتِ زندهٔ کاربر (راهنماها، `ARCHITECTURE`، `ADR`ها،
+  `THREAT_MODEL`، `PERFORMANCE`، `CI`) در سطح اول `docs/` می‌مانند.
+- گزارش‌های بازبینی/QA مربوط به یک نشست، در `docs/archive/reports/`
+  با پسوند تاریخ ISO قرار می‌گیرند (یا بهتر: در شرح خود PR).
+  فهرست: [`docs/reports/README.md`](../docs/reports/README.md).
+- `docs/github-workflows/` کپی مرجعِ ورک‌فلوهای زندهٔ
+  `.github/workflows/` است؛ با هر تغییر ورک‌فلو، هر دو را همگام کنید.
 
 ### وابستگی‌های جدید
 
@@ -276,8 +288,8 @@ This project and everyone participating in it is governed by our commitment to c
 
 ### Prerequisites
 
-- **Rust 1.77+**
-- **Node.js 20+**
+- **Rust 1.77+** (نسخهٔ دقیق در `rust-toolchain.toml`)
+- **Node.js ≥ 20.19** (کف Vite 7 — `.nvmrc` نسخهٔ ۲۰ را پین می‌کند)
 - System build dependencies
 
 ```bash

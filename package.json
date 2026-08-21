@@ -6,6 +6,9 @@
   "description": "A Windows 11-style Clipboard History Manager for Linux built with Tauri",
   "author": "Mahdi Arts",
   "license": "MIT",
+  "engines": {
+    "node": ">=20.19"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager"
