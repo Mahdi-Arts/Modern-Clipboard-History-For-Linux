@@ -10,7 +10,7 @@
 
 | File | Purpose / هدف |
 | --- | --- |
-| `io.github.mahdi-arts.clipboard-history.yml` | Flathub-style build manifest / مانیفست ساخت |
+| `io.github.mahdi-arts.clipboard-history.yml` | Local bootstrap manifest; generate immutable npm/Cargo sources before Flathub submission / مانیفست محلی؛ پیش از Flathub منابع immutable تولید شوند |
 | `io.github.mahdi-arts.clipboard-history.metainfo.xml` | AppStream metadata (name, screenshots, `<releases>`) |
 | `build.sh` | One-command local build helper / راه‌انداز ساخت محلی |
 
@@ -49,8 +49,8 @@ The helper wraps `flatpak-builder` with the official manifest and a
 | `--share=network` | ❌ default | optional GIF search only |
 
 ```bash
-# Enable paste simulation (Ctrl+V injection)
-# فعال‌سازی شبیه‌سازی paste (تزریق Ctrl+V)
+# Diagnostic-only, broad device override — NOT recommended for normal use.
+# فقط برای عیب‌یابی؛ دسترسی گسترده به دستگاه‌ها و برای استفادهٔ عادی توصیه نمی‌شود.
 flatpak override --user --device=all io.github.mahdi-arts.clipboard-history
 
 # Optional GIF search
@@ -62,9 +62,8 @@ flatpak override --user --share=network io.github.mahdi-arts.clipboard-history
 
 ## 3. Flathub publication / انتشار در Flathub
 
-1. Fork/PR the `flathub/io.github.mahdi-arts.clipboard-history` repository
-   with this manifest. / مخزن `flathub/io.github.mahdi-arts.clipboard-history`
-   را با همین مانیفست PR کنید.
+1. Replace the local `type: dir` source with a pinned Git commit/tag and generate offline npm/Cargo source modules (for example with `flatpak-node-generator` and `flatpak-cargo-generator`). Never submit a network-dependent build. / منبع محلی `type: dir` را با commit/tag پین‌شده جایگزین و ماژول‌های آفلاین npm/Cargo را با generatorهای Flatpak تولید کنید؛ build وابسته به شبکه را ارسال نکنید.
+2. Fork/PR the `flathub/io.github.mahdi-arts.clipboard-history` repository with that immutable manifest. / مانیفست immutable را به مخزن Flathub پروژه ارسال کنید.
 2. Bump the `<releases>` entry in the metainfo for every version (date +
    version). / در هر نسخه رکورد `<releases>` متادیتا را به‌روز کنید.
 3. Attach screenshots (1280×800 or larger) and a 128×128 icon.

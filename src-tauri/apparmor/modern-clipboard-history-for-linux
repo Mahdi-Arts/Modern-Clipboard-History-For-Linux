@@ -17,13 +17,13 @@
 
 #include <tunables/global>
 
-profile win11-clipboard-history /usr/bin/win11-clipboard-history-bin flags=(complain) {
+profile win11-clipboard-history /usr/lib/win11-clipboard-history/win11-clipboard-history-bin flags=(complain) {
   #include <abstractions/base>
   #include <abstractions/dbus>
   #include <abstractions/nameservice>
 
   # Binary + libraries
-  /usr/bin/win11-clipboard-history-bin mr,
+  /usr/lib/win11-clipboard-history/win11-clipboard-history-bin mr,
   /usr/lib/win11-clipboard-history/** mr,
   /usr/lib/x86_64-linux-gnu/** mr,
 

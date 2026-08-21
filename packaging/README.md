@@ -1,184 +1,235 @@
-# 📦 Packaging & Deployment Guide / راهنمای بسته‌بندی و استقرار
+# Packaging and Release Guide / راهنمای بسته‌بندی و انتشار
+
+> Canonical application ID: `io.github.mahdi-arts.clipboard-history`
+> Canonical binary: `win11-clipboard-history-bin`
+> Canonical launcher: `win11-clipboard-history`
+
+---
 
 <div dir="rtl">
 
-## نمای کلی
+## بخش فارسی
 
-این سند راهنمای کامل ساخت، امضا و انتشار برنامه در دو کانال اصلی است:
-**۱) بستهٔ `.deb` برای GitHub Release** و **۲) بستهٔ Flatpak**.
+### هدف و ترتیب انتشار
+
+مسیر رسمی انتشار به این ترتیب است:
+
+1. کنترل کیفیت و امنیت؛
+2. ساخت و آزمون بستهٔ Debian (`.deb`) برای GitHub Release؛
+3. انتشار checksum، SBOM و provenance؛
+4. آزمون بسته روی Ubuntu/Debian تمیز؛
+5. ساخت Flatpak محلی؛
+6. آماده‌سازی manifest برای ارسال جداگانه به Flathub.
+
+### پیش‌نیازهای Debian/Ubuntu
+
+```bash
+sudo apt update
+sudo apt install -y \
+  build-essential debhelper devscripts fakeroot lintian \
+  nodejs npm cargo rustc pkg-config \
+  libwebkit2gtk-4.1-dev libssl-dev \
+  libayatana-appindicator3-dev librsvg2-dev \
+  libxdo-dev libgtk-3-dev libglib2.0-dev \
+  desktop-file-utils appstream
+```
+
+### کنترل کیفیت پیش از ساخت
+
+```bash
+npm ci
+npm run lint
+npm run test:coverage
+npm run build
+node scripts/check-rust-syntax.mjs
+scripts/check-packaging.sh
+npm audit --audit-level=high
+```
+
+در محیط دارای Rust:
+
+```bash
+cd src-tauri
+cargo fmt --all -- --check
+cargo clippy --all-targets --all-features -- -D warnings
+cargo test
+cargo test --all-features
+cargo audit
+cargo deny check advisories bans licenses sources
+```
+
+### ساخت بستهٔ `.deb`
+
+روش اصلی برای GitHub Release، bundler رسمی Tauri است:
+
+```bash
+npm run tauri:build
+ls -lh src-tauri/target/release/bundle/deb/*.deb
+```
+
+روش کنترل مستقل با Debian tooling:
+
+```bash
+dpkg-buildpackage -us -uc -b
+lintian --pedantic ../win11-clipboard-history_*.changes
+```
+
+### آزمون نصب
+
+آزمون را روی VM یا کانتینر تمیز اجرا کنید؛ نصب روی ماشین توسعه معیار انتشار نیست.
+
+```bash
+sudo apt install ./src-tauri/target/release/bundle/deb/*.deb
+command -v win11-clipboard-history
+/usr/lib/win11-clipboard-history/win11-clipboard-history-bin --version
+sudo apt remove win11-clipboard-history
+```
+
+عمل paste به `/dev/uinput` نیاز دارد. اسکریپت post-install ماژول را بارگذاری می‌کند و udev rule دارای `TAG+="uaccess"` را نصب می‌کند. ACL گسترده یا mode برابر `0666` مجاز نیست.
+
+### امضای خروجی انتشار
+
+```bash
+cd src-tauri/target/release/bundle
+find . -type f \( -name '*.deb' -o -name '*.rpm' -o -name '*.AppImage' \) \
+  -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
+sha256sum -c SHA256SUMS
+```
+
+GitHub Actions باید برای هر artifact، SPDX SBOM و attestation تولید کند. secretهای امضا یا توزیع در log چاپ نمی‌شوند.
+
+### Flatpak
+
+Flatpak را پس از تثبیت `.deb` بسازید:
+
+```bash
+sudo apt install flatpak flatpak-builder
+flatpak remote-add --if-not-exists flathub \
+  https://flathub.org/repo/flathub.flatpakrepo
+cd packaging/flatpak
+./build.sh
+```
+
+محدودیت مهم: سیاست Flathub دسترسی `/dev/uinput` را نمی‌دهد. بنابراین نسخهٔ Flatpak برای مشاهده و کپی تاریخچه مناسب است، اما paste شبیه‌سازی‌شده ممکن است در دسترس نباشد. دادن `--device=all` توصیهٔ پیش‌فرض پروژه نیست.
+
+### ساختار فایل‌ها
+
+```text
+packaging/
+├── debian/                  # metadata و scriptهای Debian
+├── flatpak/                 # manifest، AppStream و build helper
+├── apparmor/                # profile اختیاری دفاع عمقی
+└── README.md
+src-tauri/bundle/linux/
+├── wrapper.sh               # launcher مشترک deb/rpm/Flatpak
+├── modern-clipboard-history-for-linux.desktop
+├── 99-modern-clipboard-history-input.rules
+├── postinst.sh
+└── postrm.sh
+```
 
 </div>
 
-This document is the complete guide for building, verifying, and shipping the
-app through its two main channels: **1) the `.deb` package published on
-GitHub Releases**, and **2) Flatpak**.
-
 ---
 
-## 1. Packaging layout / ساختار دایرکتوری بسته‌بندی
+## English section
 
-```
-packaging/
-├── README.md                  ← This guide / همین راهنما
-├── apparmor/                  ← Optional AppArmor hardening / سخت‌سازی اختیاری
-│   ├── win11-clipboard-history
-│   └── install.sh             (--enforce to switch from complain mode)
-├── debian/                    ← Classic Debian source package / بستهٔ سورس دبیان
-│   ├── control                (deps, description)
-│   ├── rules                  (dh build steps)
-│   ├── changelog              (dpkg changelog — bump version here)
-│   ├── copyright              (MIT + upstream attribution)
-│   ├── postinst / postrm      (uinput module, udev reload, caches)
-│   └── source/format          (3.0 quilt)
-├── flatpak/                   ← Flathub-style manifest / مانیفست Flatpak
-│   ├── io.github.mahdi-arts.clipboard-history.yml        (build manifest)
-│   └── io.github.mahdi-arts.clipboard-history.metainfo.xml (AppStream releases)
-└── (repo root)
-    ├── aur/PKGBUILD           ← AUR `-bin` package (auto-updated by CI)
-    ├── src-tauri/bundle/linux/
-    │   ├── 99-win11-clipboard-input.rules   (udev: uaccess, NOT 0666)
-    │   ├── postinst.sh / postrm.sh          (Tauri deb/rpm hooks)
-    │   ├── wrapper.sh                       (clean env, NVIDIA workaround)
-    │   └── win11-clipboard-history.desktop
-    ├── scripts/install.sh     ← Checksum-verifying convenience installer
-    └── scripts/release.sh     ← Maintainer release helper
-```
+### Release order
 
-<div dir="rtl">هر کانال از **همان** باینری و فایل‌های دسکتاپ استفاده می‌کند؛ فقط لایهٔ بسته‌بندی متفاوت است.</div>
+The supported release path is:
 
-Every channel uses the **same** binary and desktop files; only the packaging
-layer differs.
+1. quality and security gates;
+2. build/test the Debian package for GitHub Releases;
+3. publish checksums, SBOMs, and provenance;
+4. install-test on clean Ubuntu/Debian systems;
+5. build Flatpak locally;
+6. prepare a separate immutable-source manifest for Flathub submission.
 
----
-
-## 2. Channel 1 — `.deb` for GitHub Release / کانال ۱ — بستهٔ `.deb`
-
-<div dir="rtl">کانال توصیه‌شده: دسترسی کامل به قابلیت paste (شبیه‌سازی Ctrl+V).</div>
-
-Preferred channel: full paste capability (Ctrl+V simulation).
-
-### 2.1 Build / ساخت
+### Debian/Ubuntu prerequisites
 
 ```bash
-# a) Tauri bundle (used by CI) / باندل Tauri (همان مسیر CI)
-make deps && npm ci
+sudo apt update
+sudo apt install -y \
+  build-essential debhelper devscripts fakeroot lintian \
+  nodejs npm cargo rustc pkg-config \
+  libwebkit2gtk-4.1-dev libssl-dev \
+  libayatana-appindicator3-dev librsvg2-dev \
+  libxdo-dev libgtk-3-dev libglib2.0-dev \
+  desktop-file-utils appstream
+```
+
+### Pre-build gates
+
+```bash
+npm ci
+npm run lint
+npm run test:coverage
+npm run build
+node scripts/check-rust-syntax.mjs
+scripts/check-packaging.sh
+npm audit --audit-level=high
+
+cd src-tauri
+cargo fmt --all -- --check
+cargo clippy --all-targets --all-features -- -D warnings
+cargo test
+cargo test --all-features
+cargo audit
+cargo deny check advisories bans licenses sources
+```
+
+### Build and test `.deb`
+
+The primary GitHub Release path uses Tauri's bundler:
+
+```bash
 npm run tauri:build
-# → src-tauri/target/release/bundle/deb/win11-clipboard-history_<ver>_amd64.deb
-# → src-tauri/target/release/bundle/rpm/*.rpm
-# → src-tauri/target/release/bundle/appimage/*.AppImage
-
-# b) Classic Debian source package / بستهٔ سورس کلاسیک دبیان
-cp -a packaging/debian debian
-dpkg-buildpackage -us -uc
+ls -lh src-tauri/target/release/bundle/deb/*.deb
 ```
 
-### 2.2 Post-install (paste permission) / پس از نصب
+The independent Debian tooling path is:
 
 ```bash
-sudo apt install ./win11-clipboard-history_<ver>_amd64.deb
-sudo setfacl -m u:$USER:rw /dev/uinput   # paste injection access
+dpkg-buildpackage -us -uc -b
+lintian --pedantic ../win11-clipboard-history_*.changes
 ```
 
-<div dir="rtl">قانون udev نصب‌شده از `TAG+="uaccess"` استفاده می‌کند (فقط کاربر نشست فعال)، نه `0666`.</div>
-
-The shipped udev rule uses `TAG+="uaccess"` (active-session user only), never `0666`.
-
-### 2.3 Release with verification / انتشار با راستی‌آزمایی
-
-Tagging `vX.Y.Z` triggers `.github/workflows/release.yml`, which:
-
-| Step / گام | What it does / کاری که انجام می‌دهد |
-| --- | --- |
-| Build matrix | x86_64 + aarch64 `.deb` / `.rpm` / AppImage |
-| `SHA256SUMS` | checksums of every artifact, published as a release asset |
-| GPG signature (optional) | `SHA256SUMS.sig` published when `RELEASE_GPG_PRIVATE_KEY` is set |
-| SPDX SBOM | `syft` scan **per artifact** → `<file>.spdx.json` |
-| SLSA provenance | `actions/attest-build-provenance` attestations |
-| AUR (optional) | PKGBUILD checksums updated when `AUR_SSH_KEY` **and** `AUR_KNOWN_HOSTS` are set — SSH uses `StrictHostKeyChecking yes`, never trust-on-first-use |
-| Cloudsmith (optional) | repo upload when `CLOUDSMITH_API_KEY` is set |
-
-Every `uses:` in the workflows is pinned to a full commit SHA (OpenSSF
-recommendation); tags are kept in comments for review only.
-همهٔ actionها در گردش‌کارها به SHA کامل کامیت پین شده‌اند؛ تگ‌ها فقط در
-کامنت برای بازبینی مانده‌اند.
-
-<div dir="rtl">نصاب `scripts/install.sh` تطبیق checksum با `SHA256SUMS` را **اجباری** می‌داند (`ALLOW_UNVERIFIED=1` فقط برای موارد استثنایی).</div>
-
-`scripts/install.sh` **requires** a matching `SHA256SUMS` entry
-(`ALLOW_UNVERIFIED=1` skips — not recommended).
-
----
-
-## 3. Channel 2 — Flatpak / کانال ۲ — فلت‌پک
-
-### 3.1 Local build / ساخت محلی
+Install-test on a clean VM/container:
 
 ```bash
-flatpak install --user flathub org.gnome.Sdk//46 org.gnome.Platform//46 \
-  org.freedesktop.Sdk.Extension.rust-stable org.freedesktop.Sdk.Extension.node20
-flatpak-builder --user --install --force-clean \
-  build-dir packaging/flatpak/io.github.mahdi-arts.clipboard-history.yml
+sudo apt install ./src-tauri/target/release/bundle/deb/*.deb
+command -v win11-clipboard-history
+/usr/lib/win11-clipboard-history/win11-clipboard-history-bin --version
+sudo apt remove win11-clipboard-history
 ```
 
-### 3.2 Sandbox policy / سیاست سندباکس
+Paste simulation requires `/dev/uinput`. Packaging installs a `uaccess` udev rule; world-writable `0666` device permissions are forbidden.
 
-| Permission | Granted? | Why / چرا |
-| --- | --- | --- |
-| `--socket=wayland` + `--socket=fallback-x11` | ✅ | windowing / نمایش پنجره |
-| `--share=ipc` | ✅ | X11 shared memory / حافظهٔ مشترک X11 |
-| Portals (`Settings`, `Desktop`) | ✅ | theme detection / تشخیص تم |
-| StatusNotifierWatcher | ✅ | system tray / تِرِی سیستم |
-| XDG data/config dirs (create) | ✅ | history DB + settings / دیتابیس و تنظیمات |
-| `--device=all` (`/dev/uinput`) | ❌ default | Flathub policy; paste needs the override below |
-| `--share=network` | ❌ default | optional GIF search only / فقط جستجوی اختیاری GIF |
+### Release integrity
 
 ```bash
-# Enable paste simulation / فعال‌سازی شبیه‌سازی paste
-flatpak override --user --device=all io.github.mahdi-arts.clipboard-history
-# Optional GIF search / جستجوی GIF اختیاری
-flatpak override --user --share=network io.github.mahdi-arts.clipboard-history
+cd src-tauri/target/release/bundle
+find . -type f \( -name '*.deb' -o -name '*.rpm' -o -name '*.AppImage' \) \
+  -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
+sha256sum -c SHA256SUMS
 ```
 
-### 3.3 Flathub submission / ارسال به Flathub
+CI publishes an SPDX SBOM and provenance attestation for each artifact. Signing/distribution secrets must never appear in logs.
 
-<div dir="rtl">برای انتشار عمومی در Flathub: یک pull request به مخزن `flathub/io.github.mahdi-arts.clipboard-history` با همین مانیفست باز کنید. پیش‌نیازها: رکورد `<releases>` در metainfo به‌روز باشد (نسخه + تاریخ)، اسکرین‌شات‌ها و metadata کامل.</div>
+### Flatpak
 
-For a public Flathub listing, open a PR to
-`flathub/io.github.mahdi-arts.clipboard-history` with this manifest. The
-metainfo `<releases>` entry must be bumped for every version, and screenshots
-must be attached.
-
-### 3.4 Flatpak limitations / محدودیت‌های فلت‌پک
-
-<div dir="rtl">۱) paste تا قبل از `--device=all` غیرفعال است. ۲) کلیدهای سراسری (Super+V) از داخل سندباکس قابل ثبت نیستند — میانبر جایگزین Ctrl+Alt+V یا نسخهٔ بومی. ۳) تنظیمات udev نصب نمی‌شود.</div>
-
-1. Paste is disabled until `--device=all` is granted.
-2. Global shortcuts (Super+V) cannot be registered from inside the sandbox —
-   use Ctrl+Alt+V or the native packages.
-3. udev rules are not installed (native channels only).
-
----
-
-## 4. Optional hardening / سخت‌سازی اختیاری
+Build Flatpak only after the Debian path is stable:
 
 ```bash
-# AppArmor (complain mode by default; test before enforcing)
-sudo /usr/share/doc/win11-clipboard-history/apparmor/install.sh --enforce
+sudo apt install flatpak flatpak-builder
+flatpak remote-add --if-not-exists flathub \
+  https://flathub.org/repo/flathub.flatpakrepo
+cd packaging/flatpak
+./build.sh
 ```
 
----
+Flathub policy does not expose `/dev/uinput`. The Flatpak remains useful for history and copy workflows, but simulated paste may be unavailable. The project does not recommend `--device=all` as a default.
 
-## 5. Deployment checklist / چک‌لیست استقرار
+### Contract validation
 
-- [ ] Version bumped in `package.json`, `src-tauri/tauri.conf.json`,
-      `src-tauri/Cargo.toml`, `packaging/debian/changelog`, and the Flatpak
-      metainfo `<releases>` (the release workflow syncs the first three from
-      the git tag automatically).
-- [ ] `make lint && make test` green locally / سبز بودن گیت‌ها به‌صورت محلی
-- [ ] CI green on the release commit / سبز بودن CI
-- [ ] Tag pushed → release assets verified (`sha256sum -c SHA256SUMS`)
-- [ ] Optional secrets: `RELEASE_GPG_PRIVATE_KEY` (+passphrase) for signed
-      checksums, `AUR_SSH_KEY` + `AUR_KNOWN_HOSTS` (verified fingerprints!)
-      for the AUR push, `CLOUDSMITH_API_KEY` for the Cloudsmith repo
-- [ ] AUR/Cloudsmith updated (if secrets configured)
-- [ ] CHANGELOG entry + metainfo `<releases>` entry added
+`scripts/check-packaging.sh` prevents binary/path drift across Cargo, Debian, Flatpak, and the launcher. Run it locally and in every release workflow.

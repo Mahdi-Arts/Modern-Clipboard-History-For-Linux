@@ -1,4 +1,5 @@
 import { clsx } from 'clsx'
+import { useTranslation } from 'react-i18next'
 import type { UserSettings } from '../../types/clipboard'
 import { SectionCard } from './SectionCard'
 
@@ -18,19 +19,21 @@ export function HistorySettingsSection({
   max,
   onMaxHistoryChange,
 }: HistorySettingsSectionProps) {
+  const { t, i18n } = useTranslation()
+
   return (
     <SectionCard
-      title="History Settings"
-      subtitle="Configure clipboard history behavior"
+      title={t('settings_page.history_settings')}
+      subtitle={t('settings_page.history_settings_desc')}
       isDark={isDark}
     >
       <div className="flex justify-between items-center">
         <div>
           <label htmlFor="max-history" className="text-sm font-medium">
-            Maximum History Size
+            {t('settings_page.history.max_size')}
           </label>
           <p className={clsx('text-xs mt-0.5', isDark ? 'text-gray-400' : 'text-gray-500')}>
-            Number of clipboard items to keep ({min} - {max.toLocaleString()})
+            {t('settings_page.max_history_desc', { min, max: max.toLocaleString(i18n.language) })}
           </p>
         </div>
         <input

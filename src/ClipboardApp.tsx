@@ -11,8 +11,6 @@ import { DragHandle } from './components/DragHandle'
 import { calculateSecondaryOpacity, calculateTertiaryOpacity } from './utils/themeUtils'
 import { useSystemThemePreference } from './utils/systemTheme'
 import { useRenderingEnv } from './hooks/useRenderingEnv'
-import { useLanguageEffect } from './i18n/useLanguage'
-import { changeLanguage } from './i18n/config'
 import type { ActiveTab, UserSettings } from './types/clipboard'
 import { ClipboardTab } from './components/ClipboardTab'
 import { DEFAULT_SETTINGS } from './utils/defaultSettings'
@@ -88,9 +86,16 @@ async function applyUIScale(scale: number) {
  * Main Clipboard App Component
  */
 function ClipboardApp() {
-  // i18n: language change listener updates all translations reactively
-  const { i18n } = useTranslation()
-  useLanguageEffect(i18n)
+  // The main clipboard surface intentionally remains English/LTR. Language
+  // preferences apply only to Settings and first-run Setup.
+  // سطح اصلی کلیپ‌بورد عمداً انگلیسی و LTR می‌ماند؛ ترجیح زبان فقط روی
+  // تنظیمات و راه‌اندازی نخست اعمال می‌شود.
+  const { t, i18n } = useTranslation()
+  useEffect(() => {
+    void i18n.changeLanguage('en')
+    document.documentElement.lang = 'en'
+    document.documentElement.dir = 'ltr'
+  }, [i18n])
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('clipboard')
   const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS)
@@ -172,21 +177,6 @@ function ClipboardApp() {
       })
       void unlistenSwitchTab.then((unlisten) => {
         unlisten()
-      })
-    }
-  }, [])
-
-  // Listen for language change events from settings/backend
-  useEffect(() => {
-    const unlistenLang = listen<string>('app-language-changed', (event) => {
-      const lang = event.payload
-      if (lang === 'fa' || lang === 'en') {
-        void changeLanguage(lang)
-      }
-    })
-    return () => {
-      void unlistenLang.then((u) => {
-        u()
       })
     }
   }, [])
@@ -346,7 +336,7 @@ function ClipboardApp() {
       <div
         className="h-screen w-screen flex items-center justify-center bg-transparent"
         role="status"
-        aria-label="Loading"
+        aria-label={t('common.loading')}
       >
         <div className="w-6 h-6 border-2 border-win11-bg-accent border-t-transparent rounded-full animate-spin" />
       </div>

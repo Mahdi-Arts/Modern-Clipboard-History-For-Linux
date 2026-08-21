@@ -25,7 +25,8 @@ use crate::AppState;
 /// Prefer `get_history_page` (ADR-0007).
 /// فرمان قدیمی: فقط صفحهٔ اول IPC را برمی‌گرداند. `get_history_page` را ترجیح دهید.
 #[tauri::command]
-pub fn get_history(state: State<AppState>) -> Result<Vec<ClipboardItem>, AppError> {
+pub fn get_history(window: WebviewWindow, state: State<AppState>) -> Result<Vec<ClipboardItem>, AppError> {
+    require_main_window(&window)?;
     Ok(state
         .clipboard_manager
         .lock()
@@ -42,10 +43,12 @@ pub fn get_history(state: State<AppState>) -> Result<Vec<ClipboardItem>, AppErro
 /// بار نامحدود بخواهد. نبود آرگومان‌ها به خواندن کامل پیش‌فرض است.
 #[tauri::command]
 pub fn get_history_page(
+    window: WebviewWindow,
     state: State<AppState>,
     limit: Option<usize>,
     offset: Option<usize>,
 ) -> Result<crate::clipboard_manager::HistoryPage, AppError> {
+    require_main_window(&window)?;
     Ok(state.clipboard_manager.lock().get_history_page(
         limit.unwrap_or(crate::clipboard_manager::MAX_PAGE_SIZE),
         offset.unwrap_or(0),
@@ -54,7 +57,8 @@ pub fn get_history_page(
 
 
 #[tauri::command]
-pub fn get_item(state: State<AppState>, id: String) -> Result<ClipboardItem, AppError> {
+pub fn get_item(window: WebviewWindow, state: State<AppState>, id: String) -> Result<ClipboardItem, AppError> {
+    require_main_window(&window)?;
     state
         .clipboard_manager
         .lock()
@@ -64,19 +68,22 @@ pub fn get_item(state: State<AppState>, id: String) -> Result<ClipboardItem, App
 }
 
 #[tauri::command]
-pub fn clear_history(state: State<AppState>) -> Result<(), AppError> {
+pub fn clear_history(window: WebviewWindow, state: State<AppState>) -> Result<(), AppError> {
+    require_main_window(&window)?;
     state.clipboard_manager.lock().clear();
     Ok(())
 }
 
 #[tauri::command]
-pub fn delete_item(state: State<AppState>, id: String) -> Result<(), AppError> {
+pub fn delete_item(window: WebviewWindow, state: State<AppState>, id: String) -> Result<(), AppError> {
+    require_main_window(&window)?;
     state.clipboard_manager.lock().remove_item(&id);
     Ok(())
 }
 
 #[tauri::command]
-pub fn toggle_pin(state: State<AppState>, id: String) -> Result<Option<ClipboardItem>, AppError> {
+pub fn toggle_pin(window: WebviewWindow, state: State<AppState>, id: String) -> Result<Option<ClipboardItem>, AppError> {
+    require_main_window(&window)?;
     let result = state.clipboard_manager.lock().toggle_pin(&id);
     if result.is_none() {
         tracing::warn!("[toggle_pin] Item with id '{}' not found in history.", id);
@@ -89,8 +96,9 @@ pub fn toggle_pin(state: State<AppState>, id: String) -> Result<Option<Clipboard
 // ---------------------------------------------------------------------------
 
 #[tauri::command]
-pub fn get_recent_emojis(state: State<AppState>) -> Vec<EmojiUsage> {
-    state.emoji_manager.lock().get_recent()
+pub fn get_recent_emojis(window: WebviewWindow, state: State<AppState>) -> Result<Vec<EmojiUsage>, AppError> {
+    require_main_window(&window)?;
+    Ok(state.emoji_manager.lock().get_recent())
 }
 
 // ---------------------------------------------------------------------------
@@ -98,8 +106,10 @@ pub fn get_recent_emojis(state: State<AppState>) -> Vec<EmojiUsage> {
 // ---------------------------------------------------------------------------
 
 #[tauri::command]
-pub fn set_mouse_state(state: State<AppState>, inside: bool) {
+pub fn set_mouse_state(window: WebviewWindow, state: State<AppState>, inside: bool) -> Result<(), AppError> {
+    require_main_window(&window)?;
     state.is_mouse_inside.store(inside, Ordering::Relaxed);
+    Ok(())
 }
 
 // ---------------------------------------------------------------------------
@@ -107,7 +117,15 @@ pub fn set_mouse_state(state: State<AppState>, inside: bool) {
 // ---------------------------------------------------------------------------
 
 #[tauri::command]
-pub fn get_user_settings() -> Result<UserSettings, AppError> {
+pub fn get_user_settings(window: WebviewWindow) -> Result<UserSettings, AppError> {
+    crate::window_policy::require(
+        &window,
+        &[
+            crate::window_policy::WindowRole::Main,
+            crate::window_policy::WindowRole::Settings,
+            crate::window_policy::WindowRole::Setup,
+        ],
+    )?;
     let manager = UserSettingsManager::new();
     Ok(manager.load())
 }
@@ -155,15 +173,17 @@ pub fn set_user_settings(
 }
 
 #[tauri::command]
-pub fn is_settings_window_visible(app: AppHandle) -> bool {
-    app.get_webview_window("settings")
+pub fn is_settings_window_visible(window: WebviewWindow, app: AppHandle) -> Result<bool, AppError> {
+    require_main_window(&window)?;
+    Ok(app.get_webview_window("settings")
         .map(|w| w.is_visible().unwrap_or(false))
-        .unwrap_or(false)
+        .unwrap_or(false))
 }
 
 #[tauri::command]
-pub fn get_default_settings() -> UserSettings {
-    UserSettings::default()
+pub fn get_default_settings(window: WebviewWindow) -> Result<UserSettings, AppError> {
+    crate::window_policy::require_configuration(&window)?;
+    Ok(UserSettings::default())
 }
 
 #[tauri::command]
@@ -173,9 +193,9 @@ pub async fn set_app_language(
     lang: String,
     _state: State<'_, AppState>,
 ) -> Result<(), AppError> {
-    // Language switching mutates persisted user settings; settings-window-only.
-    // تغییر زبان، تنظیمات ذخیره‌شده را تغییر می‌دهد؛ فقط از پنجرهٔ تنظیمات.
-    require_settings_window(&window)?;
+    // Language changes are limited to configuration surfaces (settings/setup).
+    // تغییر زبان فقط در سطوح پیکربندی (تنظیمات/راه‌اندازی) مجاز است.
+    crate::window_policy::require_configuration(&window)?;
     if lang != "en" && lang != "fa" {
         return Err(AppError::Other(
             "Invalid language. Supported: en, fa".into(),
@@ -225,23 +245,13 @@ const MAX_PASTE_TEXT_BYTES: usize = 1024 * 1024; // 1 MiB
 /// Keystroke injection is only accepted from the main clipboard window.
 /// تزریق کلیدstroke فقط از پنجرهٔ اصلی کلیپ‌بورد پذیرفته می‌شود.
 fn require_main_window(window: &WebviewWindow) -> Result<(), AppError> {
-    if window.label() != "main" {
-        return Err(AppError::PermissionDenied(
-            "Keystroke injection is only allowed from the clipboard window".into(),
-        ));
-    }
-    Ok(())
+    crate::window_policy::require_main(window)
 }
 
 /// Settings-only commands (key migration) refuse other windows.
 /// فرمان‌های مخصوص تنظیمات (مهاجرت کلید) پنجره‌های دیگر را رد می‌کنند.
 fn require_settings_window(window: &WebviewWindow) -> Result<(), AppError> {
-    if window.label() != "settings" {
-        return Err(AppError::PermissionDenied(
-            "This action is only allowed from the settings window".into(),
-        ));
-    }
-    Ok(())
+    crate::window_policy::require_settings(window)
 }
 
 /// Hide popup, restore target focus, and inject Ctrl+V only after a real
@@ -382,9 +392,11 @@ pub async fn paste_gif_from_url(
 #[cfg(feature = "gif-search")]
 #[tauri::command]
 pub async fn search_tenor(
+    window: WebviewWindow,
     query: Option<String>,
     limit: Option<u32>,
 ) -> Result<Vec<crate::tenor_api::GifResult>, AppError> {
+    require_main_window(&window)?;
     crate::tenor_api::search_tenor(query, limit)
         .await
         .map_err(AppError::Network)
@@ -393,9 +405,11 @@ pub async fn search_tenor(
 #[cfg(not(feature = "gif-search"))]
 #[tauri::command]
 pub async fn search_tenor(
+    window: WebviewWindow,
     _query: Option<String>,
     _limit: Option<u32>,
 ) -> Result<Vec<serde_json::Value>, AppError> {
+    require_main_window(&window)?;
     Err(AppError::Other(
         "GIF search is disabled in this build (compile with --features gif-search)".into(),
     ))
@@ -428,7 +442,8 @@ pub async fn finish_paste(
 }
 
 #[tauri::command]
-pub fn open_safe_url(url: String) -> Result<(), AppError> {
+pub fn open_safe_url(window: WebviewWindow, url: String) -> Result<(), AppError> {
+    require_main_window(&window)?;
     crate::open_url::open_safe_url(&url).map(|_| ())?;
     Ok(())
 }
@@ -458,8 +473,10 @@ pub struct KeyBackendStatus {
 
 #[tauri::command]
 pub fn get_history_key_backend_status(
+    window: WebviewWindow,
     state: State<AppState>,
 ) -> Result<KeyBackendStatus, AppError> {
+    require_settings_window(&window)?;
     let setting = UserSettingsManager::new().load().history_key_backend;
     let active = state.clipboard_manager.lock().key_backend().to_string();
     Ok(KeyBackendStatus {
@@ -518,10 +535,8 @@ pub fn migrate_history_key_to_file(window: WebviewWindow) -> Result<KeyBackendSt
 }
 
 #[tauri::command]
-pub async fn copy_text_to_clipboard(
-    _state: State<'_, AppState>,
-    text: String,
-) -> Result<(), AppError> {
+pub async fn copy_text_to_clipboard(window: WebviewWindow, text: String) -> Result<(), AppError> {
+    require_main_window(&window)?;
     crate::clipboard_io::write(&crate::clipboard_io::Payload::Text(&text))?;
     Ok(())
 }
@@ -531,8 +546,9 @@ pub async fn copy_text_to_clipboard(
 // ---------------------------------------------------------------------------
 
 #[tauri::command]
-pub async fn finish_setup(app: AppHandle) -> Result<(), AppError> {
-    crate::permission_checker::mark_first_run_complete()?;
+pub async fn finish_setup(window: WebviewWindow, app: AppHandle) -> Result<(), AppError> {
+    crate::window_policy::require_setup(&window)?;
+    crate::permission_checker::complete_first_run()?;
 
     if let Some(setup_window) = app.get_webview_window("setup") {
         let _ = setup_window.close();

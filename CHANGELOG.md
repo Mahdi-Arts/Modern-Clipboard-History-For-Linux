@@ -14,6 +14,32 @@ All notable changes to this project will be documented in this file.
 
 ### Security / امنیت
 
+- **Central window authorization.** State-changing Tauri commands now use a
+  deny-by-default `window_policy` for `main`, `settings`, and `setup`.
+  **مجوزدهی متمرکز پنجره‌ها:** فرمان‌های تغییردهندهٔ وضعیت با سیاست رد پیش‌فرض
+  برای پنجره‌های اصلی، تنظیمات و راه‌اندازی محدود شده‌اند.
+- **Fail-closed optional publication.** Configured Cloudsmith/AUR uploads now
+  fail the release on real errors; absent optional credentials still skip safely.
+  **انتشار اختیاری fail-closed:** خطای واقعی Cloudsmith/AUR تنظیم‌شده انتشار را
+  متوقف می‌کند و نبود credential اختیاری فقط باعث عبور امن می‌شود.
+
+### UI and localization / رابط و محلی‌سازی
+
+- Persian/English selection is available in first-run Setup and Settings.
+  Persian RTL is scoped to those windows; main popup and tray remain English/LTR.
+  انتخاب فارسی/انگلیسی در راه‌اندازی نخست و تنظیمات فراهم است؛ RTL فقط روی همین
+  پنجره‌ها اعمال می‌شود و پنجرهٔ اصلی و tray انگلیسی/LTR می‌مانند.
+- Permission/manual-setup diagnostics use stable codes or translated frontend text.
+  پیام‌های مجوز و راه‌اندازی دستی با کد پایدار یا متن ترجمه‌شده نمایش داده می‌شوند.
+
+### Packaging and QA / بسته‌بندی و کنترل کیفیت
+
+- Canonicalized `win11-clipboard-history-bin` across Cargo, CI, Debian, Flatpak,
+  AppArmor, Make, and the launcher; added package-contract and `.deb` checks.
+  نام باینری در همهٔ مسیرهای ساخت و انتشار یکسان و کنترل محتوای `.deb` افزوده شد.
+- Added bilingual Debian-first/Flatpak-second release guidance and performance SLOs.
+  راهنمای دوزبانهٔ انتشار Debian-اول/Flatpak-دوم و SLOهای عملکرد افزوده شد.
+
 - **Hardened CI prepared for activation.** The intended `.github/workflows/`
   (blocking audits, coverage, `cargo test` default + `--all-features`,
   clippy, syntax gate, CLI smoke) live in `docs/github-workflows/` with a

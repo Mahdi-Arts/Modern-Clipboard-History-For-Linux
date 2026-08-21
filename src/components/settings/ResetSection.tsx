@@ -1,4 +1,5 @@
 import { clsx } from 'clsx'
+import { useTranslation } from 'react-i18next'
 import { ResetIcon } from './icons'
 
 interface ResetSectionProps {
@@ -8,6 +9,8 @@ interface ResetSectionProps {
 
 /** Danger-zone: restore every setting to its default and restart the wizard. */
 export function ResetSection({ isDark, onReset }: ResetSectionProps) {
+  const { t } = useTranslation()
+
   return (
     <div className="flex justify-end pt-2">
       <button
@@ -19,7 +22,7 @@ export function ResetSection({ isDark, onReset }: ResetSectionProps) {
         )}
       >
         <ResetIcon />
-        Reset to defaults
+        {t('settings_page.reset_defaults')}
       </button>
     </div>
   )

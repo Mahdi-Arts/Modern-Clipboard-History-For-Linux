@@ -161,3 +161,4 @@ pub mod theme_manager;
 pub mod user_settings;
 pub mod window_controller;
 pub mod window_identity;
+pub mod window_policy;

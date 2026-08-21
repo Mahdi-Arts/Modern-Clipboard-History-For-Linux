@@ -30,11 +30,12 @@
 //! این تدابیر تصاویر دیسک و کاربران دیگر را محافظت می‌کند، نه فرآیندی
 //! که از قبل با همان UID اجرا می‌شود.
 //!
-//! Defence in depth: the `chacha20poly1305` crate is compiled with the
-//! `zeroize` feature, so key material held by the cipher is overwritten in
-//! memory when the instance is dropped (see Cargo.toml).
-//! دفاع عمقی: crate ی `chacha20poly1305` با feature ی `zeroize` کامپایل
-//! می‌شود تا کلید در حافظه هنگام drop بازنویسی شود (Cargo.toml را ببینید).
+//! Defence in depth: the locked `chacha20poly1305` dependency includes
+//! `zeroize` in its dependency graph (`Cargo.lock`). This reduces key residue
+//! on normal drop, but it is not a defence against a live same-UID process.
+//! دفاع عمقی: وابستگی قفل‌شدهٔ `chacha20poly1305` در گراف خود `zeroize` را
+//! دارد (`Cargo.lock`). این کار باقی‌ماندهٔ کلید پس از drop عادی را کم می‌کند،
+//! اما در برابر فرآیند زنده با همان UID دفاع محسوب نمی‌شود.
 
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
 use chacha20poly1305::aead::{Aead, KeyInit};

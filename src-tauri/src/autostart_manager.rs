@@ -1,11 +1,13 @@
-// Custom autostart manager for Linux that uses the wrapper script instead of the binary directly.
-// This is necessary because tauri-plugin-autostart uses current_exe() which points to the binary,
-// but we need to use the wrapper script that sets up the correct environment variables
-// (TAURI_TRAY, etc.) for proper tray icon functionality.
+//! Shell-free Linux autostart entries that launch the sanitized wrapper.
+//! ورودی‌های بدون shell اجرای خودکار لینوکس برای اجرای wrapper پاک‌سازی‌شده.
+
 
 use std::fs;
-use std::io::Write;
 use std::path::PathBuf;
+use tauri::WebviewWindow;
+
+use crate::error::AppError;
+use crate::window_policy;
 
 /// Autostart desktop entry. Exec never goes through a shell.
 /// / ورودی autostart. Exec هرگز از شل عبور نمی‌کند.
@@ -20,7 +22,7 @@ Name=Clipboard History
 GenericName=Clipboard Manager
 Comment=Windows 11-style Clipboard History Manager
 Exec="EXEC_PATH" --background
-Icon=win11-clipboard-history
+Icon=io.github.mahdi-arts.clipboard-history
 Terminal=false
 Categories=Utility;
 StartupNotify=false
@@ -67,8 +69,7 @@ fn get_exec_path() -> String {
 }
 
 /// Enable autostart by creating a .desktop file in ~/.config/autostart/
-#[tauri::command]
-pub fn autostart_enable() -> Result<(), String> {
+fn enable() -> Result<(), String> {
     let autostart_dir = get_autostart_dir().ok_or("Could not determine config directory")?;
     let autostart_file = get_autostart_file().ok_or("Could not determine autostart file path")?;
 
@@ -86,12 +87,10 @@ pub fn autostart_enable() -> Result<(), String> {
     // Generate desktop entry content (path is quoted in the template).
     let content = DESKTOP_ENTRY_TEMPLATE.replace("EXEC_PATH", &exec_path);
 
-    // Write the desktop file
-    let mut file = fs::File::create(&autostart_file)
-        .map_err(|e| format!("Failed to create autostart file: {}", e))?;
-
-    file.write_all(content.as_bytes())
-        .map_err(|e| format!("Failed to write autostart file: {}", e))?;
+    // Atomic owner-only write; never leave a partially written Exec entry.
+    // نوشتن اتمیک فقط برای مالک؛ ورودی Exec نیمه‌نوشته باقی نمی‌ماند.
+    crate::fs_atomic::write_atomic(&autostart_file, content.as_bytes())
+        .map_err(|error| format!("Failed to write autostart file: {error}"))?;
 
     tracing::info!(
         "[Autostart] Enabled autostart with exec path: {}",
@@ -102,8 +101,7 @@ pub fn autostart_enable() -> Result<(), String> {
 }
 
 /// Disable autostart by removing the .desktop file
-#[tauri::command]
-pub fn autostart_disable() -> Result<(), String> {
+fn disable() -> Result<(), String> {
     let autostart_file = get_autostart_file().ok_or("Could not determine autostart file path")?;
 
     if autostart_file.exists() {
@@ -116,8 +114,7 @@ pub fn autostart_disable() -> Result<(), String> {
 }
 
 /// Check if autostart is enabled
-#[tauri::command]
-pub fn autostart_is_enabled() -> Result<bool, String> {
+fn is_enabled() -> Result<bool, String> {
     let autostart_file = get_autostart_file().ok_or("Could not determine autostart file path")?;
 
     if !autostart_file.exists() {
@@ -138,8 +135,7 @@ pub fn autostart_is_enabled() -> Result<bool, String> {
 /// Migrate from the old tauri-plugin-autostart entry to the new custom one
 /// This fixes existing installations where the autostart points to the wrong binary
 /// or is missing the startup delay for proper tray initialization
-#[tauri::command]
-pub fn autostart_migrate() -> Result<bool, String> {
+pub fn migrate_native() -> Result<bool, String> {
     let autostart_file = get_autostart_file().ok_or("Could not determine autostart file path")?;
 
     if !autostart_file.exists() {
@@ -179,10 +175,42 @@ pub fn autostart_migrate() -> Result<bool, String> {
             tracing::info!("[Autostart] Adding --background flag for minimized startup...");
         }
         // Re-enable with a quoted Exec= line (no shell) and --background
-        autostart_enable()?;
+        enable()?;
 
         return Ok(true); // Migration performed
     }
 
     Ok(false) // No migration needed
+}
+
+/// Enable login startup from Settings or Setup only.
+/// فعال‌سازی اجرای هنگام ورود فقط از تنظیمات یا راه‌اندازی.
+#[tauri::command]
+pub fn autostart_enable(window: WebviewWindow) -> Result<(), AppError> {
+    window_policy::require_configuration(&window)?;
+    enable().map_err(AppError::Other)
+}
+
+/// Disable login startup from Settings or Setup only.
+/// غیرفعال‌سازی اجرای هنگام ورود فقط از تنظیمات یا راه‌اندازی.
+#[tauri::command]
+pub fn autostart_disable(window: WebviewWindow) -> Result<(), AppError> {
+    window_policy::require_configuration(&window)?;
+    disable().map_err(AppError::Other)
+}
+
+/// Read login-startup state from configuration windows.
+/// خواندن وضعیت اجرای هنگام ورود از پنجره‌های پیکربندی.
+#[tauri::command]
+pub fn autostart_is_enabled(window: WebviewWindow) -> Result<bool, AppError> {
+    window_policy::require_configuration(&window)?;
+    is_enabled().map_err(AppError::Other)
+}
+
+/// Migrate a legacy autostart entry from configuration windows.
+/// مهاجرت ورودی قدیمی autostart از پنجره‌های پیکربندی.
+#[tauri::command]
+pub fn autostart_migrate(window: WebviewWindow) -> Result<bool, AppError> {
+    window_policy::require_configuration(&window)?;
+    migrate_native().map_err(AppError::Other)
 }

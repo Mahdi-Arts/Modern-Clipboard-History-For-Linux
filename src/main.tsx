@@ -6,7 +6,7 @@ import { invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 
 // Initialize i18n before any component renders
-import './i18n/config'
+import { applyWindowLanguagePolicy } from './i18n/config'
 
 import ClipboardApp from './ClipboardApp'
 import SettingsApp from './SettingsApp'
@@ -86,7 +86,11 @@ function ClipboardAppWithSetup() {
  * Root component that routes based on the current window's label
  */
 export default function Root() {
-  const [windowLabel] = useState<string>(() => getCurrentWindow().label)
+  const [windowLabel] = useState<string>(() => {
+    const label = getCurrentWindow().label
+    void applyWindowLanguagePolicy(label)
+    return label
+  })
 
   // Route to appropriate app based on window label
   if (windowLabel === 'settings') {

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { invoke } from '@tauri-apps/api/core'
 import { clsx } from 'clsx'
+import { useTranslation } from 'react-i18next'
 import { CheckIcon, KeyboardIcon, PlusIcon } from './icons'
 import { SectionCard } from './SectionCard'
 
@@ -9,13 +10,14 @@ interface KeyboardShortcutsSectionProps {
 }
 
 const SHORTCUT_ITEMS = [
-  { keys: 'Super + V', desc: 'Open Clipboard History' },
-  { keys: 'Ctrl + Alt + V', desc: 'Alternative shortcut' },
-  { keys: 'Super + .', desc: 'Open Emoji Picker' },
+  { keys: 'Super + V', descKey: 'settings_page.shortcut_open_history' },
+  { keys: 'Ctrl + Alt + V', descKey: 'settings_page.shortcut_alternative' },
+  { keys: 'Super + .', descKey: 'settings_page.shortcut_open_emoji' },
 ]
 
 /** Desktop-environment shortcut registration panel. */
 export function KeyboardShortcutsSection({ isDark }: KeyboardShortcutsSectionProps) {
+  const { t } = useTranslation()
   const [registering, setRegistering] = useState(false)
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -39,8 +41,8 @@ export function KeyboardShortcutsSection({ isDark }: KeyboardShortcutsSectionPro
   return (
     <SectionCard
       icon={<KeyboardIcon />}
-      title="Keyboard Shortcuts"
-      subtitle="Register the application shortcuts in your desktop environment"
+      title={t('settings_page.keyboard_shortcuts')}
+      subtitle={t('settings_page.keyboard_shortcuts_desc')}
       isDark={isDark}
     >
       <div className="space-y-4">
@@ -53,7 +55,7 @@ export function KeyboardShortcutsSection({ isDark }: KeyboardShortcutsSectionPro
               : 'border-gray-200 divide-gray-100 bg-gray-50'
           )}
         >
-          {SHORTCUT_ITEMS.map(({ keys, desc }) => (
+          {SHORTCUT_ITEMS.map(({ keys, descKey }) => (
             <div key={keys} className="flex items-center justify-between px-4 py-2.5">
               <span
                 className={clsx(
@@ -66,23 +68,21 @@ export function KeyboardShortcutsSection({ isDark }: KeyboardShortcutsSectionPro
               <span
                 className={clsx('text-xs font-sans', isDark ? 'text-gray-400' : 'text-gray-500')}
               >
-                {desc}
+                {t(descKey)}
               </span>
             </div>
           ))}
         </div>
 
         <p className={clsx('text-xs leading-relaxed', isDark ? 'text-gray-500' : 'text-gray-400')}>
-          Shortcuts are only registered when you explicitly request it. If you removed a shortcut
-          from your system settings and it was re-added, use this button to re-register only the
-          ones you want.
+          {t('settings_page.shortcut_privacy_note')}
         </p>
 
         {/* Status feedback */}
         {status === 'success' && (
           <div className="flex items-center gap-2 text-sm text-green-500">
             <CheckIcon />
-            Shortcuts registered successfully!
+            {t('settings_page.shortcut_success')}
           </div>
         )}
         {status === 'error' && (
@@ -92,7 +92,7 @@ export function KeyboardShortcutsSection({ isDark }: KeyboardShortcutsSectionPro
               isDark ? 'bg-red-500/10 text-red-400' : 'bg-red-50 text-red-600'
             )}
           >
-            <p className="font-medium">Registration failed</p>
+            <p className="font-medium">{t('settings_page.shortcut_failed')}</p>
             {errorMessage && <p className="mt-1 opacity-80">{errorMessage}</p>}
           </div>
         )}
@@ -111,12 +111,12 @@ export function KeyboardShortcutsSection({ isDark }: KeyboardShortcutsSectionPro
           {registering ? (
             <>
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              Registering...
+              {t('settings_page.registering')}
             </>
           ) : (
             <>
               <PlusIcon />
-              Register Shortkeys in System
+              {t('settings_page.register_shortcuts')}
             </>
           )}
         </button>

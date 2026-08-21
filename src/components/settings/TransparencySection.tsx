@@ -1,4 +1,5 @@
 import { clsx } from 'clsx'
+import { useTranslation } from 'react-i18next'
 import type { RenderingEnv, UserSettings } from '../../types/clipboard'
 import { AlertTriangleIcon } from './icons'
 import { SectionCard } from './SectionCard'
@@ -74,12 +75,13 @@ export function TransparencySection({
   onLightOpacityChange,
   onCommit,
 }: TransparencySectionProps) {
+  const { t } = useTranslation()
   const disabled = renderingEnv.transparency_disabled
 
   return (
     <SectionCard
-      title="Window Transparency"
-      subtitle="Control the backdrop opacity intensity"
+      title={t('settings_page.window_transparency')}
+      subtitle={t('settings_page.window_transparency_desc')}
       isDark={isDark}
       dimmed={disabled}
     >
@@ -99,8 +101,7 @@ export function TransparencySection({
                 isDark ? 'text-yellow-400/70' : 'text-yellow-700'
               )}
             >
-              Transparency and rounded window corners have been automatically disabled to prevent
-              rendering artefacts.
+              {t('settings_page.transparency_disabled')}
             </p>
           </div>
         </div>
@@ -109,7 +110,7 @@ export function TransparencySection({
       <div className="space-y-8">
         <OpacitySlider
           id="dark-opacity"
-          label="Dark Mode Opacity"
+          label={t('settings_page.dark_mode_opacity')}
           value={settings.dark_background_opacity}
           disabled={disabled}
           isDark={isDark}
@@ -118,7 +119,7 @@ export function TransparencySection({
         />
         <OpacitySlider
           id="light-opacity"
-          label="Light Mode Opacity"
+          label={t('settings_page.light_mode_opacity')}
           value={settings.light_background_opacity}
           disabled={disabled}
           isDark={isDark}

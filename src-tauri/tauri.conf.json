@@ -68,11 +68,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": [
-      "deb",
-      "rpm",
-      "appimage"
-    ],
+    "targets": ["deb", "rpm", "appimage"],
     "icon": [
       "icons/32x32.png",
       "icons/64x64.png",
@@ -98,12 +94,12 @@
           "libayatana-appindicator3-1 | libappindicator3-1"
         ],
         "files": {
-          "/usr/bin/Modern-Clipboard-History-For-Linux": "bundle/linux/wrapper.sh",
-          "/etc/udev/rules.d/99-modern-clipboard-history-input.rules": "bundle/linux/99-modern-clipboard-history-input.rules",
-          "/usr/share/applications/modern-clipboard-history-for-linux.desktop": "bundle/linux/modern-clipboard-history-for-linux.desktop",
-          "/usr/share/icons/hicolor/128x128/apps/modern-clipboard-history-for-linux.png": "icons/128x128.png",
-          "/usr/share/icons/hicolor/256x256/apps/modern-clipboard-history-for-linux.png": "icons/icon.png",
-          "/usr/share/icons/hicolor/scalable/apps/modern-clipboard-history-for-linux.svg": "icons/icon.svg",
+          "/usr/bin/win11-clipboard-history": "bundle/linux/wrapper.sh",
+          "/etc/udev/rules.d/99-win11-clipboard-history-input.rules": "bundle/linux/99-modern-clipboard-history-input.rules",
+          "/usr/share/applications/io.github.mahdi-arts.clipboard-history.desktop": "bundle/linux/modern-clipboard-history-for-linux.desktop",
+          "/usr/share/icons/hicolor/128x128/apps/io.github.mahdi-arts.clipboard-history.png": "icons/128x128.png",
+          "/usr/share/icons/hicolor/256x256/apps/io.github.mahdi-arts.clipboard-history.png": "icons/icon.png",
+          "/usr/share/icons/hicolor/scalable/apps/io.github.mahdi-arts.clipboard-history.svg": "icons/icon.svg",
           "/usr/share/doc/modern-clipboard-history-for-linux/apparmor/modern-clipboard-history-for-linux": "apparmor/modern-clipboard-history-for-linux"
         },
         "postInstallScript": "bundle/linux/postinst.sh",
@@ -124,8 +120,6 @@
         "preRemoveScript": "bundle/linux/postrm.sh"
       }
     },
-    "resources": [
-      "bundle/linux/99-modern-clipboard-history-input.rules"
-    ]
+    "resources": ["bundle/linux/99-modern-clipboard-history-input.rules"]
   }
 }

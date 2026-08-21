@@ -126,5 +126,10 @@ pub fn load_rows(conn: &Connection) -> Result<Vec<DbRow>, String> {
         })
         .map_err(|e| e.to_string())?;
 
-    Ok(rows.flatten().collect())
+    // Corrupt rows must fail visibly; silently flattening errors can look like
+    // data loss and may overwrite recoverable history on the next persist.
+    // ردیف خراب باید آشکارا خطا دهد؛ حذف خاموش خطا شبیه ازدست‌رفتن داده است
+    // و ممکن است در persist بعدی تاریخچهٔ قابل‌بازیابی را بازنویسی کند.
+    rows.collect::<Result<Vec<_>, _>>()
+        .map_err(|error| format!("decode history row: {error}"))
 }

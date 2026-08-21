@@ -1,4 +1,5 @@
 import { clsx } from 'clsx'
+import { useTranslation } from 'react-i18next'
 import type { BooleanSettingKey, ThemeMode, UserSettings } from '../../types/clipboard'
 import { Switch } from '../Switch'
 import { MonitorIcon, MoonIcon, SunIcon } from './icons'
@@ -22,9 +23,11 @@ export function AppearanceSection({
   onToggle,
   onLanguageChange,
 }: AppearanceSectionProps) {
+  const { t } = useTranslation()
+
   return (
     <SectionCard
-      title="Appearance"
+      title={t('settings_page.appearance')}
       dividedHeader={false}
       isDark={isDark}
       icon={
@@ -76,7 +79,7 @@ export function AppearanceSection({
                   selected ? 'text-win11-bg-accent' : isDark ? 'text-gray-300' : 'text-gray-700'
                 )}
               >
-                {mode === 'system' ? 'System' : mode}
+                {t(`settings_page.theme.${mode}`)}
               </span>
 
               {/* Radio circle indicator */}
@@ -100,9 +103,9 @@ export function AppearanceSection({
       <div className={clsx('mt-6 pt-6 border-t', isDark ? 'border-white/5' : 'border-gray-100')}>
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-sm font-medium">Dynamic Tray Icon</div>
+            <div className="text-sm font-medium">{t('settings_page.features.dynamic_tray')}</div>
             <div className={clsx('text-xs mt-0.5', isDark ? 'text-gray-400' : 'text-gray-500')}>
-              Adapt tray icon color to system theme.
+              {t('settings_page.features.dynamic_tray_desc')}
             </div>
           </div>
           <Switch
@@ -114,11 +117,11 @@ export function AppearanceSection({
       </div>
 
       <div className={clsx('mt-6 pt-6 border-t', isDark ? 'border-white/5' : 'border-gray-100')}>
-        <div className="text-sm font-medium mb-3">Language / زبان</div>
+        <div className="text-sm font-medium mb-3">{t('settings_page.language.label')}</div>
         <div className="grid grid-cols-2 gap-3">
           {[
-            { id: 'en' as const, label: 'English' },
-            { id: 'fa' as const, label: 'فارسی' },
+            { id: 'en' as const, label: t('settings_page.language.english') },
+            { id: 'fa' as const, label: t('settings_page.language.persian') },
           ].map((lang) => (
             <button
               key={lang.id}

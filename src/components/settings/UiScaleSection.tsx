@@ -1,4 +1,5 @@
 import { clsx } from 'clsx'
+import { useTranslation } from 'react-i18next'
 import type { UserSettings } from '../../types/clipboard'
 import { SectionCard } from './SectionCard'
 
@@ -11,17 +12,19 @@ interface UiScaleSectionProps {
 
 /** Clipboard popup scale control. */
 export function UiScaleSection({ settings, isDark, onScaleChange, onCommit }: UiScaleSectionProps) {
+  const { t } = useTranslation()
+
   return (
     <SectionCard
-      title="UI Scale"
-      subtitle="Adjust the clipboard window size for your display"
+      title={t('settings_page.ui_scale')}
+      subtitle={t('settings_page.ui_scale_desc')}
       isDark={isDark}
     >
       <div className="space-y-4">
         <div className="space-y-4">
           <div className="flex justify-between items-center">
             <label htmlFor="ui-scale" className="text-sm font-medium">
-              Clipboard Window Scale
+              {t('settings_page.clipboard_window_scale')}
             </label>
             <div
               className={clsx(
@@ -46,7 +49,7 @@ export function UiScaleSection({ settings, isDark, onScaleChange, onCommit }: Ui
             className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 accent-win11-bg-accent"
           />
           <p className={clsx('text-xs', isDark ? 'text-gray-500' : 'text-gray-400')}>
-            This setting only affects the clipboard popup, not this settings window
+            {t('settings_page.ui_scale_note')}
           </p>
         </div>
       </div>
