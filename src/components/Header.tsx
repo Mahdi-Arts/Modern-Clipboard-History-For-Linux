@@ -68,6 +68,8 @@ export function Header({
         {showCompactToggle && (
           <button
             onClick={onToggleCompact}
+            aria-label={isCompact ? t('clipboard.normal_mode') : t('clipboard.compact_mode')}
+            aria-pressed={isCompact}
             tabIndex={-1}
             onMouseEnter={() => setIsCompactHovered(true)}
             onMouseLeave={() => setIsCompactHovered(false)}

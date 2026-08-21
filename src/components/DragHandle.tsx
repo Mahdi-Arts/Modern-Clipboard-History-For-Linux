@@ -40,9 +40,12 @@ export function DragHandle({ isDark }: DragHandleProps) {
       <button
         onClick={handleClose}
         onMouseDown={(e) => e.stopPropagation()}
+        aria-label="Close"
+        title="Close"
         className={clsx(
           'absolute right-4 top-1/2 -translate-y-1/2 p-1 pt-5 rounded-md cursor-pointer z-10',
-          isDark ? 'text-white/50' : 'text-black/50'
+          isDark ? 'text-white/50' : 'text-black/50',
+          'focus:outline-none focus-visible:ring-2 focus-visible:ring-win11-bg-accent'
         )}
         tabIndex={-1}
       >

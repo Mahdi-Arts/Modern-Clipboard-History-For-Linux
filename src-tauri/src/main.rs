@@ -220,7 +220,6 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             // History
-            commands::get_history,
             commands::get_history_page,
             commands::get_item,
             commands::clear_history,
