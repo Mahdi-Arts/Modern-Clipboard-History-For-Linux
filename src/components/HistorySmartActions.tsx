@@ -30,6 +30,7 @@ export function HistorySmartActions({
       {linkAction && (
         <button
           onClick={(e) => onActionClick(e, linkAction)}
+          aria-label={t('smart_actions.open_link')}
           className={buttonClasses(isDark)}
           title={t('smart_actions.open_link')}
           tabIndex={-1}
@@ -40,6 +41,7 @@ export function HistorySmartActions({
       {emailAction && (
         <button
           onClick={(e) => onActionClick(e, emailAction)}
+          aria-label={t('smart_actions.compose_email')}
           className={buttonClasses(isDark)}
           title={t('smart_actions.compose_email')}
           tabIndex={-1}

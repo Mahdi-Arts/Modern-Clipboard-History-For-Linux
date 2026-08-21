@@ -349,6 +349,47 @@ flatpak override --user --share=network io.github.mahdi-arts.clipboard-history
 flatpak override --user --device=all io.github.mahdi-arts.clipboard-history
 ```
 
+<div dir="rtl">
+
+### لینت و ارسال به Flathub
+
+</div>
+
+The release pipeline lints both the manifest and the AppStream metainfo with
+`flatpak-builder-lint` (Flathub's own rules) before publishing. Run the same
+checks locally before any Flathub submission:
+
+```bash
+# Flathub-rule linting of the manifest and AppStream metadata
+flatpak-builder-lint manifest packaging/flatpak/io.github.mahdi-arts.clipboard-history.yml
+flatpak-builder-lint appstream packaging/flatpak/io.github.mahdi-arts.clipboard-history.metainfo.xml
+
+# End-to-end export + validation of the built bundle
+flatpak-builder --force-clean --repo=repo build-dir \
+  packaging/flatpak/io.github.mahdi-arts.clipboard-history.yml
+flatpak build-bundle repo \
+  io.github.mahdi-arts.clipboard-history.flatpak \
+  io.github.mahdi-arts.clipboard-history
+flatpak install --user io.github.mahdi-arts.clipboard-history.flatpak
+```
+
+To submit to Flathub, open a pull request against
+`flathub/flathub` (or `flathub/io.github.mahdi-arts.clipboard-history` when
+the app is accepted) containing the manifest, the metainfo, and the icon set
+from `packaging/flatpak/`. The Flathub bot runs the same
+`flatpak-builder-lint` gates in CI.
+
+<div dir="rtl">
+
+خط لولهٔ انتشار پیش از انتشار، manifest و متادیتای AppStream را با
+`flatpak-builder-lint` (قوانین خود Flathub) لینت می‌کند. همین بررسی‌ها را
+پیش از هر ارسال به Flathub به‌صورت محلی اجرا کنید (دستورهای بالا).
+برای ارسال به Flathub، یک PR شامل manifest، متادیتا و آیکون‌ها از
+`packaging/flatpak/` به مخزن `flathub/flathub` بزنید؛ ربات Flathub همان
+گیت‌های `flatpak-builder-lint` را در CI اجرا می‌کند.
+
+</div>
+
 ---
 
 ## Arch Linux (AUR)

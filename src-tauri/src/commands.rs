@@ -21,19 +21,6 @@ use crate::AppState;
 // History commands
 // ---------------------------------------------------------------------------
 
-/// Legacy unbounded-looking command: returns only the first IPC page.
-/// Prefer `get_history_page` (ADR-0007).
-/// فرمان قدیمی: فقط صفحهٔ اول IPC را برمی‌گرداند. `get_history_page` را ترجیح دهید.
-#[tauri::command]
-pub fn get_history(window: WebviewWindow, state: State<AppState>) -> Result<Vec<ClipboardItem>, AppError> {
-    require_main_window(&window)?;
-    Ok(state
-        .clipboard_manager
-        .lock()
-        .get_history_page(crate::clipboard_manager::MAX_PAGE_SIZE, 0)
-        .items)
-}
-
 /// Bounded history window for large histories (see ADR-0007).
 /// پنجرهٔ محدود تاریخچه برای تاریخچه‌های بزرگ (ADR-0007).
 ///

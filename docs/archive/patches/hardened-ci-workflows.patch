@@ -1,16 +1,34 @@
 From: Mahdi Arts <mahdi-arts@users.noreply.github.com>
-Date: 2026-08-21
-Subject: [PATCH] ci: activate hardened CI & release workflows (SHA-pinned, supply-chain gates)
+Subject: [PATCH] ci: activate hardened CI/release/E2E workflows (SHA-pinned, supply-chain gates)
 
-Applies the hardened .github/workflows/ci.yml and release.yml
-(blocking audits/tests/smoke, packaging contract gate, SHA-pinned actions,
-AUR fail-closed, optional GPG SHA256SUMS.sig; SHA256SUMS + per-artifact SPDX
-SBOM + SLSA provenance). Apply with:
-  git am docs/patches/hardened-ci-workflows.patch
-Pushing workflow files needs a token with the 'workflows' scope
-(a classic PAT or a direct push from a maintainer machine).
+Activation patch for the hardened, canonical-named pipelines. This PR's
+bot token cannot push `.github/workflows/*` (GitHub Apps need the
+`workflows` permission), so the workflow files travel as this patch —
+the single maintainer activation step:
+
+پچ فعال‌سازی خطوط لولهٔ hardened و نام‌گذاری‌شدهٔ رسمی. توکن ربات این PR
+نمی‌تواند `.github/workflows/*` را پوش کند (GitHub App به مجوز `workflows`
+نیاز دارد)، پس فایل‌های ورک‌فلو با همین پچ حمل می‌شوند — تک‌گام فعال‌سازی
+برای نگهدارنده:
+
+    git am docs/patches/hardened-ci-workflows.patch
+    git push    # needs a workflows-scoped token or direct maintainer push
+
+Contents / محتوا:
+  - ci.yml:      canonical names, rustup (no third-party Rust action),
+                 packaging job incl. flatpak-builder-lint (SHA-pinned)
+  - release.yml: canonical artifact names/URLs/AUR, optional GPG/SBOM/SLSA
+  - e2e.yml:     NEW manual Playwright workflow (webkit/chromium/firefox)
+  - stale.yml:   actions/stale pinned to a full commit SHA
+
+Applies cleanly on master and on this branch (workflow files are the
+patch's only subject). After `git am`, `.github/workflows/` is the single
+source of truth and this patch becomes historical (archive it in
+docs/archive/patches/). Superseded patches already live there.
+
+---
 diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
-index 5361682..0c4f67c 100644
+index 5361682..8ce8b6d 100644
 --- a/.github/workflows/ci.yml
 +++ b/.github/workflows/ci.yml
 @@ -6,6 +6,8 @@ name: CI
@@ -51,7 +69,17 @@ index 5361682..0c4f67c 100644
  
        - name: Cache Cargo
          uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
-@@ -103,8 +123,26 @@ jobs:
+@@ -76,9 +96,6 @@ jobs:
+       - name: ESLint (type-aware) + TypeScript
+         run: npm run lint
+ 
+-      - name: Fast Rust syntax gate (tree-sitter)
+-        run: node scripts/check-rust-syntax.mjs
+-
+       - name: Frontend tests with coverage gate
+         run: npm run test:coverage
+ 
+@@ -103,8 +120,26 @@ jobs:
          with:
            persist-credentials: false
  
@@ -80,7 +108,7 @@ index 5361682..0c4f67c 100644
  
        - name: Install cargo-audit + cargo-deny
          uses: taiki-e/install-action@a2a5f6e99e1a31540baa0468acfa302cff0f359f # v2
-@@ -129,10 +167,32 @@ jobs:
+@@ -129,10 +164,51 @@ jobs:
        - name: npm audit (blocking, high+)
          run: npm audit --audit-level=high
  
@@ -98,13 +126,32 @@ index 5361682..0c4f67c 100644
 +        with:
 +          node-version: '20'
 +
-+      - name: Install validators (desktop-file / AppStream)
++      - name: Install validators (desktop-file / AppStream / Flatpak lint)
 +        run: |
 +          sudo apt-get update
-+          sudo apt-get install -y --no-install-recommends desktop-file-utils appstream
++          sudo apt-get install -y --no-install-recommends \
++            desktop-file-utils appstream python3-gi python3-gi-cairo gir1.2-glib-2.0
++          # flatpak-builder-lint, pinned to a full commit SHA (no floating
++          # branch). PyGObject comes prebuilt from apt (its ==3.48.2 pin
++          # matches the Ubuntu 24.04 system package), so nothing compiles
++          # from source.
++          # / ابزار اعتبارسنجی فلت‌پک، پین‌شده به SHA کامل کامیت (بدون شاخهٔ
++          # / شناور). PyGObject به‌صورت از پیش ساخته از apt می‌آید (پینِ
++          # / ==3.48.2 آن با بستهٔ سیستمی اوبونتو ۲۴.۰۴ یکی است)، پس هیچ‌چیز
++          # / از سورس کامپایل نمی‌شود.
++          python3 -m pip install --user --no-deps \
++            "flatpak-builder-lint @ git+https://github.com/flathub-infra/flatpak-builder-lint@3b7a0920231c182586fc6c6e7f31b0606847a633"
++          python3 -m pip install --user \
++            "jsonschema>=4.23,<5" "requests>=2.32.4,<3" "lxml>=5.3,<7" "requests-cache>=1.2.1,<2"
++          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 +
 +      - name: Packaging contract (names, versions, deb/rpm parity)
 +        run: bash scripts/check-packaging.sh
++
++      - name: Flatpak manifest & metainfo lint (Flathub rules)
++        run: |
++          flatpak-builder-lint manifest packaging/flatpak/io.github.mahdi-arts.clipboard-history.yml
++          flatpak-builder-lint appstream packaging/flatpak/io.github.mahdi-arts.clipboard-history.metainfo.xml
 +
    build-linux:
      name: Build Linux
@@ -114,7 +161,7 @@ index 5361682..0c4f67c 100644
      steps:
        - name: Checkout repository
          uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-@@ -145,8 +205,26 @@ jobs:
+@@ -145,8 +221,26 @@ jobs:
            node-version: '20'
            cache: 'npm'
  
@@ -143,7 +190,7 @@ index 5361682..0c4f67c 100644
  
        - name: Cache Cargo
          uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
-@@ -174,7 +252,7 @@ jobs:
+@@ -174,7 +268,7 @@ jobs:
  
        - name: CLI smoke (--version / --help)
          run: |
@@ -152,6 +199,163 @@ index 5361682..0c4f67c 100644
            test -x "$BIN"
            "$BIN" --version
            "$BIN" --help
+diff --git a/.github/workflows/e2e.yml b/.github/workflows/e2e.yml
+new file mode 100644
+index 0000000..154c3d6
+--- /dev/null
++++ b/.github/workflows/e2e.yml
+@@ -0,0 +1,151 @@
++name: E2E Tests
++
++# Manual end-to-end testing with Playwright against a real Tauri build.
++# تست دستی سرتاسری با Playwright روی بیلد واقعی Tائوری.
++#
++# Runs on workflow_dispatch only (heavy: builds the app, then drives the
++# real binary). All actions are pinned to a full commit SHA, matching the
++# supply-chain contract in docs/CI.md.
++# فقط با اجرای دستی کار می‌کند (سنگین است: برنامه را می‌سازد و باینری
++# واقعی را راه می‌اندازد). همهٔ اکشن‌ها به SHA کامل پین شده‌اند، مطابق
++# قرارداد زنجیرهٔ تأمین docs/CI.md.
++
++on:
++  workflow_dispatch:
++    inputs:
++      browser:
++        description: 'Browser to test'
++        required: false
++        default: 'webkit'
++        type: choice
++        options:
++          - webkit
++          - chromium
++          - firefox
++          - all
++
++permissions:
++  contents: read
++
++concurrency:
++  group: e2e-${{ github.ref }}
++  cancel-in-progress: true
++
++jobs:
++  e2e:
++    name: E2E Tests (${{ inputs.browser || 'webkit' }})
++    runs-on: ubuntu-latest
++    timeout-minutes: 60
++
++    steps:
++      - name: Checkout repository
++        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
++        with:
++          persist-credentials: false
++
++      - name: Setup Node.js
++        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
++        with:
++          node-version: '20'
++          cache: 'npm'
++
++      - name: Install Rust (rustup, from rust-toolchain.toml)
++        # rustup ships on GitHub runners; the toolchain is pinned by the
++        # repository's rust-toolchain.toml. No third-party action, retries
++        # on transient network failures.
++        # / toolchain از فایل مخزن پین می‌شود؛ بدون اکشن شخص ثالث، با
++        # تلاش مجدد روی خطاهای گذرای شبکه.
++        run: |
++          set -euo pipefail
++          rustup set profile minimal
++          for attempt in 1 2 3; do
++            if rustup toolchain install; then
++              rustc --version && cargo --version
++              exit 0
++            fi
++            echo "::warning::rustup install failed (attempt ${attempt}/3), retrying in 15s"
++            sleep 15
++          done
++          echo "::error::rustup toolchain install failed after 3 attempts"
++          exit 1
++
++      - name: Cache Cargo
++        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
++        with:
++          path: |
++            ~/.cargo/bin/
++            ~/.cargo/registry/index/
++            src-tauri/target/
++          key: ${{ runner.os }}-cargo-e2e-${{ hashFiles('**/Cargo.lock') }}
++
++      - name: Install system dependencies
++        run: |
++          sudo apt-get update
++          sudo apt-get install -y \
++            libwebkit2gtk-4.1-dev \
++            build-essential \
++            libssl-dev \
++            libayatana-appindicator3-dev \
++            librsvg2-dev \
++            libxdo-dev \
++            libgtk-3-dev \
++            libglib2.0-dev \
++            xvfb \
++            libnss3 \
++            libatk-bridge2.0-0 \
++            libdrm2 \
++            libgbm1 \
++            libxkbcommon0
++
++      - name: Install npm dependencies
++        run: npm ci
++
++      - name: Build Tauri app
++        run: npm run tauri:build
++        timeout-minutes: 45
++
++      - name: Install Playwright browsers
++        run: npx playwright install --with-deps chromium webkit firefox
++
++      - name: Install Playwright dependencies
++        run: |
++          sudo apt-get install -y \
++            libxcb1 \
++            libxcb-render0 \
++            libxcb-shape0 \
++            libxcb-xfixes0
++
++      - name: Run E2E tests (webkit)
++        if: inputs.browser == 'webkit' || inputs.browser == '' || inputs.browser == 'all'
++        run: npx playwright test --project=webkit --reporter=list
++        timeout-minutes: 30
++
++      - name: Run E2E tests (chromium)
++        if: inputs.browser == 'chromium' || inputs.browser == 'all'
++        run: npx playwright test --project=chromium --reporter=list
++        timeout-minutes: 30
++
++      - name: Run E2E tests (firefox)
++        if: inputs.browser == 'firefox' || inputs.browser == 'all'
++        run: npx playwright test --project=firefox --reporter=list
++        timeout-minutes: 30
++
++      - name: Upload test results
++        if: always()
++        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
++        with:
++          name: playwright-results-${{ runner.os }}
++          path: |
++            test-results/
++            playwright-report/
++          if-no-files-found: warn
++          retention-days: 14
++
++      - name: Upload test screenshots
++        if: failure()
++        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
++        with:
++          name: playwright-screenshots-${{ runner.os }}
++          path: test-results/**/screenshots/
++          if-no-files-found: warn
++          retention-days: 7
 diff --git a/.github/workflows/release.yml b/.github/workflows/release.yml
 index e7a1085..205c549 100644
 --- a/.github/workflows/release.yml
@@ -348,3 +552,23 @@ index e7a1085..205c549 100644
            SRCINFO_EOF
              sed -i 's/^          //' .SRCINFO
            fi
+diff --git a/.github/workflows/stale.yml b/.github/workflows/stale.yml
+index 5d5780b..a0edecd 100644
+--- a/.github/workflows/stale.yml
++++ b/.github/workflows/stale.yml
+@@ -13,7 +13,11 @@ jobs:
+   stale:
+     runs-on: ubuntu-latest
+     steps:
+-      - uses: actions/stale@v11
++      # Pinned to a full commit SHA per the supply-chain contract (docs/CI.md);
++      # the tag is listed in the comment for review, not used for resolution.
++      # / مطابق قرارداد زنجیرهٔ تأمین به SHA کامل پین شده است؛ تگ فقط برای
++      # بازبینی در کامنت آمده است، نه برای اجرا.
++      - uses: actions/stale@4391f3da665fdf50b6810c1a66712fb9ba21aa93 # v11.0.0
+         with:
+           stale-issue-message: |
+             This issue has been automatically marked as stale because it has not had recent activity. 
+-- 
+2.39.5
+

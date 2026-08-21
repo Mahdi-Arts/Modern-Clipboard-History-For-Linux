@@ -205,6 +205,8 @@ export const HistoryItem = forwardRef<HTMLDivElement, HistoryItemProps>(function
           <button
             onPointerDown={handlePointerDownPreventDefault}
             onClick={handleTogglePin}
+            aria-label={item.pinned ? t('common.unpin') : t('common.pin')}
+            aria-pressed={item.pinned}
             className={clsx(
               'p-1.5 rounded-md transition-colors',
               isDark ? 'hover:bg-win11-bg-tertiary' : 'hover:bg-win11Light-bg-tertiary',
@@ -224,6 +226,7 @@ export const HistoryItem = forwardRef<HTMLDivElement, HistoryItemProps>(function
           <button
             onPointerDown={handlePointerDownPreventDefault}
             onClick={handleDelete}
+            aria-label={t('common.delete')}
             className={clsx(
               'p-1.5 rounded-md transition-colors',
               isDark

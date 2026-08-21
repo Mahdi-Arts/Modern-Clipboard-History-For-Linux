@@ -12,6 +12,49 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased] — 2026-08-21
 
+### Workflows hardened + security/UX pass / سخت‌سازی ورک‌فلوها + گردش امنیت و UX (2026-08-21)
+
+- **Hardened pipelines implemented; activation is one maintainer step.**
+  The final activation patch is archived at
+  `docs/archive/patches/hardened-ci-workflows.patch` and applies cleanly:
+  `git am docs/archive/patches/hardened-ci-workflows.patch && git push`.
+  It activates canonical `ci.yml` (rustup-only Rust install, packaging job
+  incl. `flatpak-builder-lint`, canonical binary smoke test), `release.yml`
+  (canonical artifact names/URLs/AUR, GPG/SBOM/SLSA), a manual `e2e.yml`
+  Playwright workflow and a SHA-pinned `stale.yml`. The workflow files
+  themselves are intentionally not part of this PR: a bot token without the
+  `workflows` permission cannot push `.github/workflows/*`. Verified in a
+  pristine worktree: after applying, `scripts/check-packaging.sh` passes
+  (legacy `win11-clipboard-history` / `Modern-Clipboard-History-For-Linux`
+  names and the missing `check-rust-syntax.mjs` reference are gone).
+  **خطوط لولهٔ hardened پیاده‌سازی شدند؛ فعال‌سازی یک گام نگهدارنده است.**
+  پچ نهایی در `docs/archive/patches/hardened-ci-workflows.patch` بایگانی
+  شده و اعمال تمیز دارد: `git am ... && git push`. این پچ `ci.yml` رسمی
+  (نصب Rust فقط با rustup، job بسته‌بندی شامل `flatpak-builder-lint`،
+  smoke تست باینری رسمی)، `release.yml` (نام‌های رسمی آرتیفکت/URL/AUR،
+  GPG/SBOM/SLSA)، `e2e.yml` دستی و `stale.yml` پین‌شده را فعال می‌کند.
+  فایل‌های ورک‌فلو عمداً جزو این PR نیستند: توکن ربات بدون مجوز
+  `workflows` نمی‌تواند `.github/workflows/*` را پوش کند. در کار درخت
+  تمیز تأیید شد: پس از اعمال، `scripts/check-packaging.sh` سبز است (نام‌های
+  قدیمی `win11-clipboard-history` / `Modern-Clipboard-History-For-Linux` و
+  ارجاع مفقود به `check-rust-syntax.mjs` حذف می‌شوند).
+- **Security: secret filter extended.** New well-known token prefixes
+  (`EAAC`, `SG.`, `xoxs-`, `whsec_`) and Telegram bot-token detection
+  (`<bot_id>:<secret>`, length-gated) — with unit tests. Legacy unbounded
+  `get_history` IPC command removed (frontend uses paged `get_history_page`,
+  ADR-0007).
+  **امنیت: فیلتر اسرار تقویت شد.** پیشوندهای توکن شناخته‌شدهٔ جدید
+  (`EAAC`، `SG.`، `xoxs-`، `whsec_`) و تشخیص توکن ربات تلگرام
+  (`<bot_id>:<secret>` با دروازهٔ طول) — همراه تست واحد. فرمان IPC منسوخ و
+  نامحدود `get_history` حذف شد (فرانت‌اند از `get_history_page` صفحه‌بندی‌شده
+  استفاده می‌کند، ADR-0007).
+- **UX: accessibility polish.** `aria-label`/`aria-pressed`/`title` added to
+  icon-only controls (pin, delete, smart actions, compact toggle, drag-handle
+  close) — screen-reader friendly, zero visual regression.
+  **UX: صیقل دسترس‌پذیری.** برچسب‌های `aria-label`/`aria-pressed`/`title`
+  برای کنترل‌های آیکون‌فقط (سنجاق، حذف، عملیات هوشمند، حالت فشرده، دکمهٔ
+  بستن دستگیرهٔ کشیدن) اضافه شد — سازگار با صفحه‌خوان، بدون بازگشت بصری.
+
 ### Hardened pipelines activated + maintenance pass / فعال‌سازی خطوط لولهٔ hardened + گردش نگهداشت (2026-08-21)
 
 - **Hardened CI/release/E2E pipelines finalised; two-step activation.**

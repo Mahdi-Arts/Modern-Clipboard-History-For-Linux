@@ -76,6 +76,9 @@ pub fn looks_like_secret(text: &str) -> bool {
     if looks_like_known_token(trimmed) {
         return true;
     }
+    if looks_like_telegram_bot_token(trimmed) {
+        return true;
+    }
     if looks_like_jwt(trimmed) {
         return true;
     }
@@ -115,6 +118,10 @@ fn looks_like_known_token(text: &str) -> bool {
         "sk-ant-",
         "AIza",
         "ya29.",
+        "EAAC", // Facebook Graph API tokens / توکن‌های Graph فیسبوک
+        "SG.", // SendGrid API keys / کلیدهای API سندگریل
+        "xoxs-", // Slack short-lived tokens / توکن‌های کوتاه‌عمر اسلک
+        "whsec_", // Stripe webhook secrets / اسرار وبهوک استرایپ
     ];
     if PREFIXES.iter().any(|p| compact.starts_with(p)) {
         return compact.len() >= 20;
@@ -137,6 +144,24 @@ fn looks_like_known_token(text: &str) -> bool {
             && slice.bytes().all(|b| b.is_ascii_uppercase() || b.is_ascii_digit());
     }
     false
+}
+
+/// True for Telegram bot tokens: `<bot_id>:<secret>` where the id is 6–12
+/// digits and the secret is at least 30 base62 chars (`-`/`_` allowed).
+/// Since 2025 Bot API tokens start with the bot id followed by `:`; the
+/// length gate keeps ordinary strings like `2026:notes` unclassified.
+/// درست برای توکن‌های ربات تلگرام: `<bot_id>:<secret>` — شناسهٔ ۶ تا ۱۲
+/// رقم و secret دست‌کم ۳۰ نویسهٔ base62 (با `-`/`_`). دروازهٔ طول مانع
+/// از شناسایی متن‌های عادی مانند `2026:notes` می‌شود.
+fn looks_like_telegram_bot_token(text: &str) -> bool {
+    let compact = text.trim();
+    let Some((id, secret)) = compact.split_once(':') else {
+        return false;
+    };
+    (6..=12).contains(&id.len())
+        && id.bytes().all(|b| b.is_ascii_digit())
+        && secret.len() >= 30
+        && secret.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_')
 }
 
 fn looks_like_jwt(text: &str) -> bool {
@@ -230,6 +255,24 @@ mod tests {
     // surrounding whitespace or a too-short value.
     // موارد لبه به سبک property: شرط طول token نباید با فضای خالی یا مقدار
     // خیلی کوتاه دور زده شود.
+    #[test]
+    fn detects_telegram_bot_tokens_and_new_prefixes() {
+        // Telegram bot tokens: numeric id + colon + long base62 secret.
+        assert!(looks_like_secret("1234567890:AAFcdefghijklmnopqrstuvwxyzABCDEFGHIJKL"));
+        // Well-known service prefixes with the ≥20 length gate.
+        assert!(looks_like_secret("whsec_abcdefghijklmnopqrstuvwxyz123456"));
+        assert!(looks_like_secret("EAACEdEose0cBAabcdefghijklmnopqrstuvwxyz123456"));
+        assert!(looks_like_secret(
+            "SG.abcdefghijklmnopqrstuvwxyz1234567890.ABCDEFGHIJKLMNOPQRST"
+        ));
+        // Short ids, non-numeric ids, or short secrets must NOT be flagged.
+        assert!(!looks_like_secret("12345:shortsecret"));
+        assert!(!looks_like_secret("abcdefg:hijklmnopqrstuvwxyzABCDEFGHIJKLMNOP"));
+        assert!(!looks_like_secret("1234567890:short"));
+        // Ordinary strings must stay unclassified.
+        assert!(!looks_like_secret("2026:notes"));
+    }
+
     #[test]
     fn token_length_gate_is_enforced() {
         // Too short to be a real token → not a secret (avoid over-blocking).
