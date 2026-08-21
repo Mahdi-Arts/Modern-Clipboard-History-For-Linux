@@ -1,8 +1,8 @@
 # Packaging and Release Guide / راهنمای بسته‌بندی و انتشار
 
 > Canonical application ID: `io.github.mahdi-arts.clipboard-history`
-> Canonical binary: `win11-clipboard-history-bin`
-> Canonical launcher: `win11-clipboard-history`
+> Canonical binary: `modern-clipboard-history-for-linux-bin`
+> Canonical launcher: `modern-clipboard-history-for-linux`
 
 ---
 
@@ -71,7 +71,7 @@ ls -lh src-tauri/target/release/bundle/deb/*.deb
 
 ```bash
 dpkg-buildpackage -us -uc -b
-lintian --pedantic ../win11-clipboard-history_*.changes
+lintian --pedantic ../modern-clipboard-history-for-linux_*.changes
 ```
 
 ### آزمون نصب
@@ -80,9 +80,9 @@ lintian --pedantic ../win11-clipboard-history_*.changes
 
 ```bash
 sudo apt install ./src-tauri/target/release/bundle/deb/*.deb
-command -v win11-clipboard-history
-/usr/lib/win11-clipboard-history/win11-clipboard-history-bin --version
-sudo apt remove win11-clipboard-history
+command -v modern-clipboard-history-for-linux
+/usr/lib/modern-clipboard-history-for-linux/modern-clipboard-history-for-linux-bin --version
+sudo apt remove modern-clipboard-history-for-linux
 ```
 
 عمل paste به `/dev/uinput` نیاز دارد. اسکریپت post-install ماژول را بارگذاری می‌کند و udev rule دارای `TAG+="uaccess"` را نصب می‌کند. ACL گسترده یا mode برابر `0666` مجاز نیست.
@@ -191,16 +191,16 @@ The independent Debian tooling path is:
 
 ```bash
 dpkg-buildpackage -us -uc -b
-lintian --pedantic ../win11-clipboard-history_*.changes
+lintian --pedantic ../modern-clipboard-history-for-linux_*.changes
 ```
 
 Install-test on a clean VM/container:
 
 ```bash
 sudo apt install ./src-tauri/target/release/bundle/deb/*.deb
-command -v win11-clipboard-history
-/usr/lib/win11-clipboard-history/win11-clipboard-history-bin --version
-sudo apt remove win11-clipboard-history
+command -v modern-clipboard-history-for-linux
+/usr/lib/modern-clipboard-history-for-linux/modern-clipboard-history-for-linux-bin --version
+sudo apt remove modern-clipboard-history-for-linux
 ```
 
 Paste simulation requires `/dev/uinput`. Packaging installs a `uaccess` udev rule; world-writable `0666` device permissions are forbidden.

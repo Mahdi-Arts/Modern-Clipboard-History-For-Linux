@@ -40,7 +40,7 @@ function useThemeMode(themeMode: ThemeMode): boolean {
 }
 
 /**
- * Settings App Component - Configuration UI for Win11 Clipboard History.
+ * Settings App Component - Configuration UI for Modern Clipboard History for Linux.
  *
  * Owns the settings state and delegates each visual section to a dedicated
  * component under `components/settings/` (single-responsibility sections).

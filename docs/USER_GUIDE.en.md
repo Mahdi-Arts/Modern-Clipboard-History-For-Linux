@@ -15,14 +15,14 @@ Download packages only from GitHub Releases and verify `SHA256SUMS` first.
 ```bash
 sha256sum -c SHA256SUMS --ignore-missing
 # Debian / Ubuntu
-sudo apt install ./win11-clipboard-history_2.5.0_amd64.deb
+sudo apt install ./modern-clipboard-history-for-linux_2.5.0_amd64.deb
 # Fedora
-sudo dnf install ./win11-clipboard-history-2.5.0-1.x86_64.rpm
+sudo dnf install ./modern-clipboard-history-for-linux-2.5.0-1.x86_64.rpm
 # Paste simulation permission
 sudo setfacl -m u:$USER:rw /dev/uinput
 ```
 
-Arch users can install `win11-clipboard-history-bin` from AUR. Flatpak does not expose `/dev/uinput` by default; review [Packaging](../packaging/README.md) before granting a device override.
+Arch users can install `modern-clipboard-history-for-linux-bin` from AUR. Flatpak does not expose `/dev/uinput` by default; review [Packaging](../packaging/README.md) before granting a device override.
 
 ## 3. Usage
 
@@ -39,9 +39,9 @@ Settings cover theme, opacity, UI scale, language, retention, automatic deletion
 
 ## 4. Privacy and security
 
-- Database: `~/.local/share/win11-clipboard-history/history.db`
-- Images: `~/.local/share/win11-clipboard-history/images/`
-- Settings: `~/.config/win11-clipboard-history/user_settings.json`
+- Database: `~/.local/share/modern-clipboard-history-for-linux/history.db`
+- Images: `~/.local/share/modern-clipboard-history-for-linux/images/`
+- Settings: `~/.config/modern-clipboard-history-for-linux/user_settings.json`
 - Key: local `history.key` (`0600`) or desktop Secret Service
 - Default history cap: 2,000 items
 - Network: zero calls in the default build; optional GIF search requires its build feature and `TENOR_API_KEY`.
@@ -54,7 +54,7 @@ Secret detection and password-manager exclusion are enabled by default, but patt
 - **Paste does not work:** verify `/dev/uinput` ACL and log out/in.
 - **Black NVIDIA window:** launch with `IS_NVIDIA=1`.
 - **Sensitive app captured on Wayland:** keep secret filtering enabled; focused-window exclusion is unavailable.
-- **Logs:** inspect `~/.local/share/win11-clipboard-history/logs/` and redact sensitive data before sharing.
+- **Logs:** inspect `~/.local/share/modern-clipboard-history-for-linux/logs/` and redact sensitive data before sharing.
 
 ## 6. Development
 

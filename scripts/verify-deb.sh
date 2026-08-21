@@ -23,14 +23,14 @@ require_path() {
     }
 }
 
-require_path 'usr/bin/win11-clipboard-history'
-grep -Eq '[.]/usr/(lib/win11-clipboard-history/|bin/)win11-clipboard-history-bin$' <<<"$contents" || {
+require_path 'usr/bin/modern-clipboard-history-for-linux'
+grep -Eq '[.]/usr/(lib/modern-clipboard-history-for-linux/|bin/)modern-clipboard-history-for-linux-bin$' <<<"$contents" || {
     echo 'missing canonical binary' >&2
     exit 1
 }
 require_path 'usr/share/applications/io.github.mahdi-arts.clipboard-history.desktop'
-require_path 'etc/udev/rules.d/99-win11-clipboard-history-input.rules'
-grep -Fq 'Package: win11-clipboard-history' <<<"$control"
+require_path 'etc/udev/rules.d/99-modern-clipboard-history-input.rules'
+grep -Fq 'Package: modern-clipboard-history-for-linux' <<<"$control"
 grep -Fq 'Architecture:' <<<"$control"
 
 printf 'Debian artifact verified: %s / بستهٔ دبیان تأیید شد: %s\n' "$package_path" "$package_path"

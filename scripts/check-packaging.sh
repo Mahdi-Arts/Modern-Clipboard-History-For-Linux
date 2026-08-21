@@ -6,8 +6,8 @@ set -euo pipefail
 readonly ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-readonly BINARY="win11-clipboard-history-bin"
-readonly WRAPPER="win11-clipboard-history"
+readonly BINARY="modern-clipboard-history-for-linux-bin"
+readonly WRAPPER="modern-clipboard-history-for-linux"
 readonly APP_ID="io.github.mahdi-arts.clipboard-history"
 
 fail() {

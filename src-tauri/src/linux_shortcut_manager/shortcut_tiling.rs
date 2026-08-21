@@ -31,8 +31,8 @@ fn has_mod_v_binding(trimmed_line: &str) -> bool {
 }
 
 /// Comment marker used when an existing binding is disabled (opt-in only).
-const WM_COMMENT_MARKER: &str = "# Commented by win11-clipboard-history";
-const WM_ADDED_MARKER: &str = "# Clipboard History (added by win11-clipboard-history)";
+const WM_COMMENT_MARKER: &str = "# Commented by modern-clipboard-history-for-linux";
+const WM_ADDED_MARKER: &str = "# Clipboard History (added by modern-clipboard-history-for-linux)";
 
 /// Appends `binding_line` to a WM config file.
 /// Existing conflicting bindings are only commented out when

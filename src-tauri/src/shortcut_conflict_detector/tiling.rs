@@ -20,7 +20,7 @@ pub fn detect_cosmic_conflicts() -> Vec<ShortcutConflict> {
     if let Ok(content) = fs::read_to_string(&shortcuts_path) {
         if content.to_lowercase().contains("super")
             && content.to_lowercase().contains("\"v\"")
-            && !content.contains("win11-clipboard-history")
+            && !content.contains("modern-clipboard-history-for-linux")
         {
             conflicts.push(ShortcutConflict {
                 binding: "Super+V".to_string(),
@@ -72,7 +72,7 @@ Found in: {path}
 
 **Then add:**
 ```
-bindsym $mod+v exec win11-clipboard-history
+bindsym $mod+v exec modern-clipboard-history-for-linux
 ```
 
 4. Reload i3: Press $mod+Shift+r"#,
@@ -93,7 +93,7 @@ Found in: {path}
 
 **Then add:**
 ```
-bindsym $mod+v exec win11-clipboard-history
+bindsym $mod+v exec modern-clipboard-history-for-linux
 ```
 
 4. Reload Sway: Press $mod+Shift+c"#,
@@ -115,7 +115,7 @@ fn detect_bindsym_conflicts(paths: &[PathBuf], owner: &str, steps: &str) -> Vec<
                 if (line_lower.contains("bindsym") || line_lower.contains("bindcode"))
                     && (line_lower.contains("mod4+v") || line_lower.contains("$mod+v"))
                     && !line_lower.contains("clipboard-history")
-                    && !line_lower.contains("win11")
+                    && !line_lower.contains("modern-clipboard-history")
                 {
                     let action = line
                         .split_whitespace()
@@ -176,7 +176,7 @@ pub fn detect_hyprland_conflicts() -> Vec<ShortcutConflict> {
                     && line_lower.contains("super")
                     && (line_lower.contains(", v,") || line_lower.contains(",v,"))
                     && !line_lower.contains("clipboard-history")
-                    && !line_lower.contains("win11")
+                    && !line_lower.contains("modern-clipboard-history")
                 {
                     let parts: Vec<&str> = line.split(',').collect();
                     let action = if parts.len() >= 4 {
@@ -201,7 +201,7 @@ Found in: {}
 
 **Then add:**
 ```
-bind = SUPER, V, exec, win11-clipboard-history
+bind = SUPER, V, exec, modern-clipboard-history-for-linux
 ```
 
 4. The config auto-reloads, or reload manually"#,

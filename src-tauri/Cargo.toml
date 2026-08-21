@@ -13,7 +13,7 @@ name = "modern_clipboard_history_for_linux"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [[bin]]
-name = "win11-clipboard-history-bin"
+name = "modern-clipboard-history-for-linux-bin"
 path = "src/main.rs"
 
 [build-dependencies]

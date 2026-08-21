@@ -1,4 +1,4 @@
-# AppArmor profile for win11-clipboard-history
+# AppArmor profile for modern-clipboard-history-for-linux
 #
 # NOTE: This profile ships in *complain* mode by default (see install.sh).
 # Enforce mode (`aa-enforce`) is a deliberate hardening step: it restricts
@@ -17,24 +17,24 @@
 
 #include <tunables/global>
 
-profile win11-clipboard-history /usr/lib/win11-clipboard-history/win11-clipboard-history-bin flags=(complain) {
+profile modern-clipboard-history-for-linux /usr/lib/modern-clipboard-history-for-linux/modern-clipboard-history-for-linux-bin flags=(complain) {
   #include <abstractions/base>
   #include <abstractions/dbus>
   #include <abstractions/nameservice>
 
   # Binary + libraries
-  /usr/lib/win11-clipboard-history/win11-clipboard-history-bin mr,
-  /usr/lib/win11-clipboard-history/** mr,
+  /usr/lib/modern-clipboard-history-for-linux/modern-clipboard-history-for-linux-bin mr,
+  /usr/lib/modern-clipboard-history-for-linux/** mr,
   /usr/lib/x86_64-linux-gnu/** mr,
 
   # Own data & config
-  owner @{HOME}/.local/share/win11-clipboard-history/** rwk,
-  owner @{HOME}/.config/win11-clipboard-history/** rwk,
-  owner @{HOME}/.cache/win11-clipboard-history/** rwk,
-  owner @{HOME}/.config/autostart/win11-clipboard-history.desktop rw,
+  owner @{HOME}/.local/share/modern-clipboard-history-for-linux/** rwk,
+  owner @{HOME}/.config/modern-clipboard-history-for-linux/** rwk,
+  owner @{HOME}/.cache/modern-clipboard-history-for-linux/** rwk,
+  owner @{HOME}/.config/autostart/modern-clipboard-history-for-linux.desktop rw,
 
   # Logs
-  owner @{HOME}/.local/share/win11-clipboard-history/logs/* w,
+  owner @{HOME}/.local/share/modern-clipboard-history-for-linux/logs/* w,
 
   # Input device (paste injection) — matches the udev rule
   /dev/uinput rw,

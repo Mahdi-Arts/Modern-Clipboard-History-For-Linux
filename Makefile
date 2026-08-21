@@ -6,7 +6,7 @@
 #       To install system-wide like a package: sudo make install PREFIX=/usr
 
 SHELL := /bin/bash
-APP_NAME := win11-clipboard-history
+APP_NAME := modern-clipboard-history-for-linux
 PREFIX ?= /usr/local
 LIBDIR := $(PREFIX)/lib
 BINDIR := $(PREFIX)/bin
@@ -241,7 +241,7 @@ install:
 	@echo -e "$(CYAN)Installing $(APP_NAME)...$(RESET)"
 	@# Install binary to lib directory
 	@mkdir -p $(DESTDIR)$(LIBDIR)/$(APP_NAME)
-	install -Dm755 src-tauri/target/release/win11-clipboard-history-bin $(DESTDIR)$(LIBDIR)/$(APP_NAME)/win11-clipboard-history-bin
+	install -Dm755 src-tauri/target/release/modern-clipboard-history-for-linux-bin $(DESTDIR)$(LIBDIR)/$(APP_NAME)/modern-clipboard-history-for-linux-bin
 	@# Install wrapper script to bin
 	install -Dm755 src-tauri/bundle/linux/wrapper.sh $(DESTDIR)$(BINDIR)/$(APP_NAME)
 	@# Install icons
@@ -249,10 +249,10 @@ install:
 	install -Dm644 src-tauri/icons/icon.png $(DESTDIR)$(DATADIR)/icons/hicolor/256x256/apps/io.github.mahdi-arts.clipboard-history.png
 	@# Create udev rules for input devices and uinput
 	@mkdir -p $(DESTDIR)/etc/udev/rules.d
-	install -Dm644 src-tauri/bundle/linux/99-modern-clipboard-history-input.rules $(DESTDIR)/etc/udev/rules.d/99-win11-clipboard-history-input.rules
+	install -Dm644 src-tauri/bundle/linux/99-modern-clipboard-history-input.rules $(DESTDIR)/etc/udev/rules.d/99-modern-clipboard-history-input.rules
 	@# Ensure uinput loads on boot (use same filename as postinst/postrm)
 	@mkdir -p $(DESTDIR)/etc/modules-load.d
-	@echo "uinput" > $(DESTDIR)/etc/modules-load.d/modern-clipboard-history.conf
+	@echo "uinput" > $(DESTDIR)/etc/modules-load.d/modern-clipboard-history-for-linux.conf
 	@# Load module and reload udev only when installing on live system (not in DESTDIR/fakeroot)
 	@if [ -z "$$(printf '%s' "$(DESTDIR)")" ]; then \
 		modprobe uinput 2>/dev/null || true; \
@@ -281,9 +281,9 @@ uninstall:
 	@echo -e "$(CYAN)Uninstalling $(APP_NAME)...$(RESET)"
 	@# Stop any running instances first
 	@if [ -n "$$SUDO_USER" ]; then \
-		pkill -u $$SUDO_USER -x "win11-clipboard-history-bin" 2>/dev/null || true; \
+		pkill -u $$SUDO_USER -x "modern-clipboard-history-for-linux-bin" 2>/dev/null || true; \
 	fi
-	@pkill -x "win11-clipboard-history-bin" 2>/dev/null || true
+	@pkill -x "modern-clipboard-history-for-linux-bin" 2>/dev/null || true
 	@# Remove from specified PREFIX path
 	rm -f $(DESTDIR)$(BINDIR)/$(APP_NAME)
 	rm -rf $(DESTDIR)$(LIBDIR)/$(APP_NAME)
@@ -307,9 +307,9 @@ uninstall:
 	@# Clean desktop entries from all common paths
 	rm -f $(DESTDIR)/usr/local/share/applications/io.github.mahdi-arts.clipboard-history.desktop 2>/dev/null || true
 	rm -f $(DESTDIR)/usr/share/applications/io.github.mahdi-arts.clipboard-history.desktop 2>/dev/null || true
-	rm -f $(DESTDIR)/etc/udev/rules.d/99-win11-clipboard-history-input.rules
+	rm -f $(DESTDIR)/etc/udev/rules.d/99-modern-clipboard-history-input.rules
 	rm -f $(DESTDIR)/etc/modules-load.d/uinput.conf
-	rm -f $(DESTDIR)/etc/modules-load.d/modern-clipboard-history.conf
+	rm -f $(DESTDIR)/etc/modules-load.d/modern-clipboard-history-for-linux.conf
 	@# Remove autostart entry for the user
 	@if [ -n "$$SUDO_USER" ]; then \
 		AUTOSTART_FILE=$$(getent passwd $$SUDO_USER | cut -d: -f6)/.config/autostart/$(APP_NAME).desktop; \

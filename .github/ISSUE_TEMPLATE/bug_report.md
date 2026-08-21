@@ -72,7 +72,7 @@ What actually happened instead.
 
 ```
 # Check logs at:
-# ~/.local/share/win11-clipboard-history/logs/
+# ~/.local/share/modern-clipboard-history-for-linux/logs/
 # Paste relevant logs here
 ```
 

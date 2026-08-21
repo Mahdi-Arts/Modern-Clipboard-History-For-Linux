@@ -14,32 +14,32 @@ override_dh_auto_build:
 
 override_dh_auto_install:
 	# Binary
-	install -Dm755 src-tauri/target/release/win11-clipboard-history-bin \
-		$(CURDIR)/debian/win11-clipboard-history/usr/lib/win11-clipboard-history/win11-clipboard-history-bin
+	install -Dm755 src-tauri/target/release/modern-clipboard-history-for-linux-bin \
+		$(CURDIR)/debian/modern-clipboard-history-for-linux/usr/lib/modern-clipboard-history-for-linux/modern-clipboard-history-for-linux-bin
 	# Wrapper script
 	install -Dm755 src-tauri/bundle/linux/wrapper.sh \
-		$(CURDIR)/debian/win11-clipboard-history/usr/bin/win11-clipboard-history
+		$(CURDIR)/debian/modern-clipboard-history-for-linux/usr/bin/modern-clipboard-history-for-linux
 	# Desktop entry
 	install -Dm644 src-tauri/bundle/linux/modern-clipboard-history-for-linux.desktop \
-		$(CURDIR)/debian/win11-clipboard-history/usr/share/applications/io.github.mahdi-arts.clipboard-history.desktop
+		$(CURDIR)/debian/modern-clipboard-history-for-linux/usr/share/applications/io.github.mahdi-arts.clipboard-history.desktop
 	# Icons
 	install -Dm644 src-tauri/icons/128x128.png \
-		$(CURDIR)/debian/win11-clipboard-history/usr/share/icons/hicolor/128x128/apps/io.github.mahdi-arts.clipboard-history.png
+		$(CURDIR)/debian/modern-clipboard-history-for-linux/usr/share/icons/hicolor/128x128/apps/io.github.mahdi-arts.clipboard-history.png
 	install -Dm644 src-tauri/icons/icon.png \
-		$(CURDIR)/debian/win11-clipboard-history/usr/share/icons/hicolor/256x256/apps/io.github.mahdi-arts.clipboard-history.png
+		$(CURDIR)/debian/modern-clipboard-history-for-linux/usr/share/icons/hicolor/256x256/apps/io.github.mahdi-arts.clipboard-history.png
 	install -Dm644 src-tauri/icons/icon.svg \
-		$(CURDIR)/debian/win11-clipboard-history/usr/share/icons/hicolor/scalable/apps/io.github.mahdi-arts.clipboard-history.svg
+		$(CURDIR)/debian/modern-clipboard-history-for-linux/usr/share/icons/hicolor/scalable/apps/io.github.mahdi-arts.clipboard-history.svg
 	# udev rules
 	install -Dm644 src-tauri/bundle/linux/99-modern-clipboard-history-input.rules \
-		$(CURDIR)/debian/win11-clipboard-history/etc/udev/rules.d/99-win11-clipboard-history-input.rules
+		$(CURDIR)/debian/modern-clipboard-history-for-linux/etc/udev/rules.d/99-modern-clipboard-history-input.rules
 	# uinput module loading
-	install -d $(CURDIR)/debian/win11-clipboard-history/etc/modules-load.d
-	echo "uinput" > $(CURDIR)/debian/win11-clipboard-history/etc/modules-load.d/win11-clipboard.conf
+	install -d $(CURDIR)/debian/modern-clipboard-history-for-linux/etc/modules-load.d
+	echo "uinput" > $(CURDIR)/debian/modern-clipboard-history-for-linux/etc/modules-load.d/modern-clipboard-history-for-linux.conf
 	# AppArmor profile (complain mode — see packaging/apparmor/)
-	install -Dm644 packaging/apparmor/win11-clipboard-history \
-		$(CURDIR)/debian/win11-clipboard-history/usr/share/doc/win11-clipboard-history/apparmor/win11-clipboard-history
+	install -Dm644 packaging/apparmor/modern-clipboard-history-for-linux \
+		$(CURDIR)/debian/modern-clipboard-history-for-linux/usr/share/doc/modern-clipboard-history-for-linux/apparmor/modern-clipboard-history-for-linux
 	install -Dm755 packaging/apparmor/install.sh \
-		$(CURDIR)/debian/win11-clipboard-history/usr/share/doc/win11-clipboard-history/apparmor/install.sh
+		$(CURDIR)/debian/modern-clipboard-history-for-linux/usr/share/doc/modern-clipboard-history-for-linux/apparmor/install.sh
 
 override_dh_auto_test:
 	# Frontend unit tests do not need a display server.

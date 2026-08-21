@@ -520,7 +520,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
               <p className="whitespace-pre-line opacity-90 text-xs">
                 {t('setup.manual_instructions', {
                   desktop: shortcutTools.desktop_environment,
-                  command: 'win11-clipboard-history',
+                  command: 'modern-clipboard-history-for-linux',
                 })}
               </p>
             </div>
@@ -528,7 +528,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
           <WizardButton
             {...buttonProps}
             id="copy-path"
-            onClick={() => copyToClipboard('/usr/bin/win11-clipboard-history')}
+            onClick={() => copyToClipboard('/usr/bin/modern-clipboard-history-for-linux')}
           >
             <span className="flex items-center justify-center gap-2">
               <Copy className="w-4 h-4" />

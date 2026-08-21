@@ -29,10 +29,10 @@
 
 ### ضعف‌ها و ریسک‌ها
 
-1. **ناسازگاری نام باینری — زیاد:** `Cargo.toml` باینری `modern-clipboard-history-for-linux-bin` می‌سازد، ولی CI، Debian rules، Flatpak و بخش‌هایی از AppArmor انتظار `win11-clipboard-history-bin` دارند؛ Makefile و wrapper نیز نام سومی با حروف بزرگ دارند. این مسئله می‌تواند smoke test یا بسته‌بندی را بشکند.
+1. **ناسازگاری نام باینری — زیاد:** `Cargo.toml` باینری `modern-clipboard-history-for-linux-bin` می‌سازد، ولی CI، Debian rules، Flatpak و بخش‌هایی از AppArmor انتظار `modern-clipboard-history-for-linux-bin` دارند؛ Makefile و wrapper نیز نام سومی با حروف بزرگ دارند. این مسئله می‌تواند smoke test یا بسته‌بندی را بشکند.
 2. فایل‌های بزرگ باقی‌مانده‌اند: `input_simulator.rs`، `history_crypto.rs`، `SetupWizard.tsx` و `commands.rs` هر کدام چندصد خط‌اند. شکستن آن‌ها به adapter/service/policy/test module نگهداری را بهتر می‌کند.
 3. دو پیاده‌سازی SymbolPicker در `components/SymbolPicker.tsx` و `components/common/SymbolPicker.tsx` دیده می‌شود؛ نسخهٔ بلااستفاده خطر drift دارد.
-4. نام‌های تاریخی پروژه (`win11-clipboard-history`، `Modern-Clipboard-History-For-Linux` و identifier جدید) در مسیرها و بسته‌ها یکنواخت نیستند.
+4. نام‌های تاریخی پروژه (`modern-clipboard-history-for-linux`، `Modern-Clipboard-History-For-Linux` و identifier جدید) در مسیرها و بسته‌ها یکنواخت نیستند.
 5. محصول دسکتاپ است و «مقیاس‌پذیری» آن بیشتر به حجم تاریخچه، مصرف حافظه و latency IPC مربوط است، نه horizontal scaling. صفحه‌بندی خوب است ولی benchmark و budget عملکردی ثبت نشده است.
 
 ### جمع‌بندی معماری

@@ -11,12 +11,12 @@
 
 | # | Asset | Location | Sensitivity |
 | --- | --- | --- | --- |
-| A1 | Clipboard history (text + rich text) | `~/.local/share/win11-clipboard-history/history.db` (SQLite, WAL, `0600`) | **High** — may contain copied credentials, personal data |
-| A2 | Clipboard images | `~/.local/share/win11-clipboard-history/images/*.png` (`0600`, ChaCha20-Poly1305 envelope; legacy plaintext PNG still readable) | Medium-High |
-| A3 | User settings | `~/.config/win11-clipboard-history/user_settings.json` (`0600`) | Low-Medium |
-| A4 | Emoji usage / custom kaomoji | `~/.local/share/win11-clipboard-history/emoji_history.json` | Low |
-| A5 | GIF cache | `~/.cache/win11-clipboard-history/gifs/` | Low |
-| A6 | Logs | `~/.local/share/win11-clipboard-history/logs/` (`0700`) | Medium — may contain window titles, commands |
+| A1 | Clipboard history (text + rich text) | `~/.local/share/modern-clipboard-history-for-linux/history.db` (SQLite, WAL, `0600`) | **High** — may contain copied credentials, personal data |
+| A2 | Clipboard images | `~/.local/share/modern-clipboard-history-for-linux/images/*.png` (`0600`, ChaCha20-Poly1305 envelope; legacy plaintext PNG still readable) | Medium-High |
+| A3 | User settings | `~/.config/modern-clipboard-history-for-linux/user_settings.json` (`0600`) | Low-Medium |
+| A4 | Emoji usage / custom kaomoji | `~/.local/share/modern-clipboard-history-for-linux/emoji_history.json` | Low |
+| A5 | GIF cache | `~/.cache/modern-clipboard-history-for-linux/gifs/` | Low |
+| A6 | Logs | `~/.local/share/modern-clipboard-history-for-linux/logs/` (`0700`) | Medium — may contain window titles, commands |
 | A7 | Shortcut registrations (DE configs) | `~/.config/…` (gsettings, khotkeysrc, i3 config, …) | Medium |
 
 ## 2. Trust boundaries

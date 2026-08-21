@@ -45,7 +45,7 @@ fn main() {
 
     // Handle --version / -v
     if args.iter().any(|arg| arg == "--version" || arg == "-v") {
-        println!("win11-clipboard-history {VERSION}");
+        println!("modern-clipboard-history-for-linux {VERSION}");
         return;
     }
 
@@ -292,7 +292,7 @@ fn build_tray(app: &tauri::App, app_handle: &AppHandle) -> Result<(), Box<dyn st
     let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
     let menu = Menu::with_items(app, &[&show, &settings_item, &quit])?;
 
-    let temp_dir = std::env::temp_dir().join("win11-clipboard-history");
+    let temp_dir = std::env::temp_dir().join("modern-clipboard-history-for-linux");
     std::fs::create_dir_all(&temp_dir).ok();
 
     modern_clipboard_history_for_linux::theme_manager::update_dynamic_tray_flag(
@@ -343,10 +343,10 @@ fn build_tray(app: &tauri::App, app_handle: &AppHandle) -> Result<(), Box<dyn st
 
 /// Print help message
 fn print_help() {
-    println!("win11-clipboard-history {VERSION}");
+    println!("modern-clipboard-history-for-linux {VERSION}");
     println!();
     println!("USAGE:");
-    println!("    win11-clipboard-history [OPTIONS]");
+    println!("    modern-clipboard-history-for-linux [OPTIONS]");
     println!();
     println!("OPTIONS:");
     println!("    -h, --help       Show this help message");
