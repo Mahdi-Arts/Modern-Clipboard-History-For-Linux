@@ -15,7 +15,7 @@ Build-Depends: debhelper-compat (= 13),
                nodejs,
                npm
 Standards-Version: 4.6.0
-Homepage: https://github.com/Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager
+Homepage: https://www.MahdiArts.ir
 Vcs-Browser: https://github.com/Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager
 Vcs-Git: https://github.com/Mahdi-Arts/Windows-11-Style-Clipboard-History-Manager.git
 

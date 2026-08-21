@@ -28,7 +28,7 @@
 | # | توصیه | وضعیت | شرح |
 |---|---|---|---|
 | 1 | 🔴 رفع باگ `package-lock.json` | ✅ اعمال شد | بازتولید lockfile؛ `@playwright/test`/`playwright`/`playwright-core` اکنون در lockfile است و `npm ci` تمیز کار می‌کند. |
-| 2 | 🟠 اصلاح ایمیل Maintainer | ✅ اعمال شد | `mahdi@example.com` در `debian/control` و spec آرپی‌ام با `mahdi-arts@users.noreply.github.com` جایگزین شد (هم‌خوان با changelog و SECURITY). |
+| 2 | 🟠 اصلاح ایمیل Maintainer | ✅ اعمال شد | `info@Mahdiarts.ir` در `debian/control` و spec آرپی‌ام با `mahdi-arts@users.noreply.github.com` جایگزین شد (هم‌خوان با changelog و SECURITY). |
 | 3 | 🟠 رفع رانش/نام‌های قدیمی خط لوله | ✅ اعمال شد (بحرانی) | `release.yml`/`ci.yml` زنده با نسخهٔ سخت‌شده و رسمی جایگزین شد؛ `docs/github-workflows/` به‌عنوان کپی مرجع هم‌سو شد. |
 | 4 | 🟠 گیت بسته‌بندی به‌عنوان گیت واقعی CI | ✅ اعمال شد | `scripts/check-packaging.sh` به‌عنوان گام مسدودکنندهٔ `ci.yml` اضافه شد (قبلاً فقط در کامنت بود). |
 | 5 | 🟡 جلوگیری از رانش نسخه | ✅ اعمال شد | گارد «نسخه از منبع واحد» به `check-packaging.sh` اضافه شد (Cargo/package.json/tauri/changelog/metainfo باید هم‌نسخه باشند). |
